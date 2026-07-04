@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy UXguard frontend to Vercel (standalone repo — root directory: frontend)
+# Deploy UXguard to Vercel (standalone repo — Vercel root directory: frontend)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,7 +13,7 @@ if [[ ! -d "$FRONTEND/node_modules" ]]; then
   (cd "$FRONTEND" && npm install)
 fi
 
-cd "$FRONTEND"
+cd "$ROOT"
 
 echo "Deploying UXguard to Vercel (project: uxguard-portfolio)..."
 npx vercel link --project uxguard-portfolio --yes 2>/dev/null || npx vercel link --project uxguard-portfolio

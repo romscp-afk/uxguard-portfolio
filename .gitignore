@@ -15,3 +15,5 @@ frontend/tsconfig.tsbuildinfo
 .vercel/
 *.egg-info/
 .pytest_cache/
+.vercel
+.env*

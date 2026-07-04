@@ -61,14 +61,16 @@ Demo login (auto-seeded): `demo@uxguard.io` / `demo1234`
 
 ### Option B — CLI
 
+Deploy from the **repository root** (Vercel project root directory is `frontend`):
+
 ```bash
-cd frontend
+cd /path/to/uxguard-portfolio
 npx vercel link --project uxguard-portfolio
-export VITE_API_URL=https://YOUR-API.onrender.com
+export VITE_API_URL=https://YOUR-API.onrender.com   # optional for first deploy
 npx vercel --prod
 ```
 
-Or from repo root:
+Or use the helper script:
 
 ```bash
 ./scripts/deploy-vercel.sh
