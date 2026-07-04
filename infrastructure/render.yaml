@@ -1,0 +1,21 @@
+# Render Blueprint — UXguard Portfolio API
+# Dashboard: https://dashboard.render.com → New → Blueprint
+# Blueprint path: infrastructure/render.yaml
+services:
+  - type: web
+    name: uxguard-portfolio-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SEED_ON_STARTUP
+        value: "true"
+      - key: DEBUG
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false

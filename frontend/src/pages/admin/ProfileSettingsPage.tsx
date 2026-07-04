@@ -1,0 +1,176 @@
+import { FormEvent, useEffect, useState } from "react";
+import { Check, Copy, Save } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { api } from "../../api/client";
+import type { User } from "../../types";
+
+export function ProfileSettingsPage() {
+  const { user, refreshUser } = useAuth();
+  const [form, setForm] = useState<Partial<User>>({});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        name: user.name,
+        username: user.username,
+        title: user.title || "",
+        bio: user.bio || "",
+        contact_email: user.contact_email || "",
+        location: user.location || "",
+        cv_url: user.cv_url || "",
+      });
+    }
+  }, [user]);
+
+  const portfolioUrl =
+    typeof window !== "undefined" && form.username
+      ? `${window.location.origin}/u/${form.username}`
+      : user?.portfolio_url
+        ? `${window.location.origin}${user.portfolio_url}`
+        : "";
+
+  function updateField<K extends keyof User>(key: K, value: User[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function copyPortfolioLink() {
+    if (!portfolioUrl) return;
+    await navigator.clipboard.writeText(portfolioUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      await api.updateMe(form);
+      await refreshUser();
+      setMessage("Profile saved.");
+    } catch {
+      setMessage("Failed to save profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!user) {
+    return <div className="card h-64 animate-pulse bg-ink-100" />;
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-bold text-ink-950">Profile & Portfolio</h1>
+        <p className="mt-1 text-ink-500">
+          Set your public username and share your portfolio link on your CV or LinkedIn
+        </p>
+      </div>
+
+      {message ? (
+        <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>
+      ) : null}
+
+      {portfolioUrl ? (
+        <div className="card mb-6 max-w-2xl p-6">
+          <p className="text-sm font-semibold text-ink-700">Your portfolio link</p>
+          <p className="mt-1 text-xs text-ink-500">Share this URL — like a Behance profile for your research work</p>
+          <div className="mt-3 flex items-center gap-2">
+            <code className="flex-1 truncate rounded-lg bg-ink-50 px-3 py-2 text-sm text-brand-700">
+              {portfolioUrl}
+            </code>
+            <button type="button" onClick={copyPortfolioLink} className="btn-secondary shrink-0 py-2">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <form onSubmit={handleSubmit} className="card max-w-2xl p-6">
+        <div className="space-y-4">
+          <div>
+            <label className="label-field">Username</label>
+            <div className="flex items-center gap-0">
+              <span className="rounded-l-lg border border-r-0 border-ink-200 bg-ink-50 px-3 py-2.5 text-sm text-ink-500">
+                /u/
+              </span>
+              <input
+                className="input-field rounded-l-none"
+                value={form.username || ""}
+                onChange={(e) => updateField("username", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                placeholder="your-name"
+                required
+              />
+            </div>
+            <p className="mt-1 text-xs text-ink-400">Lowercase letters, numbers, and hyphens only</p>
+          </div>
+          <div>
+            <label className="label-field">Display Name</label>
+            <input
+              className="input-field"
+              value={form.name || ""}
+              onChange={(e) => updateField("name", e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="label-field">Title</label>
+            <input
+              className="input-field"
+              value={form.title || ""}
+              onChange={(e) => updateField("title", e.target.value)}
+              placeholder="Senior UX Researcher"
+            />
+          </div>
+          <div>
+            <label className="label-field">Bio</label>
+            <textarea
+              className="input-field min-h-[100px]"
+              value={form.bio || ""}
+              onChange={(e) => updateField("bio", e.target.value)}
+              placeholder="Short intro for your portfolio page"
+            />
+          </div>
+          <div>
+            <label className="label-field">Location</label>
+            <input
+              className="input-field"
+              value={form.location || ""}
+              onChange={(e) => updateField("location", e.target.value)}
+              placeholder="City, Country"
+            />
+          </div>
+          <div>
+            <label className="label-field">Contact Email (public)</label>
+            <input
+              type="email"
+              className="input-field"
+              value={form.contact_email || ""}
+              onChange={(e) => updateField("contact_email", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label-field">CV / Resume URL</label>
+            <input
+              type="url"
+              className="input-field"
+              value={form.cv_url || ""}
+              onChange={(e) => updateField("cv_url", e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+
+        <button type="submit" className="btn-primary mt-6" disabled={saving}>
+          <Save className="h-4 w-4" />
+          {saving ? "Saving..." : "Save Profile"}
+        </button>
+      </form>
+    </div>
+  );
+}
