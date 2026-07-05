@@ -120,6 +120,12 @@ export const api = {
 
   deleteCaseStudy: (id: number) => request<void>(`/case-studies/${id}`, { method: "DELETE" }),
 
+  syncCaseStudies: (studies: CaseStudy[]) =>
+    request<{ synced: number }>("/case-studies/sync", {
+      method: "POST",
+      body: JSON.stringify({ case_studies: studies }),
+    }),
+
   addAttachment: (
     caseId: number,
     data: { title: string; file_url: string; file_type: string; size_bytes: number },

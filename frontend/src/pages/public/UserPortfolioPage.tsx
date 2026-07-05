@@ -5,6 +5,10 @@ import { api } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
+import {
+  mergePublishedIntoProfile,
+  syncCachedCaseStudies,
+} from "../../lib/caseStudyStore";
 import { useAuth } from "../../context/AuthContext";
 import type { UserProfile } from "../../types";
 
@@ -34,23 +38,62 @@ export function UserPortfolioPage() {
 
   useEffect(() => {
     if (!username) return;
-    api
-      .getUserProfile(username)
-      .then(setProfile)
-      .catch(() => {
-        const cached = getUserFromRegistry(username);
+
+    const profileUsername = username;
+    let cancelled = false;
+
+    async function loadProfile() {
+      setLoading(true);
+      setError("");
+      const isOwner = Boolean(authUser && authUser.username === profileUsername);
+
+      try {
+        if (isOwner && authUser) {
+          await syncCachedCaseStudies(authUser.id);
+        }
+
+        const remote = await api.getUserProfile(profileUsername);
+        if (cancelled) return;
+
+        const nextProfile =
+          isOwner && authUser ? mergePublishedIntoProfile(remote, authUser.id) : remote;
+        setProfile(nextProfile);
+      } catch {
+        if (cancelled) return;
+
+        const cached = getUserFromRegistry(profileUsername);
         if (cached) {
-          setProfile(cached);
+          const nextProfile =
+            isOwner && authUser
+              ? mergePublishedIntoProfile(
+                  {
+                    ...cached,
+                    case_studies: cached.case_studies || [],
+                    case_study_count: cached.case_study_count || 0,
+                  },
+                  authUser.id,
+                )
+              : cached;
+          setProfile(nextProfile);
           return;
         }
-        if (authUser?.username === username) {
+
+        if (isOwner && authUser) {
           setProfile(profileFromAuthUser(authUser));
           return;
         }
+
         setError("Researcher not found");
-      })
-      .finally(() => setLoading(false));
-  }, [username, authUser?.username]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [username, authUser?.username, authUser?.id]);
 
   if (loading) {
     return (

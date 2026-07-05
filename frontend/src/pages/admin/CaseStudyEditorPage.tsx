@@ -7,6 +7,7 @@ import {
   getCaseStudyFromCache,
   removeCaseStudyFromCache,
   saveCaseStudyToCache,
+  syncCachedCaseStudies,
 } from "../../lib/caseStudyStore";
 import type { CaseStudy, ContentBlock, MetricItem } from "../../types";
 
@@ -285,6 +286,7 @@ export function CaseStudyEditorPage() {
       if (isNew) {
         const created = await api.createCaseStudy(payload);
         saveCaseStudyToCache(created);
+        if (user) await syncCachedCaseStudies(user.id);
         navigate(`/admin/case-studies/${created.id}`, { replace: true });
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
@@ -295,6 +297,7 @@ export function CaseStudyEditorPage() {
           navigate(`/admin/case-studies/${updated.id}`, { replace: true });
         }
         saveCaseStudyToCache(updated);
+        if (user) await syncCachedCaseStudies(user.id);
         setForm(updated);
         setMethodsInput(updated.methods.join(", "));
         setMessageType("success");

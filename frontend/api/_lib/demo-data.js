@@ -326,6 +326,76 @@ export async function updateCaseStudy(id, authorId, payload) {
   return updated;
 }
 
+export async function syncCaseStudies(authorId, studies) {
+  const now = new Date().toISOString();
+
+  await updateStore((store) => {
+    for (const incoming of studies || []) {
+      if (!incoming || incoming.author_id !== authorId) continue;
+
+      let index = store.caseStudies.findIndex(
+        (cs) => cs.id === incoming.id && cs.author_id === authorId,
+      );
+
+      if (index === -1) {
+        let finalId = incoming.id;
+        const conflicting = store.caseStudies.find((cs) => cs.id === incoming.id);
+        if (conflicting && conflicting.author_id !== authorId) {
+          finalId = store.caseStudies.reduce((max, cs) => Math.max(max, cs.id), 0) + 1;
+        }
+
+        const status = incoming.status || "draft";
+        store.caseStudies.push({
+          id: finalId,
+          slug: incoming.slug ? slugify(incoming.slug) : slugifyTitle(incoming.title || "case-study"),
+          title: incoming.title || "Untitled",
+          subtitle: incoming.subtitle || null,
+          client: incoming.client || null,
+          project_type: incoming.project_type || null,
+          role: incoming.role || null,
+          duration: incoming.duration || null,
+          summary: incoming.summary || null,
+          challenge: incoming.challenge || null,
+          methodology: incoming.methodology || null,
+          impact: incoming.impact || null,
+          reflections: incoming.reflections || null,
+          cover_image: incoming.cover_image || null,
+          methods: incoming.methods || [],
+          metrics: incoming.metrics || [],
+          content_blocks: incoming.content_blocks || [],
+          status,
+          featured: incoming.featured || false,
+          sort_order: incoming.sort_order ?? 0,
+          author_id: authorId,
+          created_at: incoming.created_at || now,
+          updated_at: incoming.updated_at || now,
+          published_at:
+            status === "published" ? incoming.published_at || now : null,
+          attachments: incoming.attachments || [],
+        });
+        continue;
+      }
+
+      const current = store.caseStudies[index];
+      const nextStatus = incoming.status ?? current.status;
+      store.caseStudies[index] = {
+        ...current,
+        ...incoming,
+        id: current.id,
+        author_id: authorId,
+        updated_at: incoming.updated_at || now,
+        published_at:
+          nextStatus === "published"
+            ? current.published_at || incoming.published_at || now
+            : nextStatus === "draft"
+              ? null
+              : current.published_at,
+      };
+    }
+    return store;
+  });
+}
+
 export async function deleteCaseStudy(id, authorId) {
   await updateStore((store) => {
     const cs = store.caseStudies.find((item) => item.id === id && item.author_id === authorId);
