@@ -97,9 +97,15 @@ function fieldLabelClass(hasError: boolean) {
   return hasError ? "label-field label-field-error" : "label-field";
 }
 
+function parseStudyId(raw: string | undefined): number | null {
+  if (!raw || raw === "new" || !/^\d+$/.test(raw)) return null;
+  return Number(raw);
+}
+
 export function CaseStudyEditorPage() {
   const { id } = useParams<{ id: string }>();
-  const isNew = id === "new";
+  const studyId = parseStudyId(id);
+  const isNew = studyId == null;
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -112,13 +118,13 @@ export function CaseStudyEditorPage() {
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
 
   useEffect(() => {
-    if (!isNew && id) {
-      api.adminGetCaseStudy(Number(id)).then((cs) => {
+    if (studyId != null) {
+      api.adminGetCaseStudy(studyId).then((cs) => {
         setForm(cs);
         setMethodsInput(cs.methods.join(", "));
       });
     }
-  }, [id, isNew]);
+  }, [studyId]);
 
   function clearFieldError(key: FieldKey) {
     setFieldErrors((prev) => {
@@ -217,7 +223,7 @@ export function CaseStudyEditorPage() {
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
       } else {
-        await api.updateCaseStudy(Number(id), payload);
+        await api.updateCaseStudy(studyId, payload);
         setForm((prev) => ({ ...prev, status: payload.status }));
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
@@ -235,12 +241,12 @@ export function CaseStudyEditorPage() {
   }
 
   async function handlePreview() {
-    if (isNew) {
+    if (isNew || studyId == null) {
       setMessageType("error");
       setMessage("Save your draft first, then preview.");
       return;
     }
-    window.open(`/admin/case-studies/${id}/preview`, "_blank", "noopener,noreferrer");
+    window.open(`/admin/case-studies/${studyId}/preview`, "_blank", "noopener,noreferrer");
   }
 
   async function handlePublish() {
@@ -261,9 +267,9 @@ export function CaseStudyEditorPage() {
   }
 
   async function handleDelete() {
-    if (!id || isNew) return;
+    if (studyId == null) return;
     if (!confirm("Delete this case study permanently?")) return;
-    await api.deleteCaseStudy(Number(id));
+    await api.deleteCaseStudy(studyId);
     navigate("/admin/case-studies");
   }
 

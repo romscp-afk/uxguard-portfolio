@@ -145,6 +145,7 @@ function seedStore() {
   return {
     users: structuredClone(SEED_USERS),
     caseStudies: structuredClone(SEED_CASE_STUDIES),
+    portfolioSettings: structuredClone(portfolioSettings),
   };
 }
 
