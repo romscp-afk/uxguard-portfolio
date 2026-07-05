@@ -2,15 +2,26 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Edit, Eye, Plus } from "lucide-react";
 import { api } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { listCachedCaseStudies, mergeCaseStudyLists } from "../../lib/caseStudyStore";
 import type { CaseStudyListItem } from "../../types";
 
 export function CaseStudiesListPage() {
+  const { user } = useAuth();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
 
   useEffect(() => {
-    api.adminListCaseStudies().then(setStudies);
-  }, []);
+    api
+      .adminListCaseStudies()
+      .then((remote) => {
+        const cached = user ? listCachedCaseStudies(user.id) : [];
+        setStudies(mergeCaseStudyLists(remote, cached));
+      })
+      .catch(() => {
+        if (user) setStudies(listCachedCaseStudies(user.id));
+      });
+  }, [user]);
 
   const filtered =
     filter === "all" ? studies : studies.filter((s) => s.status === filter);

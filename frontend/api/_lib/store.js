@@ -150,8 +150,6 @@ function seedStore() {
 }
 
 export async function readStore() {
-  if (memoryStore) return structuredClone(memoryStore);
-
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       const meta = await head(STORE_PATH);
@@ -163,12 +161,14 @@ export async function readStore() {
         }
       }
     } catch {
-      // Blob missing or unreadable — fall through to seed
+      // Blob missing or unreadable — fall through to memory/seed
     }
   }
 
-  memoryStore = seedStore();
-  await writeStore(memoryStore);
+  if (!memoryStore) {
+    memoryStore = seedStore();
+    await writeStore(memoryStore);
+  }
   return structuredClone(memoryStore);
 }
 

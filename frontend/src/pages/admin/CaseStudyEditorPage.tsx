@@ -3,6 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Eye, Plus, Save, Trash2, Upload } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { api, ApiError } from "../../api/client";
+import {
+  getCaseStudyFromCache,
+  removeCaseStudyFromCache,
+  saveCaseStudyToCache,
+} from "../../lib/caseStudyStore";
 import type { CaseStudy, ContentBlock, MetricItem } from "../../types";
 
 const RESEARCH_METHODS = [
@@ -118,12 +123,21 @@ export function CaseStudyEditorPage() {
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
 
   useEffect(() => {
-    if (studyId != null) {
-      api.adminGetCaseStudy(studyId).then((cs) => {
+    if (studyId == null) return;
+    api
+      .adminGetCaseStudy(studyId)
+      .then((cs) => {
         setForm(cs);
         setMethodsInput(cs.methods.join(", "));
+        saveCaseStudyToCache(cs);
+      })
+      .catch(() => {
+        const cached = getCaseStudyFromCache(studyId);
+        if (cached) {
+          setForm(cached);
+          setMethodsInput(cached.methods.join(", "));
+        }
       });
-    }
   }, [studyId]);
 
   function clearFieldError(key: FieldKey) {
@@ -187,6 +201,55 @@ export function CaseStudyEditorPage() {
     updateField("content_blocks", (form.content_blocks || []).filter((_, i) => i !== index));
   }
 
+  function buildStudyPayload(status: CaseStudy["status"]): Partial<CaseStudy> {
+    const methods = methodsInput
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean);
+
+    return {
+      ...form,
+      methods,
+      status,
+    };
+  }
+
+  function buildCachedStudy(status: CaseStudy["status"]): CaseStudy | null {
+    if (studyId == null || !user) return null;
+    const payload = buildStudyPayload(status);
+    const existing = getCaseStudyFromCache(studyId);
+    const now = new Date().toISOString();
+
+    return {
+      id: studyId,
+      slug: existing?.slug || payload.title?.toLowerCase().replace(/\s+/g, "-") || `study-${studyId}`,
+      title: payload.title || "Untitled",
+      subtitle: payload.subtitle,
+      client: payload.client,
+      project_type: payload.project_type,
+      role: payload.role,
+      duration: payload.duration,
+      summary: payload.summary,
+      challenge: payload.challenge,
+      methodology: payload.methodology,
+      impact: payload.impact,
+      reflections: payload.reflections,
+      cover_image: payload.cover_image,
+      methods: payload.methods || [],
+      metrics: payload.metrics || [],
+      content_blocks: payload.content_blocks || [],
+      status,
+      featured: payload.featured ?? false,
+      sort_order: payload.sort_order ?? 0,
+      author_id: user.id,
+      created_at: existing?.created_at || form.created_at || now,
+      updated_at: now,
+      published_at:
+        status === "published" ? existing?.published_at || now : status === "draft" ? undefined : existing?.published_at,
+      attachments: existing?.attachments || form.attachments || [],
+    };
+  }
+
   async function handleSubmit(e: FormEvent, publish = false) {
     e.preventDefault();
     setMessage("");
@@ -199,32 +262,25 @@ export function CaseStudyEditorPage() {
     }
 
     setSaving(true);
-    const methods = methodsInput
-      .split(",")
-      .map((m) => m.trim())
-      .filter(Boolean);
-
     const status: CaseStudy["status"] = publish
       ? "published"
       : form.status === "published"
         ? "published"
         : "draft";
 
-    const payload = {
-      ...form,
-      methods,
-      status,
-    };
+    const payload = buildStudyPayload(status);
 
     try {
       if (isNew) {
         const created = await api.createCaseStudy(payload);
+        saveCaseStudyToCache(created);
         navigate(`/admin/case-studies/${created.id}`, { replace: true });
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
       } else {
-        await api.updateCaseStudy(studyId, payload);
-        setForm((prev) => ({ ...prev, status: payload.status }));
+        const updated = await api.updateCaseStudy(studyId, payload);
+        saveCaseStudyToCache(updated);
+        setForm(updated);
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
       }
@@ -246,6 +302,8 @@ export function CaseStudyEditorPage() {
       setMessage("Save your draft first, then preview.");
       return;
     }
+    const cached = buildCachedStudy(form.status === "published" ? "published" : "draft");
+    if (cached) saveCaseStudyToCache(cached);
     window.open(`/admin/case-studies/${studyId}/preview`, "_blank", "noopener,noreferrer");
   }
 
@@ -269,7 +327,12 @@ export function CaseStudyEditorPage() {
   async function handleDelete() {
     if (studyId == null) return;
     if (!confirm("Delete this case study permanently?")) return;
-    await api.deleteCaseStudy(studyId);
+    try {
+      await api.deleteCaseStudy(studyId);
+    } catch {
+      // Allow deleting drafts that only exist in local cache.
+    }
+    removeCaseStudyFromCache(studyId);
     navigate("/admin/case-studies");
   }
 

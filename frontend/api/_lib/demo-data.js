@@ -252,7 +252,40 @@ export async function updateCaseStudy(id, authorId, payload) {
 
   await updateStore((store) => {
     const index = store.caseStudies.findIndex((cs) => cs.id === id);
-    if (index === -1) throw new Error("Case study not found");
+
+    if (index === -1) {
+      const nextStatus = payload.status || "draft";
+      updated = {
+        id,
+        slug: payload.slug ? slugify(payload.slug) : slugifyTitle(payload.title || "case-study"),
+        title: payload.title || "Untitled",
+        subtitle: payload.subtitle || null,
+        client: payload.client || null,
+        project_type: payload.project_type || null,
+        role: payload.role || null,
+        duration: payload.duration || null,
+        summary: payload.summary || null,
+        challenge: payload.challenge || null,
+        methodology: payload.methodology || null,
+        impact: payload.impact || null,
+        reflections: payload.reflections || null,
+        cover_image: payload.cover_image || null,
+        methods: payload.methods || [],
+        metrics: payload.metrics || [],
+        content_blocks: payload.content_blocks || [],
+        status: nextStatus,
+        featured: payload.featured || false,
+        sort_order: payload.sort_order ?? 0,
+        author_id: authorId,
+        created_at: payload.created_at || now,
+        updated_at: now,
+        published_at: nextStatus === "published" ? now : null,
+        attachments: payload.attachments || [],
+      };
+      store.caseStudies.push(updated);
+      return store;
+    }
+
     if (store.caseStudies[index].author_id !== authorId) throw new Error("Forbidden");
 
     const current = store.caseStudies[index];
@@ -260,6 +293,8 @@ export async function updateCaseStudy(id, authorId, payload) {
     const next = {
       ...current,
       ...payload,
+      id,
+      author_id: authorId,
       updated_at: now,
       published_at:
         nextStatus === "published"

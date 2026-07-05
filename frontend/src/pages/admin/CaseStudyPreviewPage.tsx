@@ -4,23 +4,45 @@ import { ArrowLeft } from "lucide-react";
 import { api } from "../../api/client";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
 import { useAuth } from "../../context/AuthContext";
+import { getCaseStudyFromCache, saveCaseStudyToCache } from "../../lib/caseStudyStore";
 import type { CaseStudy } from "../../types";
+
+function parseStudyId(raw: string | undefined): number | null {
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  return Number(raw);
+}
 
 export function CaseStudyPreviewPage() {
   const { id } = useParams<{ id: string }>();
+  const studyId = parseStudyId(id);
   const { user, loading: authLoading } = useAuth();
   const [study, setStudy] = useState<CaseStudy | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (studyId == null) {
+      setError("Invalid preview link.");
+      setLoading(false);
+      return;
+    }
+
     api
-      .adminGetCaseStudy(Number(id))
-      .then(setStudy)
-      .catch(() => setError("Could not load preview"))
+      .adminGetCaseStudy(studyId)
+      .then((loaded) => {
+        saveCaseStudyToCache(loaded);
+        setStudy(loaded);
+      })
+      .catch(() => {
+        const cached = getCaseStudyFromCache(studyId);
+        if (cached) {
+          setStudy(cached);
+        } else {
+          setError("Could not load preview. Save your draft in the editor, then try again.");
+        }
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [studyId]);
 
   if (authLoading) {
     return (
@@ -48,8 +70,11 @@ export function CaseStudyPreviewPage() {
     return (
       <div className="min-h-screen bg-ink-50 px-4 py-20 text-center">
         <p className="text-ink-500">{error || "Not found"}</p>
-        <Link to="/admin/case-studies" className="btn-primary mt-4 inline-flex">
-          Back to case studies
+        <Link
+          to={studyId ? `/admin/case-studies/${studyId}` : "/admin/case-studies"}
+          className="btn-primary mt-4 inline-flex"
+        >
+          Back to editor
         </Link>
       </div>
     );
@@ -60,7 +85,7 @@ export function CaseStudyPreviewPage() {
       <div className="sticky top-0 z-40 border-b border-ink-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link
-            to={`/admin/case-studies/${id}`}
+            to={`/admin/case-studies/${studyId}`}
             className="inline-flex items-center gap-2 text-sm font-medium text-ink-600 hover:text-brand-600"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -82,7 +107,7 @@ export function CaseStudyPreviewPage() {
         study={study}
         username={user?.username}
         preview={study.status !== "published"}
-        backHref={`/admin/case-studies/${id}`}
+        backHref={`/admin/case-studies/${studyId}`}
         backLabel="Back to editor"
       />
     </div>
