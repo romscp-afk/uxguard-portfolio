@@ -1,8 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Eye, Plus, Save, Trash2, Upload } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { api } from "../../api/client";
+import { api, ApiError } from "../../api/client";
 import type { CaseStudy, ContentBlock, MetricItem } from "../../types";
 
 const RESEARCH_METHODS = [
@@ -53,6 +53,50 @@ const emptyStudy: Partial<CaseStudy> = {
   sort_order: 0,
 };
 
+type FieldKey =
+  | "title"
+  | "summary"
+  | "cover_image"
+  | "challenge"
+  | "methodology"
+  | "impact"
+  | "methods";
+
+function validateForm(
+  form: Partial<CaseStudy>,
+  methodsInput: string,
+  publish: boolean,
+): Partial<Record<FieldKey, string>> {
+  const errors: Partial<Record<FieldKey, string>> = {};
+
+  if (!form.title?.trim()) {
+    errors.title = "Title is required.";
+  }
+
+  if (publish) {
+    if (!form.summary?.trim()) errors.summary = "Summary is required to publish.";
+    if (!form.cover_image?.trim()) errors.cover_image = "Cover image URL is required to publish.";
+    if (!form.challenge?.trim()) errors.challenge = "Challenge is required to publish.";
+    if (!form.methodology?.trim()) errors.methodology = "Methodology is required to publish.";
+    if (!form.impact?.trim()) errors.impact = "Impact is required to publish.";
+    const methods = methodsInput
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean);
+    if (methods.length === 0) errors.methods = "Add at least one research method to publish.";
+  }
+
+  return errors;
+}
+
+function fieldInputClass(hasError: boolean) {
+  return hasError ? "input-field input-field-error" : "input-field";
+}
+
+function fieldLabelClass(hasError: boolean) {
+  return hasError ? "label-field label-field-error" : "label-field";
+}
+
 export function CaseStudyEditorPage() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === "new";
@@ -63,6 +107,9 @@ export function CaseStudyEditorPage() {
   const [methodsInput, setMethodsInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
 
   useEffect(() => {
     if (!isNew && id) {
@@ -72,6 +119,27 @@ export function CaseStudyEditorPage() {
       });
     }
   }, [id, isNew]);
+
+  function clearFieldError(key: FieldKey) {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function showValidationErrors(errors: Partial<Record<FieldKey, string>>) {
+    setFieldErrors(errors);
+    setMessageType("error");
+    const count = Object.keys(errors).length;
+    setMessage(`Please fix ${count} required field${count === 1 ? "" : "s"} highlighted below.`);
+
+    const firstKey = Object.keys(errors)[0] as FieldKey | undefined;
+    const firstEl = firstKey ? fieldRefs.current[firstKey] : null;
+    firstEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+    firstEl?.focus();
+  }
 
   function updateField<K extends keyof CaseStudy>(key: K, value: CaseStudy[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -115,8 +183,16 @@ export function CaseStudyEditorPage() {
 
   async function handleSubmit(e: FormEvent, publish = false) {
     e.preventDefault();
-    setSaving(true);
     setMessage("");
+    setFieldErrors({});
+
+    const validationErrors = validateForm(form, methodsInput, publish);
+    if (Object.keys(validationErrors).length > 0) {
+      showValidationErrors(validationErrors);
+      return;
+    }
+
+    setSaving(true);
     const methods = methodsInput
       .split(",")
       .map((m) => m.trim())
@@ -138,14 +214,21 @@ export function CaseStudyEditorPage() {
       if (isNew) {
         const created = await api.createCaseStudy(payload);
         navigate(`/admin/case-studies/${created.id}`, { replace: true });
+        setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
       } else {
         await api.updateCaseStudy(Number(id), payload);
         setForm((prev) => ({ ...prev, status: payload.status }));
+        setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
       }
-    } catch {
-      setMessage("Failed to save. Check required fields.");
+    } catch (err) {
+      setMessageType("error");
+      if (err instanceof ApiError) {
+        setMessage(err.message || "Failed to save. Please try again.");
+      } else {
+        setMessage("Failed to save. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -153,6 +236,7 @@ export function CaseStudyEditorPage() {
 
   async function handlePreview() {
     if (isNew) {
+      setMessageType("error");
       setMessage("Save your draft first, then preview.");
       return;
     }
@@ -160,8 +244,9 @@ export function CaseStudyEditorPage() {
   }
 
   async function handlePublish() {
-    if (!form.title?.trim()) {
-      setMessage("Add a title before publishing.");
+    const validationErrors = validateForm(form, methodsInput, true);
+    if (Object.keys(validationErrors).length > 0) {
+      showValidationErrors(validationErrors);
       return;
     }
     if (
@@ -225,7 +310,15 @@ export function CaseStudyEditorPage() {
       </div>
 
       {message ? (
-        <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>
+        <div
+          className={`mb-4 rounded-lg px-4 py-3 text-sm ${
+            messageType === "error"
+              ? "border border-red-100 bg-red-50 text-red-700"
+              : "bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {message}
+        </div>
       ) : null}
 
       <form id="case-study-form" onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
@@ -234,13 +327,21 @@ export function CaseStudyEditorPage() {
             <h2 className="mb-4 font-semibold text-ink-900">Project Overview</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="label-field">Title *</label>
+                <label className={fieldLabelClass(Boolean(fieldErrors.title))}>Title *</label>
                 <input
-                  className="input-field"
+                  ref={(el) => {
+                    fieldRefs.current.title = el;
+                  }}
+                  className={fieldInputClass(Boolean(fieldErrors.title))}
                   value={form.title || ""}
-                  onChange={(e) => updateField("title", e.target.value)}
-                  required
+                  onChange={(e) => {
+                    updateField("title", e.target.value);
+                    clearFieldError("title");
+                  }}
                 />
+                {fieldErrors.title ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>
+                ) : null}
               </div>
               <div className="sm:col-span-2">
                 <label className="label-field">Subtitle</label>
@@ -284,33 +385,73 @@ export function CaseStudyEditorPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="label-field">Cover Image URL</label>
+                <label className={fieldLabelClass(Boolean(fieldErrors.cover_image))}>
+                  Cover Image URL{form.status === "published" || fieldErrors.cover_image ? " *" : ""}
+                </label>
                 <input
-                  className="input-field"
+                  ref={(el) => {
+                    fieldRefs.current.cover_image = el;
+                  }}
+                  className={fieldInputClass(Boolean(fieldErrors.cover_image))}
                   value={form.cover_image || ""}
-                  onChange={(e) => updateField("cover_image", e.target.value)}
+                  onChange={(e) => {
+                    updateField("cover_image", e.target.value);
+                    clearFieldError("cover_image");
+                  }}
                   placeholder="https://..."
                 />
+                {fieldErrors.cover_image ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.cover_image}</p>
+                ) : null}
               </div>
               <div className="sm:col-span-2">
-                <label className="label-field">Summary</label>
+                <label className={fieldLabelClass(Boolean(fieldErrors.summary))}>
+                  Summary{fieldErrors.summary ? " *" : ""}
+                </label>
                 <textarea
-                  className="input-field min-h-[80px]"
+                  ref={(el) => {
+                    fieldRefs.current.summary = el;
+                  }}
+                  className={`${fieldInputClass(Boolean(fieldErrors.summary))} min-h-[80px]`}
                   value={form.summary || ""}
-                  onChange={(e) => updateField("summary", e.target.value)}
+                  onChange={(e) => {
+                    updateField("summary", e.target.value);
+                    clearFieldError("summary");
+                  }}
                 />
+                {fieldErrors.summary ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.summary}</p>
+                ) : null}
               </div>
             </div>
           </section>
 
           {(["challenge", "methodology", "impact", "reflections"] as const).map((field) => (
             <section key={field} className="card p-6">
-              <h2 className="mb-4 font-semibold capitalize text-ink-900">{field}</h2>
+              <h2
+                className={`mb-4 font-semibold capitalize ${
+                  fieldErrors[field as FieldKey] ? "text-red-700" : "text-ink-900"
+                }`}
+              >
+                {field}
+                {field !== "reflections" && fieldErrors[field as FieldKey] ? " *" : ""}
+              </h2>
               <textarea
-                className="input-field min-h-[120px]"
+                ref={(el) => {
+                  if (field !== "reflections") {
+                    fieldRefs.current[field as FieldKey] = el;
+                  }
+                }}
+                className={`${fieldInputClass(Boolean(fieldErrors[field as FieldKey]))} min-h-[120px]`}
                 value={form[field] || ""}
-                onChange={(e) => updateField(field, e.target.value)}
+                onChange={(e) => {
+                  updateField(field, e.target.value);
+                  if (field !== "reflections") clearFieldError(field as FieldKey);
+                }}
               />
+              {fieldErrors[field as FieldKey] ? (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors[field as FieldKey]}</p>
+              ) : null}
             </section>
           ))}
 
@@ -456,11 +597,20 @@ export function CaseStudyEditorPage() {
           <section className="card p-6">
             <h2 className="mb-4 font-semibold text-ink-900">Research Methods</h2>
             <input
-              className="input-field"
+              ref={(el) => {
+                fieldRefs.current.methods = el;
+              }}
+              className={fieldInputClass(Boolean(fieldErrors.methods))}
               value={methodsInput}
-              onChange={(e) => setMethodsInput(e.target.value)}
+              onChange={(e) => {
+                setMethodsInput(e.target.value);
+                clearFieldError("methods");
+              }}
               placeholder="Comma-separated methods"
             />
+            {fieldErrors.methods ? (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.methods}</p>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-1.5">
               {RESEARCH_METHODS.map((m) => (
                 <button

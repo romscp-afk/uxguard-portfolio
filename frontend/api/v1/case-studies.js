@@ -15,8 +15,12 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const user = await requireAuthUser(req, res);
     if (!user) return;
-    const created = await createCaseStudy(user.id, req.body || {});
-    res.status(201).json(created);
+    try {
+      const created = await createCaseStudy(user.id, req.body || {});
+      res.status(201).json(created);
+    } catch (err) {
+      res.status(500).json({ detail: err.message || "Failed to create case study" });
+    }
     return;
   }
 

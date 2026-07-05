@@ -25,6 +25,14 @@
     @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
   }
 
+  .input-field-error {
+    @apply border-red-400 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100;
+  }
+
+  .label-field-error {
+    @apply text-red-700;
+  }
+
   .label-field {
     @apply mb-1.5 block text-sm font-medium text-ink-700;
   }
