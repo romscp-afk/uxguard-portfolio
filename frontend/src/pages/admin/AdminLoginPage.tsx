@@ -35,7 +35,7 @@ export function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo />
+        <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
           <p className="mt-4 text-sm text-ink-400">Portfolio management for UX researchers</p>
         </div>
 

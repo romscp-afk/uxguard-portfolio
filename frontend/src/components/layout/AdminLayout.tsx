@@ -30,7 +30,7 @@ export function AdminLayout() {
     <div className="flex min-h-screen bg-ink-100">
       <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-ink-800 bg-ink-950 text-white">
         <div className="border-b border-ink-800 px-4 py-4">
-          <Logo />
+          <Logo variant="mark" theme="dark" />
           <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">CMS</p>
         </div>
 
