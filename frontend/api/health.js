@@ -1,5 +1,5 @@
 import { json } from "./_lib/http.js";
-import { isPersistentStoreEnabled } from "./_lib/store.js";
+import { isPersistentStoreEnabled, readStore } from "./_lib/store.js";
 import { withApi } from "./_lib/withApi.js";
 
 export default withApi(async (req, res) => {
@@ -8,8 +8,21 @@ export default withApi(async (req, res) => {
     return;
   }
 
+  const persistent = isPersistentStoreEnabled();
+  let storeReadable = false;
+
+  if (persistent) {
+    try {
+      const store = await readStore();
+      storeReadable = Boolean(store?.users && store?.caseStudies);
+    } catch {
+      storeReadable = false;
+    }
+  }
+
   json(res, 200, {
-    status: "ok",
-    persistent_store: isPersistentStoreEnabled(),
+    status: storeReadable || !persistent ? "ok" : "degraded",
+    persistent_store: persistent,
+    store_readable: storeReadable,
   });
 });
