@@ -167,7 +167,11 @@ export async function readStore() {
 
   if (!memoryStore) {
     memoryStore = seedStore();
-    await writeStore(memoryStore);
+    try {
+      await writeStore(memoryStore);
+    } catch {
+      // Keep in-memory seed even if blob write fails
+    }
   }
   return structuredClone(memoryStore);
 }

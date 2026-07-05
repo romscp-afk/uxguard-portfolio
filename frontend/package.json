@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:local": "VITE_API_PROXY=http://127.0.0.1:8001 vite",
+    "dev:vercel": "vercel dev --listen 5174",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },

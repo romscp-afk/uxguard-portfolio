@@ -13,17 +13,42 @@ export function HomePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.getPortfolioSettings(), api.getFeed()])
-      .then(([s, items]) => {
-        setSettings(s);
-        setFeed(items);
-      })
-      .catch(() =>
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      const [settingsResult, feedResult] = await Promise.allSettled([
+        api.getPortfolioSettings(),
+        api.getFeed(),
+      ]);
+
+      if (cancelled) return;
+
+      if (settingsResult.status === "fulfilled") {
+        setSettings(settingsResult.value);
+      }
+
+      if (feedResult.status === "fulfilled") {
+        setFeed(feedResult.value);
+      }
+
+      if (settingsResult.status === "rejected" && feedResult.status === "rejected") {
         setError(
-          "Could not load platform data. If you're running locally, use https://uxguard-portfolio.vercel.app or run ./start.sh from the project root for the full local stack.",
-        ),
-      )
-      .finally(() => setLoading(false));
+          "Could not load platform data. Restart with: cd frontend && npm run dev (uses live API). For local backend: ./start.sh",
+        );
+      } else if (settingsResult.status === "rejected" || feedResult.status === "rejected") {
+        setError("Some content could not be loaded. Try refreshing the page.");
+      }
+
+      setLoading(false);
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
