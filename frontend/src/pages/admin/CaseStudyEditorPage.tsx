@@ -207,8 +207,19 @@ export function CaseStudyEditorPage() {
       .map((m) => m.trim())
       .filter(Boolean);
 
+    const {
+      id: _id,
+      slug: _slug,
+      author_id: _authorId,
+      created_at: _createdAt,
+      updated_at: _updatedAt,
+      published_at: _publishedAt,
+      attachments: _attachments,
+      ...rest
+    } = form;
+
     return {
-      ...form,
+      ...rest,
       methods,
       status,
     };
@@ -279,8 +290,13 @@ export function CaseStudyEditorPage() {
         setMessage(publish ? "Published successfully." : "Draft saved.");
       } else {
         const updated = await api.updateCaseStudy(studyId, payload);
+        if (updated.id !== studyId) {
+          removeCaseStudyFromCache(studyId);
+          navigate(`/admin/case-studies/${updated.id}`, { replace: true });
+        }
         saveCaseStudyToCache(updated);
         setForm(updated);
+        setMethodsInput(updated.methods.join(", "));
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
       }

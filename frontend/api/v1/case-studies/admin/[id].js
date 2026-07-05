@@ -1,4 +1,4 @@
-import { adminListCaseStudies, getCaseStudyById, toListItem } from "../../../_lib/demo-data.js";
+import { adminListCaseStudies, getCaseStudyByIdForAuthor, toListItem } from "../../../_lib/demo-data.js";
 import { requireAuthUser } from "../../../_lib/auth.js";
 
 export default async function handler(req, res) {
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  const cs = await getCaseStudyById(Number(segment));
-  if (!cs || cs.author_id !== user.id) {
+  const cs = await getCaseStudyByIdForAuthor(Number(segment), user.id);
+  if (!cs) {
     res.status(404).json({ detail: "Case study not found" });
     return;
   }

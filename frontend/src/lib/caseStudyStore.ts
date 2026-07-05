@@ -1,4 +1,5 @@
 import type { CaseStudy, CaseStudyListItem } from "../types";
+import { api } from "../api/client";
 
 const KEY = "uxguard_case_study_cache";
 
@@ -60,4 +61,14 @@ export function mergeCaseStudyLists(
   return [...byId.values()].sort(
     (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
   );
+}
+
+export async function loadMergedCaseStudies(userId: number): Promise<CaseStudyListItem[]> {
+  try {
+    const remote = await api.adminListCaseStudies();
+    const cached = listCachedCaseStudies(userId);
+    return mergeCaseStudyLists(remote, cached);
+  } catch {
+    return listCachedCaseStudies(userId);
+  }
 }

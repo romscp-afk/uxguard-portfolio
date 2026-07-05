@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Eye, FileText, Globe, Plus, Sparkles } from "lucide-react";
-import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
 import type { CaseStudyListItem } from "../../types";
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
 
   useEffect(() => {
-    api.adminListCaseStudies().then(setStudies);
-  }, []);
+    if (!user) return;
+    loadMergedCaseStudies(user.id).then(setStudies);
+  }, [user, location.pathname]);
 
   const published = studies.filter((s) => s.status === "published").length;
   const drafts = studies.filter((s) => s.status === "draft").length;

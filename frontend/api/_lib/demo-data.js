@@ -190,6 +190,11 @@ export async function getCaseStudyById(id) {
   return store.caseStudies.find((cs) => cs.id === id) || null;
 }
 
+export async function getCaseStudyByIdForAuthor(id, authorId) {
+  const store = await readStore();
+  return store.caseStudies.find((cs) => cs.id === id && cs.author_id === authorId) || null;
+}
+
 function slugifyTitle(text) {
   return slugify(text) || `study-${Date.now()}`;
 }
@@ -251,12 +256,18 @@ export async function updateCaseStudy(id, authorId, payload) {
   let updated = null;
 
   await updateStore((store) => {
-    const index = store.caseStudies.findIndex((cs) => cs.id === id);
+    let index = store.caseStudies.findIndex((cs) => cs.id === id && cs.author_id === authorId);
 
     if (index === -1) {
+      let finalId = id;
+      const conflicting = store.caseStudies.find((cs) => cs.id === id);
+      if (conflicting && conflicting.author_id !== authorId) {
+        finalId = store.caseStudies.reduce((max, cs) => Math.max(max, cs.id), 0) + 1;
+      }
+
       const nextStatus = payload.status || "draft";
       updated = {
-        id,
+        id: finalId,
         slug: payload.slug ? slugify(payload.slug) : slugifyTitle(payload.title || "case-study"),
         title: payload.title || "Untitled",
         subtitle: payload.subtitle || null,
@@ -286,14 +297,12 @@ export async function updateCaseStudy(id, authorId, payload) {
       return store;
     }
 
-    if (store.caseStudies[index].author_id !== authorId) throw new Error("Forbidden");
-
     const current = store.caseStudies[index];
     const nextStatus = payload.status ?? current.status;
     const next = {
       ...current,
       ...payload,
-      id,
+      id: current.id,
       author_id: authorId,
       updated_at: now,
       published_at:
@@ -319,10 +328,9 @@ export async function updateCaseStudy(id, authorId, payload) {
 
 export async function deleteCaseStudy(id, authorId) {
   await updateStore((store) => {
-    const cs = store.caseStudies.find((item) => item.id === id);
+    const cs = store.caseStudies.find((item) => item.id === id && item.author_id === authorId);
     if (!cs) throw new Error("Case study not found");
-    if (cs.author_id !== authorId) throw new Error("Forbidden");
-    store.caseStudies = store.caseStudies.filter((item) => item.id !== id);
+    store.caseStudies = store.caseStudies.filter((item) => item.id !== id || item.author_id !== authorId);
     return store;
   });
 }
