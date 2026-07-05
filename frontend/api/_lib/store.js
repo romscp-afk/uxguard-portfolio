@@ -1,4 +1,4 @@
-import { head, put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 const STORE_PATH = "uxguard/platform-store.json";
 
@@ -173,17 +173,15 @@ function isMissingBlobError(error) {
 }
 
 async function loadFromBlob() {
-  const meta = await head(STORE_PATH);
-  if (!meta?.url) {
-    throw new Error("Platform store blob has no URL");
+  const result = await get(STORE_PATH, { access: "private" });
+  if (!result?.blob) {
+    const error = new Error("Platform store not found");
+    error.name = "BlobNotFoundError";
+    throw error;
   }
 
-  const res = await fetch(meta.url);
-  if (!res.ok) {
-    throw new Error(`Platform store fetch failed (${res.status})`);
-  }
-
-  return res.json();
+  const text = await result.blob.text();
+  return JSON.parse(text);
 }
 
 export async function readStore() {
@@ -221,6 +219,7 @@ export async function writeStore(store) {
   }
 
   await put(STORE_PATH, JSON.stringify(store), {
+    access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
