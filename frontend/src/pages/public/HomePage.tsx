@@ -20,7 +20,7 @@ export function HomePage() {
       })
       .catch(() =>
         setError(
-          "Could not load platform data. Make sure the backend is running on port 8001 (run ./start.sh from the uxguard folder).",
+          "Could not load platform data. If you're running locally, use https://uxguard-portfolio.vercel.app or run ./start.sh from the project root for the full local stack.",
         ),
       )
       .finally(() => setLoading(false));

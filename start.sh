@@ -39,7 +39,7 @@ fi
 echo "Frontend → http://localhost:5174"
 echo "CMS Login → http://localhost:5174/admin/login"
 echo "Demo credentials: demo@uxguard.io / demo1234"
-npm run dev &
+VITE_API_PROXY=http://127.0.0.1:8001 npm run dev &
 FRONTEND_PID=$!
 
 trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
