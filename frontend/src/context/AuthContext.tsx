@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { RegisterPayload, User } from "../types";
+import { saveUserToRegistry } from "../lib/platformRegistry";
 
 interface AuthContextValue {
   user: User | null;
@@ -35,12 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("uxguard_token", access_token);
     const me = await api.me();
     setUser(me);
+    saveUserToRegistry(me);
   }, []);
 
   const register = useCallback(async (data: RegisterPayload) => {
     const { access_token, user } = await api.register(data);
     localStorage.setItem("uxguard_token", access_token);
     setUser(user);
+    saveUserToRegistry(user);
     return user;
   }, []);
 
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     const me = await api.me();
     setUser(me);
+    saveUserToRegistry(me);
   }, []);
 
   const value = useMemo(

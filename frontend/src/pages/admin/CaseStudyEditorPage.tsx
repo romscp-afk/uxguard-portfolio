@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Eye, Plus, Save, Trash2, Upload } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import type { CaseStudy, ContentBlock, MetricItem } from "../../types";
 
@@ -56,6 +57,7 @@ export function CaseStudyEditorPage() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === "new";
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [form, setForm] = useState<Partial<CaseStudy>>(emptyStudy);
   const [methodsInput, setMethodsInput] = useState("");
@@ -111,7 +113,7 @@ export function CaseStudyEditorPage() {
     updateField("content_blocks", (form.content_blocks || []).filter((_, i) => i !== index));
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent, publish = false) {
     e.preventDefault();
     setSaving(true);
     setMessage("");
@@ -120,22 +122,57 @@ export function CaseStudyEditorPage() {
       .map((m) => m.trim())
       .filter(Boolean);
 
-    const payload = { ...form, methods };
+    const status: CaseStudy["status"] = publish
+      ? "published"
+      : form.status === "published"
+        ? "published"
+        : "draft";
+
+    const payload = {
+      ...form,
+      methods,
+      status,
+    };
 
     try {
       if (isNew) {
         const created = await api.createCaseStudy(payload);
         navigate(`/admin/case-studies/${created.id}`, { replace: true });
-        setMessage("Case study created.");
+        setMessage(publish ? "Published successfully." : "Draft saved.");
       } else {
         await api.updateCaseStudy(Number(id), payload);
-        setMessage("Saved successfully.");
+        setForm((prev) => ({ ...prev, status: payload.status }));
+        setMessage(publish ? "Published successfully." : "Draft saved.");
       }
     } catch {
       setMessage("Failed to save. Check required fields.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handlePreview() {
+    if (isNew) {
+      setMessage("Save your draft first, then preview.");
+      return;
+    }
+    window.open(`/admin/case-studies/${id}/preview`, "_blank", "noopener,noreferrer");
+  }
+
+  async function handlePublish() {
+    if (!form.title?.trim()) {
+      setMessage("Add a title before publishing.");
+      return;
+    }
+    if (
+      !confirm(
+        "Publish this case study? It will appear on your portfolio and in the discover feed.",
+      )
+    ) {
+      return;
+    }
+    const fakeEvent = { preventDefault: () => undefined } as FormEvent;
+    await handleSubmit(fakeEvent, true);
   }
 
   async function handleDelete() {
@@ -159,7 +196,21 @@ export function CaseStudyEditorPage() {
             <p className="text-sm text-ink-500">Structure: Problem → Method → Artifacts → Impact</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {!isNew ? (
+            <>
+              <button type="button" onClick={handlePreview} className="btn-secondary">
+                <Eye className="h-4 w-4" />
+                Preview
+              </button>
+              {form.status !== "published" ? (
+                <button type="button" onClick={handlePublish} className="btn-secondary" disabled={saving}>
+                  <Upload className="h-4 w-4" />
+                  Publish
+                </button>
+              ) : null}
+            </>
+          ) : null}
           {!isNew ? (
             <button type="button" onClick={handleDelete} className="btn-secondary text-red-600">
               <Trash2 className="h-4 w-4" />
@@ -168,7 +219,7 @@ export function CaseStudyEditorPage() {
           ) : null}
           <button type="submit" form="case-study-form" className="btn-primary" disabled={saving}>
             <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Saving..." : "Save draft"}
           </button>
         </div>
       </div>
@@ -356,17 +407,23 @@ export function CaseStudyEditorPage() {
           <section className="card p-6">
             <h2 className="mb-4 font-semibold text-ink-900">Publish</h2>
             <div className="space-y-4">
-              <div>
-                <label className="label-field">Status</label>
-                <select
-                  className="input-field"
-                  value={form.status || "draft"}
-                  onChange={(e) => updateField("status", e.target.value as CaseStudy["status"])}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
+              <div className="rounded-lg bg-ink-50 px-4 py-3 text-sm text-ink-600">
+                <p className="font-medium text-ink-800">
+                  Status:{" "}
+                  <span className={form.status === "published" ? "text-emerald-600" : "text-amber-600"}>
+                    {form.status === "published" ? "Published" : "Draft"}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs">
+                  Save as draft anytime. Use Preview to check layout, then Publish when ready.
+                </p>
               </div>
+              {!isNew ? (
+                <button type="button" onClick={handlePreview} className="btn-secondary w-full">
+                  <Eye className="h-4 w-4" />
+                  Preview before publishing
+                </button>
+              ) : null}
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -374,7 +431,7 @@ export function CaseStudyEditorPage() {
                   onChange={(e) => updateField("featured", e.target.checked)}
                   className="rounded border-ink-300"
                 />
-                Featured on homepage
+                Featured on your portfolio
               </label>
               <div>
                 <label className="label-field">Sort Order</label>
@@ -385,6 +442,14 @@ export function CaseStudyEditorPage() {
                   onChange={(e) => updateField("sort_order", Number(e.target.value))}
                 />
               </div>
+              {user?.portfolio_url ? (
+                <p className="text-xs text-ink-500">
+                  Live portfolio:{" "}
+                  <a href={user.portfolio_url} target="_blank" rel="noopener noreferrer" className="text-brand-600">
+                    {user.portfolio_url}
+                  </a>
+                </p>
+              ) : null}
             </div>
           </section>
 

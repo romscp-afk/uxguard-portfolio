@@ -7,6 +7,7 @@ import { AdminRegisterPage } from "./pages/admin/AdminRegisterPage";
 import { CaseStudiesListPage } from "./pages/admin/CaseStudiesListPage";
 import { CaseStudyEditorPage } from "./pages/admin/CaseStudyEditorPage";
 import { MediaLibraryPage } from "./pages/admin/MediaLibraryPage";
+import { CaseStudyPreviewPage } from "./pages/admin/CaseStudyPreviewPage";
 import { ProfileSettingsPage } from "./pages/admin/ProfileSettingsPage";
 import { CaseStudyDetailPage } from "./pages/public/CaseStudyDetailPage";
 import { HomePage } from "./pages/public/HomePage";
@@ -23,6 +24,7 @@ export default function App() {
 
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/register" element={<AdminRegisterPage />} />
+          <Route path="/admin/case-studies/:id/preview" element={<CaseStudyPreviewPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="case-studies" element={<CaseStudiesListPage />} />

@@ -54,16 +54,16 @@ export function requireAuth(req) {
   return verifyToken(auth.slice(7));
 }
 
-export function checkLogin(email, password) {
-  const user = getUserByEmail(email);
+export async function checkLogin(email, password) {
+  const user = await getUserByEmail(email);
   return user && user.password === password ? user : null;
 }
 
-export function getAuthUser(req) {
+export async function getAuthUser(req) {
   const session = requireAuth(req);
   if (!session) return null;
 
-  const stored = getUserById(session.userId);
+  const stored = await getUserById(session.userId);
   if (stored) return stored;
 
   if (session.username && session.email) {
@@ -84,4 +84,13 @@ export function getAuthUser(req) {
   }
 
   return null;
+}
+
+export async function requireAuthUser(req, res) {
+  const user = await getAuthUser(req);
+  if (!user) {
+    res.status(401).json({ detail: "Not authenticated" });
+    return null;
+  }
+  return user;
 }

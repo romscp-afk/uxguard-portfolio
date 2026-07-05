@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Check, Copy, Save } from "lucide-react";
+import { saveUserToRegistry } from "../../lib/platformRegistry";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import type { User } from "../../types";
@@ -53,6 +54,7 @@ export function ProfileSettingsPage() {
     try {
       await api.updateMe(form);
       await refreshUser();
+      if (user) saveUserToRegistry({ ...user, ...form, username: form.username || user.username });
       setMessage("Profile saved.");
     } catch {
       setMessage("Failed to save profile.");

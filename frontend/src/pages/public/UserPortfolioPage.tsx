@@ -4,10 +4,30 @@ import { ExternalLink, Mail, MapPin } from "lucide-react";
 import { api } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
+import { getUserFromRegistry } from "../../lib/platformRegistry";
+import { useAuth } from "../../context/AuthContext";
 import type { UserProfile } from "../../types";
+
+function profileFromAuthUser(user: NonNullable<ReturnType<typeof useAuth>["user"]>): UserProfile {
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    title: user.title,
+    bio: user.bio,
+    avatar_url: user.avatar_url,
+    contact_email: user.contact_email,
+    location: user.location,
+    cv_url: user.cv_url,
+    social_links: user.social_links ?? {},
+    case_studies: [],
+    case_study_count: 0,
+  };
+}
 
 export function UserPortfolioPage() {
   const { username } = useParams<{ username: string }>();
+  const { user: authUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -17,9 +37,20 @@ export function UserPortfolioPage() {
     api
       .getUserProfile(username)
       .then(setProfile)
-      .catch(() => setError("Researcher not found"))
+      .catch(() => {
+        const cached = getUserFromRegistry(username);
+        if (cached) {
+          setProfile(cached);
+          return;
+        }
+        if (authUser?.username === username) {
+          setProfile(profileFromAuthUser(authUser));
+          return;
+        }
+        setError("Researcher not found");
+      })
       .finally(() => setLoading(false));
-  }, [username]);
+  }, [username, authUser?.username]);
 
   if (loading) {
     return (

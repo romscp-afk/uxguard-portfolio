@@ -1,164 +1,20 @@
-const now = "2026-07-04T19:26:59.000Z";
+import { portfolioSettings, readStore, updateStore } from "./store.js";
 
-export const users = [
-  {
-    id: 1,
-    email: "demo@uxguard.io",
-    password: "demo1234",
-    username: "alex-rivera",
-    name: "Alex Rivera",
-    title: "Senior UX Researcher",
-    bio: "I help product teams make evidence-based decisions through mixed-methods research.",
-    avatar_url: null,
-    contact_email: "alex@uxguard.io",
-    location: "San Francisco, CA",
-    cv_url: null,
-    social_links: { linkedin: "https://linkedin.com/in/alexrivera" },
-    role: "admin",
-  },
-  {
-    id: 2,
-    email: "jordan@uxguard.io",
-    password: "demo1234",
-    username: "jordan-kim",
-    name: "Jordan Kim",
-    title: "UX Research Lead",
-    bio: "Mixed-methods researcher focused on B2B SaaS onboarding and activation.",
-    avatar_url: null,
-    contact_email: "jordan@uxguard.io",
-    location: "New York, NY",
-    cv_url: null,
-    social_links: { linkedin: "https://linkedin.com/in/jordankim" },
-    role: "researcher",
-  },
-];
+export { portfolioSettings };
 
-export const portfolioSettings = {
-  site_title: "UXguard",
-  tagline: "Evidence-driven UX research case studies",
-  hero_title: "Discover UX research from practitioners worldwide",
-  hero_subtitle:
-    "Browse published case studies, explore researcher portfolios, and share your own work with a personal portfolio link.",
-  about:
-    "UXguard is a portfolio platform for UX researchers. Publish case studies, attach research reports, and share a personal link for your CV — like Behance for research.",
-  contact_email: "hello@uxguard.io",
-  social_links: { linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
-};
-
-export const caseStudies = [
-  {
-    id: 1,
-    slug: "checkout-usability-study",
-    title: "Checkout Usability Study",
-    subtitle: "Reducing cart abandonment through moderated usability testing",
-    client: "FinFlow",
-    project_type: "B2B SaaS",
-    role: "Lead UX Researcher",
-    duration: "6 weeks",
-    summary: "A mixed-methods study to understand why enterprise users abandoned checkout at the payment step.",
-    challenge: "Cart abandonment at payment was 34% above industry benchmark.",
-    methodology: "8 moderated usability sessions, 120-session analytics review, and 5 stakeholder interviews.",
-    impact: "Payment-step completion improved 22%, support tickets for billing dropped 18% in 90 days.",
-    reflections: "Recruiting enterprise admins took longer than expected.",
-    cover_image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80",
-    methods: ["Usability Testing", "Analytics Review", "Stakeholder Interviews"],
-    metrics: [
-      { label: "Completion lift", value: "+22%", description: "Payment step" },
-      { label: "Support reduction", value: "-18%", description: "Billing tickets" },
-    ],
-    content_blocks: [
-      {
-        id: "b1",
-        type: "text",
-        data: { heading: "Research Goals", body: "Identify friction points in the checkout flow." },
-      },
-      {
-        id: "b2",
-        type: "quote",
-        data: {
-          text: "I wasn't sure if my card would be charged immediately.",
-          attribution: "Participant P4",
-        },
-      },
-    ],
-    status: "published",
-    featured: true,
-    sort_order: 1,
-    author_id: 1,
-    created_at: now,
-    updated_at: now,
-    published_at: now,
-    attachments: [],
-  },
-  {
-    id: 2,
-    slug: "onboarding-diary-study",
-    title: "Onboarding Diary Study",
-    subtitle: "Understanding first-week activation for new mobile users",
-    client: "HealthTrack",
-    project_type: "Consumer Mobile",
-    role: "UX Researcher",
-    duration: "4 weeks",
-    summary: "A 7-day diary study with 20 new users to map onboarding confusion.",
-    challenge: "Day-7 retention was 41%.",
-    methodology: "Diary study with daily prompts and follow-up interviews.",
-    impact: "Day-7 retention improved from 41% to 53%.",
-    reflections: "Daily prompts worked well.",
-    cover_image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&q=80",
-    methods: ["Diary Study", "Unmoderated Testing", "Interviews"],
-    metrics: [{ label: "Day-7 retention", value: "+12pts", description: "After 2 releases" }],
-    content_blocks: [],
-    status: "published",
-    featured: true,
-    sort_order: 2,
-    author_id: 1,
-    created_at: now,
-    updated_at: now,
-    published_at: now,
-    attachments: [],
-  },
-  {
-    id: 3,
-    slug: "enterprise-admin-research",
-    title: "Enterprise Admin Research",
-    subtitle: "Mapping admin workflows for multi-tenant SaaS",
-    client: "CloudOps",
-    project_type: "B2B SaaS",
-    role: "Lead Researcher",
-    duration: "6 weeks",
-    summary: "Contextual inquiry and workflow mapping with IT admins to redesign permission tooling.",
-    challenge: "Admins spent 40+ minutes on routine permission changes with high error rates.",
-    methodology: "Contextual inquiry, service blueprinting, and prototype validation.",
-    impact: "Admin task time reduced by 58% after permission model redesign.",
-    reflections: "Shadowing in production environments surfaced edge cases surveys missed.",
-    cover_image: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=1200&q=80",
-    methods: ["Contextual Inquiry", "Workflow Mapping", "Prototype Testing"],
-    metrics: [
-      { label: "Task time", value: "-58%", description: "Permission changes" },
-      { label: "Admins", value: "14", description: "Interviewed" },
-    ],
-    content_blocks: [],
-    status: "published",
-    featured: false,
-    sort_order: 1,
-    author_id: 2,
-    created_at: now,
-    updated_at: now,
-    published_at: now,
-    attachments: [],
-  },
-];
-
-export function getUserById(id) {
-  return users.find((u) => u.id === id) || null;
+export async function getUserById(id) {
+  const store = await readStore();
+  return store.users.find((u) => u.id === id) || null;
 }
 
-export function getUserByUsername(username) {
-  return users.find((u) => u.username === username) || null;
+export async function getUserByUsername(username) {
+  const store = await readStore();
+  return store.users.find((u) => u.username === username) || null;
 }
 
-export function getUserByEmail(email) {
-  return users.find((u) => u.email === email) || null;
+export async function getUserByEmail(email) {
+  const store = await readStore();
+  return store.users.find((u) => u.email === email) || null;
 }
 
 function slugify(text) {
@@ -172,50 +28,74 @@ function slugify(text) {
   );
 }
 
-function uniqueUsername(base) {
+async function uniqueUsername(base) {
   let candidate = slugify(base);
   let counter = 1;
-  while (getUserByUsername(candidate)) {
+  while (await getUserByUsername(candidate)) {
     candidate = `${slugify(base)}-${counter}`;
     counter += 1;
   }
   return candidate;
 }
 
-export function registerUser({ email, password, name, username, title }) {
+export async function registerUser({ email, password, name, username, title }) {
   if (!email || !password || !name) {
     return { error: "Name, email, and password are required", status: 400 };
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters", status: 400 };
   }
-  if (getUserByEmail(email)) {
+  if (await getUserByEmail(email)) {
     return { error: "Email already registered", status: 400 };
   }
 
-  const finalUsername = username ? slugify(username) : uniqueUsername(name);
-  if (username && getUserByUsername(finalUsername)) {
+  const finalUsername = username ? slugify(username) : await uniqueUsername(name);
+  if (username && (await getUserByUsername(finalUsername))) {
     return { error: "Username already taken", status: 400 };
   }
 
-  const id = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
-  const user = {
-    id,
-    email,
-    password,
-    username: finalUsername,
-    name,
-    title: title || null,
-    bio: null,
-    avatar_url: null,
-    contact_email: email,
-    location: null,
-    cv_url: null,
-    social_links: {},
-    role: "researcher",
-  };
-  users.push(user);
-  return { user };
+  let created = null;
+  await updateStore((store) => {
+    const id = store.users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+    created = {
+      id,
+      email,
+      password,
+      username: finalUsername,
+      name,
+      title: title || null,
+      bio: null,
+      avatar_url: null,
+      contact_email: email,
+      location: null,
+      cv_url: null,
+      social_links: {},
+      role: "researcher",
+    };
+    store.users.push(created);
+    return store;
+  });
+
+  return { user: created };
+}
+
+export async function updateUserProfile(userId, updates) {
+  let updated = null;
+  await updateStore((store) => {
+    const index = store.users.findIndex((u) => u.id === userId);
+    if (index === -1) return store;
+    if (updates.username) {
+      updates.username = slugify(updates.username);
+      const taken = store.users.find(
+        (u) => u.username === updates.username && u.id !== userId,
+      );
+      if (taken) throw new Error("Username already taken");
+    }
+    store.users[index] = { ...store.users[index], ...updates };
+    updated = store.users[index];
+    return store;
+  });
+  return updated;
 }
 
 export function toUserOut(user) {
@@ -248,12 +128,13 @@ export function toListItem(cs) {
   };
 }
 
-export function getFeedItems() {
-  return caseStudies
+export async function getFeedItems() {
+  const store = await readStore();
+  return store.caseStudies
     .filter((cs) => cs.status === "published")
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
     .map((cs) => {
-      const author = getUserById(cs.author_id);
+      const author = store.users.find((u) => u.id === cs.author_id);
       return {
         ...toListItem(cs),
         published_at: cs.published_at,
@@ -262,10 +143,11 @@ export function getFeedItems() {
     });
 }
 
-export function getUserProfile(username) {
-  const user = getUserByUsername(username);
+export async function getUserProfile(username) {
+  const store = await readStore();
+  const user = store.users.find((u) => u.username === username);
   if (!user) return null;
-  const studies = caseStudies
+  const studies = store.caseStudies
     .filter((cs) => cs.author_id === user.id && cs.status === "published")
     .sort((a, b) => a.sort_order - b.sort_order);
   const { password: _password, ...publicUser } = user;
@@ -276,15 +158,148 @@ export function getUserProfile(username) {
   };
 }
 
-export function getUserCaseStudy(username, slug) {
-  const user = getUserByUsername(username);
+export async function getUserCaseStudy(username, slug) {
+  const store = await readStore();
+  const user = store.users.find((u) => u.username === username);
   if (!user) return null;
   return (
-    caseStudies.find(
+    store.caseStudies.find(
       (cs) => cs.author_id === user.id && cs.slug === slug && cs.status === "published",
     ) || null
   );
 }
 
-/** @deprecated use getUserByEmail */
-export const demoUser = users[0];
+export async function listCaseStudies({ status, featured, authorId } = {}) {
+  const store = await readStore();
+  let list = [...store.caseStudies];
+  if (authorId) list = list.filter((cs) => cs.author_id === authorId);
+  if (status) list = list.filter((cs) => cs.status === status);
+  else list = list.filter((cs) => cs.status === "published");
+  if (featured !== undefined) list = list.filter((cs) => cs.featured === featured);
+  list.sort((a, b) => a.sort_order - b.sort_order || new Date(b.updated_at) - new Date(a.updated_at));
+  return list;
+}
+
+export async function getCaseStudyBySlug(slug) {
+  const store = await readStore();
+  return store.caseStudies.find((cs) => cs.slug === slug && cs.status === "published") || null;
+}
+
+export async function getCaseStudyById(id) {
+  const store = await readStore();
+  return store.caseStudies.find((cs) => cs.id === id) || null;
+}
+
+function slugifyTitle(text) {
+  return slugify(text) || `study-${Date.now()}`;
+}
+
+async function uniqueSlug(title, excludeId) {
+  const store = await readStore();
+  let candidate = slugifyTitle(title);
+  let counter = 1;
+  while (store.caseStudies.some((cs) => cs.slug === candidate && cs.id !== excludeId)) {
+    candidate = `${slugifyTitle(title)}-${counter}`;
+    counter += 1;
+  }
+  return candidate;
+}
+
+export async function createCaseStudy(authorId, payload) {
+  const now = new Date().toISOString();
+  const slug = payload.slug ? slugify(payload.slug) : await uniqueSlug(payload.title || "case-study");
+  let created = null;
+
+  await updateStore((store) => {
+    const id = store.caseStudies.reduce((max, cs) => Math.max(max, cs.id), 0) + 1;
+    created = {
+      id,
+      slug,
+      title: payload.title || "Untitled",
+      subtitle: payload.subtitle || null,
+      client: payload.client || null,
+      project_type: payload.project_type || null,
+      role: payload.role || null,
+      duration: payload.duration || null,
+      summary: payload.summary || null,
+      challenge: payload.challenge || null,
+      methodology: payload.methodology || null,
+      impact: payload.impact || null,
+      reflections: payload.reflections || null,
+      cover_image: payload.cover_image || null,
+      methods: payload.methods || [],
+      metrics: payload.metrics || [],
+      content_blocks: payload.content_blocks || [],
+      status: payload.status || "draft",
+      featured: payload.featured || false,
+      sort_order: payload.sort_order ?? 0,
+      author_id: authorId,
+      created_at: now,
+      updated_at: now,
+      published_at: payload.status === "published" ? now : null,
+      attachments: [],
+    };
+    store.caseStudies.push(created);
+    return store;
+  });
+
+  return created;
+}
+
+export async function updateCaseStudy(id, authorId, payload) {
+  const now = new Date().toISOString();
+  let updated = null;
+
+  await updateStore((store) => {
+    const index = store.caseStudies.findIndex((cs) => cs.id === id);
+    if (index === -1) throw new Error("Case study not found");
+    if (store.caseStudies[index].author_id !== authorId) throw new Error("Forbidden");
+
+    const current = store.caseStudies[index];
+    const nextStatus = payload.status ?? current.status;
+    const next = {
+      ...current,
+      ...payload,
+      updated_at: now,
+      published_at:
+        nextStatus === "published"
+          ? current.published_at || now
+          : nextStatus === "draft"
+            ? null
+            : current.published_at,
+    };
+
+    if (payload.title && !payload.slug) {
+      next.slug = current.slug || slugifyTitle(payload.title);
+    }
+    if (payload.slug) next.slug = slugify(payload.slug);
+
+    store.caseStudies[index] = next;
+    updated = next;
+    return store;
+  });
+
+  return updated;
+}
+
+export async function deleteCaseStudy(id, authorId) {
+  await updateStore((store) => {
+    const cs = store.caseStudies.find((item) => item.id === id);
+    if (!cs) throw new Error("Case study not found");
+    if (cs.author_id !== authorId) throw new Error("Forbidden");
+    store.caseStudies = store.caseStudies.filter((item) => item.id !== id);
+    return store;
+  });
+}
+
+export async function adminListCaseStudies(authorId) {
+  const store = await readStore();
+  return store.caseStudies
+    .filter((cs) => cs.author_id === authorId)
+    .sort((a, b) => a.sort_order - b.sort_order || new Date(b.updated_at) - new Date(a.updated_at));
+}
+
+/** @deprecated */
+export async function getDemoUser() {
+  return getUserById(1);
+}

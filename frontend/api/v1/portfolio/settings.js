@@ -1,4 +1,4 @@
-import { portfolioSettings } from "../../_lib/demo-data.js";
+import { portfolioSettings } from "../../_lib/store.js";
 
 export default function handler(req, res) {
   if (req.method === "GET") {
