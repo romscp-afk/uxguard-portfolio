@@ -161,6 +161,63 @@ export function getUserByEmail(email) {
   return users.find((u) => u.email === email) || null;
 }
 
+function slugify(text) {
+  return (
+    String(text)
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "researcher"
+  );
+}
+
+function uniqueUsername(base) {
+  let candidate = slugify(base);
+  let counter = 1;
+  while (getUserByUsername(candidate)) {
+    candidate = `${slugify(base)}-${counter}`;
+    counter += 1;
+  }
+  return candidate;
+}
+
+export function registerUser({ email, password, name, username, title }) {
+  if (!email || !password || !name) {
+    return { error: "Name, email, and password are required", status: 400 };
+  }
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters", status: 400 };
+  }
+  if (getUserByEmail(email)) {
+    return { error: "Email already registered", status: 400 };
+  }
+
+  const finalUsername = username ? slugify(username) : uniqueUsername(name);
+  if (username && getUserByUsername(finalUsername)) {
+    return { error: "Username already taken", status: 400 };
+  }
+
+  const id = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+  const user = {
+    id,
+    email,
+    password,
+    username: finalUsername,
+    name,
+    title: title || null,
+    bio: null,
+    avatar_url: null,
+    contact_email: email,
+    location: null,
+    cv_url: null,
+    social_links: {},
+    role: "researcher",
+  };
+  users.push(user);
+  return { user };
+}
+
 export function toUserOut(user) {
   const { password: _password, ...rest } = user;
   return { ...rest, portfolio_url: `/u/${user.username}` };

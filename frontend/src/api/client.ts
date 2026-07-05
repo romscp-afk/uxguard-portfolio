@@ -7,6 +7,7 @@ import type {
   PortfolioSettings,
   User,
   UserProfile,
+  RegisterPayload,
 } from "../types";
 
 const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -60,6 +61,12 @@ export const api = {
     request<{ access_token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    }),
+
+  register: (data: RegisterPayload) =>
+    request<{ access_token: string; user: User }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 
   me: () => request<User>("/auth/me"),

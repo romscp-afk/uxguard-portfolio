@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminLoginPage } from "./pages/admin/AdminLoginPage";
+import { AdminRegisterPage } from "./pages/admin/AdminRegisterPage";
 import { CaseStudiesListPage } from "./pages/admin/CaseStudiesListPage";
 import { CaseStudyEditorPage } from "./pages/admin/CaseStudyEditorPage";
 import { MediaLibraryPage } from "./pages/admin/MediaLibraryPage";
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
 
           <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/register" element={<AdminRegisterPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="case-studies" element={<CaseStudiesListPage />} />

@@ -8,10 +8,21 @@ function base64Url(input) {
   return buf.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-export function signToken(userId, email, expiresInSeconds = 7 * 24 * 60 * 60) {
+export function signToken(user, expiresInSeconds = 7 * 24 * 60 * 60) {
   const header = base64Url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const now = Math.floor(Date.now() / 1000);
-  const body = base64Url(JSON.stringify({ sub: String(userId), email, iat: now, exp: now + expiresInSeconds }));
+  const body = base64Url(
+    JSON.stringify({
+      sub: String(user.id),
+      email: user.email,
+      username: user.username,
+      name: user.name,
+      title: user.title,
+      role: user.role || "researcher",
+      iat: now,
+      exp: now + expiresInSeconds,
+    }),
+  );
   const data = `${header}.${body}`;
   return `${data}.${base64Url(createHmac("sha256", JWT_SECRET).update(data).digest())}`;
 }
@@ -24,7 +35,14 @@ export function verifyToken(token) {
     if (base64Url(createHmac("sha256", JWT_SECRET).update(data).digest()) !== sig) return null;
     const payload = JSON.parse(Buffer.from(body.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
     if (payload.exp * 1000 < Date.now()) return null;
-    return { userId: Number(payload.sub), email: payload.email };
+    return {
+      userId: Number(payload.sub),
+      email: payload.email,
+      username: payload.username,
+      name: payload.name,
+      title: payload.title,
+      role: payload.role,
+    };
   } catch {
     return null;
   }
@@ -44,5 +62,26 @@ export function checkLogin(email, password) {
 export function getAuthUser(req) {
   const session = requireAuth(req);
   if (!session) return null;
-  return getUserById(session.userId);
+
+  const stored = getUserById(session.userId);
+  if (stored) return stored;
+
+  if (session.username && session.email) {
+    return {
+      id: session.userId,
+      email: session.email,
+      username: session.username,
+      name: session.name,
+      title: session.title || null,
+      bio: null,
+      avatar_url: null,
+      contact_email: session.email,
+      location: null,
+      cv_url: null,
+      social_links: {},
+      role: session.role || "researcher",
+    };
+  }
+
+  return null;
 }

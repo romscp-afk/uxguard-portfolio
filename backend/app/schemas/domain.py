@@ -48,6 +48,12 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RegisterResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
 class UserPublicOut(BaseModel):
     id: int
     username: str

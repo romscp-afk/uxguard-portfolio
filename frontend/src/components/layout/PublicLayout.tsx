@@ -15,8 +15,8 @@ export function PublicHeader() {
           <Link to="/#about" className="text-ink-600 hover:text-brand-600">
             About
           </Link>
-          <Link to="/admin" className="btn-secondary py-2 text-xs">
-            Publish
+          <Link to="/admin/register" className="btn-secondary py-2 text-xs">
+            Sign up
           </Link>
         </nav>
       </div>

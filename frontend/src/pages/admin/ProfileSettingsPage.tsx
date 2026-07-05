@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Check, Copy, Save } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
@@ -6,6 +7,8 @@ import type { User } from "../../types";
 
 export function ProfileSettingsPage() {
   const { user, refreshUser } = useAuth();
+  const location = useLocation();
+  const welcome = (location.state as { welcome?: boolean } | null)?.welcome;
   const [form, setForm] = useState<Partial<User>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -70,6 +73,12 @@ export function ProfileSettingsPage() {
           Set your public username and share your portfolio link on your CV or LinkedIn
         </p>
       </div>
+
+      {welcome ? (
+        <div className="mb-4 rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-900">
+          Welcome! Your portfolio is ready — copy your link below and add your first case study from the dashboard.
+        </div>
+      ) : null}
 
       {message ? (
         <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>

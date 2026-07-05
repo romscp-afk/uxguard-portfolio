@@ -76,7 +76,14 @@ export function AdminLoginPage() {
             {loading ? "Signing in..." : "Sign in to CMS"}
           </button>
 
-          <p className="mt-6 text-center text-xs text-ink-400">
+          <p className="mt-6 text-center text-sm text-ink-500">
+            Don&apos;t have an account?{" "}
+            <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
+              Create your portfolio
+            </Link>
+          </p>
+
+          <p className="mt-4 text-center text-xs text-ink-400">
             Demo: demo@uxguard.io / demo1234
           </p>
         </form>

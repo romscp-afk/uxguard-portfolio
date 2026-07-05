@@ -11,5 +11,5 @@ export default function handler(req, res) {
     res.status(401).json({ detail: "Invalid credentials" });
     return;
   }
-  res.status(200).json({ access_token: signToken(user.id, user.email), token_type: "bearer" });
+  res.status(200).json({ access_token: signToken(user), token_type: "bearer" });
 }

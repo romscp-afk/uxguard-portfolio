@@ -58,8 +58,8 @@ export function HomePage() {
                 Explore Case Studies
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <Link to="/admin" className="btn-secondary">
-                Publish Your Work
+              <Link to="/admin/register" className="btn-secondary">
+                Create Your Portfolio
               </Link>
             </div>
           </div>

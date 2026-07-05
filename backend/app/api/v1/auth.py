@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import create_access_token, get_current_user, hash_password, verify_password
 from app.db.models import User, UserRole
 from app.db.session import get_db
-from app.schemas.domain import LoginRequest, TokenResponse, UserCreate, UserOut, UserUpdate
+from app.schemas.domain import LoginRequest, RegisterResponse, TokenResponse, UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -49,7 +49,7 @@ def _user_out(user: User) -> UserOut:
     )
 
 
-@router.post("/register", response_model=UserOut)
+@router.post("/register", response_model=RegisterResponse)
 async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == payload.email))
     if existing.scalar_one_or_none():
@@ -72,7 +72,11 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return _user_out(user)
+    user_out = _user_out(user)
+    return RegisterResponse(
+        access_token=create_access_token(user.id, user.email),
+        user=user_out,
+    )
 
 
 @router.post("/login", response_model=TokenResponse)

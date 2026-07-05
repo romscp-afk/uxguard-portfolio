@@ -116,6 +116,14 @@ export interface User {
   portfolio_url?: string;
 }
 
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  name: string;
+  username?: string;
+  title?: string;
+}
+
 export interface MediaAsset {
   id: number;
   filename: string;
