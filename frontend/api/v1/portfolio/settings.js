@@ -1,7 +1,8 @@
 import { requireAuthUser } from "../../_lib/auth.js";
 import { portfolioSettings, readStore, updateStore } from "../../_lib/store.js";
+import { withApi } from "../../_lib/withApi.js";
 
-export default async function handler(req, res) {
+export default withApi(async (req, res) => {
   if (req.method === "GET") {
     const store = await readStore();
     res.status(200).json(store.portfolioSettings || portfolioSettings);
@@ -25,4 +26,4 @@ export default async function handler(req, res) {
   }
 
   res.status(405).json({ detail: "Method not allowed" });
-}
+});

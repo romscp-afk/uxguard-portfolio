@@ -1,7 +1,8 @@
 import { getAuthUser, requireAuth } from "../../_lib/auth.js";
 import { toUserOut, updateUserProfile } from "../../_lib/demo-data.js";
+import { withApi } from "../../_lib/withApi.js";
 
-export default async function handler(req, res) {
+export default withApi(async (req, res) => {
   const session = requireAuth(req);
   if (!session) {
     res.status(401).json({ detail: "Not authenticated" });
@@ -35,4 +36,4 @@ export default async function handler(req, res) {
   }
 
   res.status(405).json({ detail: "Method not allowed" });
-}
+});

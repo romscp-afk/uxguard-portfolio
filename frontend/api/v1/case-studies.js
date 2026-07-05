@@ -1,7 +1,8 @@
 import { createCaseStudy, listCaseStudies, toListItem } from "../_lib/demo-data.js";
 import { requireAuthUser } from "../_lib/auth.js";
+import { withApi } from "../_lib/withApi.js";
 
-export default async function handler(req, res) {
+export default withApi(async (req, res) => {
   if (req.method === "GET") {
     const status = req.query.status || "published";
     let list = await listCaseStudies({ status: status === "all" ? undefined : status });
@@ -25,4 +26,4 @@ export default async function handler(req, res) {
   }
 
   res.status(405).json({ detail: "Method not allowed" });
-}
+});

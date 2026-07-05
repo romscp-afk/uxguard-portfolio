@@ -1,5 +1,6 @@
 import { getUserProfile } from "../../_lib/demo-data.js";
 import { requireAuth } from "../../_lib/auth.js";
+import { withApi } from "../../_lib/withApi.js";
 
 function profileFromSession(session) {
   return {
@@ -18,7 +19,7 @@ function profileFromSession(session) {
   };
 }
 
-export default async function handler(req, res) {
+export default withApi(async (req, res) => {
   if (req.method !== "GET") {
     res.status(405).json({ detail: "Method not allowed" });
     return;
@@ -38,4 +39,4 @@ export default async function handler(req, res) {
     return;
   }
   res.status(200).json(profile);
-}
+});

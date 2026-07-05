@@ -1,6 +1,7 @@
 import { getUserCaseStudy } from "../../../../_lib/demo-data.js";
+import { withApi } from "../../../../_lib/withApi.js";
 
-export default async function handler(req, res) {
+export default withApi(async (req, res) => {
   if (req.method !== "GET") {
     res.status(405).json({ detail: "Method not allowed" });
     return;
@@ -11,4 +12,4 @@ export default async function handler(req, res) {
     return;
   }
   res.status(200).json(cs);
-}
+});

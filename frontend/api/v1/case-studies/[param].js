@@ -1,12 +1,12 @@
 import {
   deleteCaseStudy,
-  getCaseStudyById,
   getCaseStudyBySlug,
   updateCaseStudy,
 } from "../../_lib/demo-data.js";
 import { requireAuthUser } from "../../_lib/auth.js";
+import { withApi } from "../../_lib/withApi.js";
 
-export default async function handler(req, res) {
+export default withApi(async (req, res) => {
   const param = String(req.query.param || "");
 
   if (/^\d+$/.test(param)) {
@@ -51,4 +51,4 @@ export default async function handler(req, res) {
     return;
   }
   res.status(200).json(cs);
-}
+});

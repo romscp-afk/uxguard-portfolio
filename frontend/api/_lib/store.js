@@ -139,62 +139,6 @@ const SEED_CASE_STUDIES = [
   },
 ];
 
-let memoryStore = null;
-
-function seedStore() {
-  return {
-    users: structuredClone(SEED_USERS),
-    caseStudies: structuredClone(SEED_CASE_STUDIES),
-    portfolioSettings: structuredClone(portfolioSettings),
-  };
-}
-
-export async function readStore() {
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    try {
-      const meta = await head(STORE_PATH);
-      if (meta?.url) {
-        const res = await fetch(meta.url);
-        if (res.ok) {
-          memoryStore = await res.json();
-          return structuredClone(memoryStore);
-        }
-      }
-    } catch {
-      // Blob missing or unreadable — fall through to memory/seed
-    }
-  }
-
-  if (!memoryStore) {
-    memoryStore = seedStore();
-    try {
-      await writeStore(memoryStore);
-    } catch {
-      // Keep in-memory seed even if blob write fails
-    }
-  }
-  return structuredClone(memoryStore);
-}
-
-export async function writeStore(store) {
-  memoryStore = store;
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    await put(STORE_PATH, JSON.stringify(store), {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-  }
-}
-
-export async function updateStore(updater) {
-  const current = await readStore();
-  const next = updater(structuredClone(current));
-  await writeStore(next);
-  return next;
-}
-
 export const portfolioSettings = {
   site_title: "UXguard",
   tagline: "Evidence-driven UX research case studies",
@@ -206,3 +150,91 @@ export const portfolioSettings = {
   contact_email: "hello@uxguard.io",
   social_links: { linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
 };
+
+let memoryStore = null;
+
+function seedStore() {
+  return {
+    users: structuredClone(SEED_USERS),
+    caseStudies: structuredClone(SEED_CASE_STUDIES),
+    portfolioSettings: structuredClone(portfolioSettings),
+  };
+}
+
+function isMissingBlobError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    error?.name === "BlobNotFoundError" ||
+    error?.status === 404 ||
+    error?.statusCode === 404 ||
+    message.includes("not found") ||
+    message.includes("does not exist")
+  );
+}
+
+async function loadFromBlob() {
+  const meta = await head(STORE_PATH);
+  if (!meta?.url) {
+    throw new Error("Platform store blob has no URL");
+  }
+
+  const res = await fetch(meta.url);
+  if (!res.ok) {
+    throw new Error(`Platform store fetch failed (${res.status})`);
+  }
+
+  return res.json();
+}
+
+export async function readStore() {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const data = await loadFromBlob();
+      memoryStore = data;
+      return structuredClone(data);
+    } catch (error) {
+      if (isMissingBlobError(error)) {
+        memoryStore = seedStore();
+        await writeStore(memoryStore);
+        return structuredClone(memoryStore);
+      }
+
+      if (memoryStore) {
+        return structuredClone(memoryStore);
+      }
+
+      throw error;
+    }
+  }
+
+  if (!memoryStore) {
+    memoryStore = seedStore();
+  }
+  return structuredClone(memoryStore);
+}
+
+export async function writeStore(store) {
+  memoryStore = store;
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return;
+  }
+
+  await put(STORE_PATH, JSON.stringify(store), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+}
+
+export async function updateStore(updater) {
+  const current = await readStore();
+  const next = updater(structuredClone(current));
+  await writeStore(next);
+  return next;
+}
+
+export function isPersistentStoreEnabled() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
