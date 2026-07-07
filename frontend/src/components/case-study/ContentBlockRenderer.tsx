@@ -1,4 +1,5 @@
 import type { ContentBlock } from "../../types";
+import { resolveAssetUrl } from "../../api/client";
 
 function TextBlock({ data }: { data: Record<string, unknown> }) {
   return (
@@ -45,7 +46,7 @@ function GalleryBlock({ data }: { data: Record<string, unknown> }) {
     <div className="grid gap-4 sm:grid-cols-2">
       {images.map((img, i) => (
         <figure key={i} className="overflow-hidden rounded-2xl border border-ink-100">
-          <img src={img.url} alt={img.caption || ""} className="aspect-video w-full object-cover" />
+          <img src={resolveAssetUrl(img.url)} alt={img.caption || ""} className="aspect-video w-full object-cover" />
           {img.caption ? (
             <figcaption className="px-4 py-3 text-sm text-ink-500">{img.caption}</figcaption>
           ) : null}
@@ -58,7 +59,7 @@ function GalleryBlock({ data }: { data: Record<string, unknown> }) {
 function ImageBlock({ data }: { data: Record<string, unknown> }) {
   return (
     <figure className="overflow-hidden rounded-2xl border border-ink-100">
-      <img src={String(data.url)} alt={String(data.caption || "")} className="w-full object-cover" />
+      <img src={resolveAssetUrl(String(data.url))} alt={String(data.caption || "")} className="w-full object-cover" />
       {data.caption ? (
         <figcaption className="px-4 py-3 text-sm text-ink-500">{String(data.caption)}</figcaption>
       ) : null}

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { resolveAssetUrl } from "../../api/client";
 import type { AuthorSummary } from "../../types";
 
 export function AuthorBadge({ author, className = "" }: { author: AuthorSummary; className?: string }) {
@@ -9,7 +10,7 @@ export function AuthorBadge({ author, className = "" }: { author: AuthorSummary;
       className={`inline-flex items-center gap-2 rounded-full bg-ink-50 px-2.5 py-1 transition hover:bg-brand-50 ${className}`}
     >
       {author.avatar_url ? (
-        <img src={author.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+        <img src={resolveAssetUrl(author.avatar_url)} alt="" className="h-5 w-5 rounded-full object-cover" />
       ) : (
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">
           {author.name.charAt(0)}

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Eye, Plus, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Eye, FileText, Plus, Save, Trash2, Upload } from "lucide-react";
+import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { useAuth } from "../../context/AuthContext";
 import { api, ApiError } from "../../api/client";
 import {
@@ -81,7 +82,7 @@ function validateForm(
 
   if (publish) {
     if (!form.summary?.trim()) errors.summary = "Summary is required to publish.";
-    if (!form.cover_image?.trim()) errors.cover_image = "Cover image URL is required to publish.";
+    if (!form.cover_image?.trim()) errors.cover_image = "Cover image is required to publish.";
     if (!form.challenge?.trim()) errors.challenge = "Challenge is required to publish.";
     if (!form.methodology?.trim()) errors.methodology = "Methodology is required to publish.";
     if (!form.impact?.trim()) errors.impact = "Impact is required to publish.";
@@ -121,6 +122,8 @@ export function CaseStudyEditorPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
 
   useEffect(() => {
@@ -200,6 +203,69 @@ export function CaseStudyEditorPage() {
 
   function removeBlock(index: number) {
     updateField("content_blocks", (form.content_blocks || []).filter((_, i) => i !== index));
+  }
+
+  function updateGalleryImage(blockIndex: number, imageIndex: number, patch: { url?: string; caption?: string }) {
+    const block = (form.content_blocks || [])[blockIndex];
+    if (!block || block.type !== "gallery") return;
+    const images = [...((block.data.images as Array<{ url: string; caption?: string }>) || [])];
+    images[imageIndex] = { ...images[imageIndex], ...patch };
+    updateBlock(blockIndex, { images });
+  }
+
+  function addGalleryImage(blockIndex: number) {
+    const block = (form.content_blocks || [])[blockIndex];
+    if (!block || block.type !== "gallery") return;
+    const images = [...((block.data.images as Array<{ url: string; caption?: string }>) || [])];
+    images.push({ url: "", caption: "" });
+    updateBlock(blockIndex, { images });
+  }
+
+  function removeGalleryImage(blockIndex: number, imageIndex: number) {
+    const block = (form.content_blocks || [])[blockIndex];
+    if (!block || block.type !== "gallery") return;
+    const images = ((block.data.images as Array<{ url: string; caption?: string }>) || []).filter(
+      (_, i) => i !== imageIndex,
+    );
+    updateBlock(blockIndex, { images: images.length ? images : [{ url: "", caption: "" }] });
+  }
+
+  async function handleAttachmentUpload(files: FileList | null) {
+    if (!files?.[0] || studyId == null) return;
+    setUploadingAttachment(true);
+    try {
+      const file = files[0];
+      const asset = await api.uploadMedia(file);
+      const attachment = await api.addAttachment(studyId, {
+        title: file.name.replace(/\.[^.]+$/, "") || "Research report",
+        file_url: asset.url,
+        file_type: asset.mime_type,
+        size_bytes: asset.size_bytes,
+      });
+      updateField("attachments", [...(form.attachments || []), attachment]);
+      setMessage("Attachment added.");
+      setMessageType("success");
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err instanceof ApiError ? err.message : "Failed to upload attachment.");
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: number) {
+    if (!confirm("Remove this attachment?")) return;
+    try {
+      await api.deleteAttachment(attachmentId);
+      updateField(
+        "attachments",
+        (form.attachments || []).filter((item) => item.id !== attachmentId),
+      );
+    } catch {
+      setMessageType("error");
+      setMessage("Failed to remove attachment.");
+    }
   }
 
   function buildStudyPayload(status: CaseStudy["status"]): Partial<CaseStudy> {
@@ -473,20 +539,20 @@ export function CaseStudyEditorPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={fieldLabelClass(Boolean(fieldErrors.cover_image))}>
-                  Cover Image URL{form.status === "published" || fieldErrors.cover_image ? " *" : ""}
-                </label>
-                <input
-                  ref={(el) => {
-                    fieldRefs.current.cover_image = el;
-                  }}
-                  className={fieldInputClass(Boolean(fieldErrors.cover_image))}
+                <UrlOrUploadField
+                  label={`Cover Image${form.status === "published" || fieldErrors.cover_image ? " *" : ""}`}
                   value={form.cover_image || ""}
-                  onChange={(e) => {
-                    updateField("cover_image", e.target.value);
+                  onChange={(url) => {
+                    updateField("cover_image", url);
                     clearFieldError("cover_image");
                   }}
-                  placeholder="https://..."
+                  inputRef={(el) => {
+                    fieldRefs.current.cover_image = el;
+                  }}
+                  hasError={Boolean(fieldErrors.cover_image)}
+                  required={form.status === "published"}
+                  accept="image/*"
+                  helpText="Paste an image URL or upload from your device"
                 />
                 {fieldErrors.cover_image ? (
                   <p className="mt-1 text-xs text-red-600">{fieldErrors.cover_image}</p>
@@ -612,11 +678,11 @@ export function CaseStudyEditorPage() {
 
                   {block.type === "image" ? (
                     <div className="space-y-2">
-                      <input
-                        className="input-field"
-                        placeholder="Image URL"
+                      <UrlOrUploadField
+                        label="Image"
                         value={String(block.data.url || "")}
-                        onChange={(e) => updateBlock(index, { url: e.target.value })}
+                        onChange={(url) => updateBlock(index, { url })}
+                        accept="image/*"
                       />
                       <input
                         className="input-field"
@@ -626,10 +692,105 @@ export function CaseStudyEditorPage() {
                       />
                     </div>
                   ) : null}
+
+                  {block.type === "gallery" ? (
+                    <div className="space-y-3">
+                      {((block.data.images as Array<{ url: string; caption?: string }>) || []).map(
+                        (image, imageIndex) => (
+                          <div key={imageIndex} className="rounded-lg border border-ink-100 bg-white p-3">
+                            <UrlOrUploadField
+                              label={`Gallery image ${imageIndex + 1}`}
+                              value={image.url}
+                              onChange={(url) => updateGalleryImage(index, imageIndex, { url })}
+                              accept="image/*"
+                            />
+                            <input
+                              className="input-field mt-2"
+                              placeholder="Caption"
+                              value={image.caption || ""}
+                              onChange={(e) =>
+                                updateGalleryImage(index, imageIndex, { caption: e.target.value })
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeGalleryImage(index, imageIndex)}
+                              className="mt-2 text-xs text-red-500 hover:text-red-700"
+                            >
+                              Remove image
+                            </button>
+                          </div>
+                        ),
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => addGalleryImage(index)}
+                        className="text-sm text-brand-600"
+                      >
+                        + Add gallery image
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
           </section>
+
+          {!isNew ? (
+            <section className="card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-ink-900">Research Reports</h2>
+                  <p className="mt-1 text-xs text-ink-500">Upload PDFs or documents for investors and hiring managers</p>
+                </div>
+                <div>
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,image/*"
+                    className="hidden"
+                    onChange={(e) => handleAttachmentUpload(e.target.files)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    disabled={uploadingAttachment}
+                    className="btn-secondary py-2 text-xs"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingAttachment ? "Uploading..." : "Upload file"}
+                  </button>
+                </div>
+              </div>
+              {(form.attachments || []).length === 0 ? (
+                <p className="text-sm text-ink-500">No attachments yet. Upload a research report from your device.</p>
+              ) : (
+                <div className="space-y-2">
+                  {(form.attachments || []).map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between rounded-lg border border-ink-100 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-brand-600" />
+                        <div>
+                          <p className="text-sm font-medium text-ink-900">{attachment.title}</p>
+                          <p className="text-xs text-ink-400">{attachment.file_type}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttachment(attachment.id)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
         </div>
 
         <div className="space-y-6">

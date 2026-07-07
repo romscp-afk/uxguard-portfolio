@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ExternalLink, Mail, MapPin } from "lucide-react";
-import { api } from "../../api/client";
+import { api, resolveAssetUrl } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
@@ -132,7 +132,7 @@ export function UserPortfolioPage() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
             {profile.avatar_url ? (
               <img
-                src={profile.avatar_url}
+                src={resolveAssetUrl(profile.avatar_url)}
                 alt={profile.name}
                 className="h-24 w-24 rounded-2xl object-cover ring-4 ring-brand-50"
               />
@@ -164,7 +164,7 @@ export function UserPortfolioPage() {
                 ) : null}
                 {profile.cv_url ? (
                   <a
-                    href={profile.cv_url}
+                    href={resolveAssetUrl(profile.cv_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 hover:text-brand-600"

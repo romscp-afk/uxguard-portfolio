@@ -405,6 +405,43 @@ export async function deleteCaseStudy(id, authorId) {
   });
 }
 
+export async function addCaseStudyAttachment(caseId, authorId, attachment) {
+  let created = null;
+  await updateStore((store) => {
+    const index = store.caseStudies.findIndex((cs) => cs.id === caseId && cs.author_id === authorId);
+    if (index === -1) throw new Error("Case study not found");
+
+    const current = store.caseStudies[index];
+    const attachments = [...(current.attachments || [])];
+    const id = attachments.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    created = {
+      id,
+      title: attachment.title || "Attachment",
+      file_url: attachment.file_url,
+      file_type: attachment.file_type || "application/octet-stream",
+      size_bytes: Number(attachment.size_bytes) || 0,
+    };
+    attachments.push(created);
+    store.caseStudies[index] = { ...current, attachments, updated_at: new Date().toISOString() };
+    return store;
+  });
+  return created;
+}
+
+export async function deleteCaseStudyAttachment(attachmentId, authorId) {
+  await updateStore((store) => {
+    for (const cs of store.caseStudies) {
+      if (cs.author_id !== authorId) continue;
+      const index = (cs.attachments || []).findIndex((item) => item.id === attachmentId);
+      if (index === -1) continue;
+      cs.attachments = cs.attachments.filter((item) => item.id !== attachmentId);
+      cs.updated_at = new Date().toISOString();
+      return store;
+    }
+    throw new Error("Attachment not found");
+  });
+}
+
 export async function adminListCaseStudies(authorId) {
   const store = await readStore();
   return store.caseStudies

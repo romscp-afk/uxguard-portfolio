@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink } from "lucide-react";
+import { resolveAssetUrl } from "../../api/client";
 import { ContentBlockRenderer } from "../../components/case-study/ContentBlockRenderer";
 import type { CaseStudy, UserProfile } from "../../types";
 
@@ -44,7 +45,7 @@ export function CaseStudyArticle({
 
       {study.cover_image ? (
         <div className="aspect-[21/9] max-h-[480px] w-full overflow-hidden bg-ink-100">
-          <img src={study.cover_image} alt={study.title} className="h-full w-full object-cover" />
+          <img src={resolveAssetUrl(study.cover_image)} alt={study.title} className="h-full w-full object-cover" />
         </div>
       ) : null}
 
@@ -131,7 +132,7 @@ export function CaseStudyArticle({
               {study.attachments.map((att) => (
                 <a
                   key={att.id}
-                  href={att.file_url}
+                  href={resolveAssetUrl(att.file_url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50/30"

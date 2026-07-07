@@ -4,10 +4,11 @@ import { ArrowRight, FileText, Layers, Sparkles } from "lucide-react";
 import { api } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
+import { DEFAULT_PORTFOLIO_SETTINGS } from "../../lib/defaultSettings";
 import type { FeedCaseStudyItem, PortfolioSettings } from "../../types";
 
 export function HomePage() {
-  const [settings, setSettings] = useState<PortfolioSettings | null>(null);
+  const [settings, setSettings] = useState<PortfolioSettings>(DEFAULT_PORTFOLIO_SETTINGS);
   const [feed, setFeed] = useState<FeedCaseStudyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -69,15 +70,12 @@ export function HomePage() {
           <div className="max-w-3xl">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
               <Sparkles className="h-3.5 w-3.5" />
-              {settings?.tagline || "UX Research Portfolio Platform"}
+              {settings.tagline}
             </p>
             <h1 className="font-display text-4xl font-bold leading-tight text-ink-950 sm:text-5xl lg:text-6xl">
-              {settings?.hero_title || "Discover UX research case studies"}
+              {settings.hero_title}
             </h1>
-            <p className="mt-6 text-lg leading-relaxed text-ink-600">
-              {settings?.hero_subtitle ||
-                "Browse published work from researchers worldwide. Share your portfolio with a personal link for your CV."}
-            </p>
+            <p className="mt-6 text-lg leading-relaxed text-ink-600">{settings.hero_subtitle}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href="#discover" className="btn-primary">
                 Explore Case Studies
@@ -138,10 +136,7 @@ export function HomePage() {
       <section id="about" className="border-t border-ink-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <h2 className="font-display text-3xl font-bold text-ink-950">About UXguard</h2>
-          <p className="mt-4 max-w-3xl leading-relaxed text-ink-600">
-            {settings?.about ||
-              "UXguard helps UX researchers build portfolio case studies with the structure hiring managers expect — and share them with a personal portfolio URL for your CV or LinkedIn."}
-          </p>
+          <p className="mt-4 max-w-3xl leading-relaxed text-ink-600">{settings.about}</p>
         </div>
       </section>
 

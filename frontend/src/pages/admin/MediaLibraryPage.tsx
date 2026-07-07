@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Trash2, Upload } from "lucide-react";
-import { api } from "../../api/client";
+import { api, resolveAssetUrl } from "../../api/client";
 import type { MediaAsset } from "../../types";
 
 function formatBytes(bytes: number) {
@@ -44,7 +44,7 @@ export function MediaLibraryPage() {
   }
 
   function copyUrl(asset: MediaAsset) {
-    const url = window.location.origin + asset.url;
+    const url = asset.url.startsWith("http") ? asset.url : `${window.location.origin}${resolveAssetUrl(asset.url)}`;
     navigator.clipboard.writeText(url);
     setCopied(asset.id);
     setTimeout(() => setCopied(null), 2000);
@@ -96,7 +96,7 @@ export function MediaLibraryPage() {
             <div key={asset.id} className="card overflow-hidden">
               <div className="flex aspect-square items-center justify-center bg-ink-50">
                 {asset.mime_type.startsWith("image/") ? (
-                  <img src={asset.url} alt={asset.alt_text || asset.original_name} className="h-full w-full object-cover" />
+                  <img src={resolveAssetUrl(asset.url)} alt={asset.alt_text || asset.original_name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="text-center p-4">
                     <p className="text-2xl font-bold uppercase text-brand-600">

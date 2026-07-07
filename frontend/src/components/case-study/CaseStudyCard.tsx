@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
+import { resolveAssetUrl } from "../../api/client";
 import { AuthorBadge } from "./AuthorBadge";
 import type { AuthorSummary, CaseStudyListItem } from "../../types";
 
@@ -23,7 +24,7 @@ export function CaseStudyCard({
       <div className="aspect-[16/10] overflow-hidden bg-ink-100">
         {study.cover_image ? (
           <img
-            src={study.cover_image}
+            src={resolveAssetUrl(study.cover_image)}
             alt={study.title}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />

@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Check, Copy, Save } from "lucide-react";
+import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { saveUserToRegistry } from "../../lib/platformRegistry";
 import { useAuth } from "../../context/AuthContext";
-import { api } from "../../api/client";
+import { api, resolveAssetUrl } from "../../api/client";
 import type { User } from "../../types";
 
 export function ProfileSettingsPage() {
@@ -11,6 +12,7 @@ export function ProfileSettingsPage() {
   const location = useLocation();
   const welcome = (location.state as { welcome?: boolean } | null)?.welcome;
   const [form, setForm] = useState<Partial<User>>({});
+  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
@@ -24,8 +26,10 @@ export function ProfileSettingsPage() {
         bio: user.bio || "",
         contact_email: user.contact_email || "",
         location: user.location || "",
+        avatar_url: user.avatar_url || "",
         cv_url: user.cv_url || "",
       });
+      setLinkedinUrl(user.social_links?.linkedin || "");
     }
   }, [user]);
 
@@ -52,9 +56,22 @@ export function ProfileSettingsPage() {
     setSaving(true);
     setMessage("");
     try {
-      await api.updateMe(form);
+      const payload: Partial<User> = {
+        ...form,
+        social_links: {
+          ...(user?.social_links || {}),
+          ...(linkedinUrl.trim() ? { linkedin: linkedinUrl.trim() } : {}),
+        },
+      };
+      await api.updateMe(payload);
       await refreshUser();
-      if (user) saveUserToRegistry({ ...user, ...form, username: form.username || user.username });
+      if (user) {
+        saveUserToRegistry({
+          ...user,
+          ...payload,
+          username: form.username || user.username,
+        });
+      }
       setMessage("Profile saved.");
     } catch {
       setMessage("Failed to save profile.");
@@ -129,6 +146,23 @@ export function ProfileSettingsPage() {
               required
             />
           </div>
+          <UrlOrUploadField
+            label="Profile Photo"
+            value={form.avatar_url || ""}
+            onChange={(url) => updateField("avatar_url", url)}
+            accept="image/*"
+            helpText="Paste a URL or upload a photo from your device"
+          />
+          {form.avatar_url ? (
+            <div className="flex items-center gap-3 rounded-lg border border-ink-100 bg-ink-50 p-3">
+              <img
+                src={resolveAssetUrl(form.avatar_url)}
+                alt=""
+                className="h-14 w-14 rounded-full object-cover"
+              />
+              <p className="text-sm text-ink-600">Preview of your public profile photo</p>
+            </div>
+          ) : null}
           <div>
             <label className="label-field">Title</label>
             <input
@@ -166,15 +200,23 @@ export function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <label className="label-field">CV / Resume URL</label>
+            <label className="label-field">LinkedIn URL</label>
             <input
               type="url"
               className="input-field"
-              value={form.cv_url || ""}
-              onChange={(e) => updateField("cv_url", e.target.value)}
-              placeholder="https://..."
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              placeholder="https://linkedin.com/in/your-profile"
             />
           </div>
+          <UrlOrUploadField
+            label="CV / Resume"
+            value={form.cv_url || ""}
+            onChange={(url) => updateField("cv_url", url)}
+            accept="image/*,.pdf,.doc,.docx"
+            showPreview={false}
+            helpText="Paste a link or upload PDF/Word from your device"
+          />
         </div>
 
         <button type="submit" className="btn-primary mt-6" disabled={saving}>
