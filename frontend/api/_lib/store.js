@@ -173,14 +173,34 @@ function isMissingBlobError(error) {
 }
 
 async function loadFromBlob() {
-  const result = await get(STORE_PATH, { access: "private" });
-  if (!result?.blob) {
+  const result = await get(STORE_PATH, {
+    access: "private",
+    useCache: false,
+  });
+
+  if (!result) {
     const error = new Error("Platform store not found");
     error.name = "BlobNotFoundError";
     throw error;
   }
 
-  const text = await result.blob.text();
+  if (result.statusCode === 304) {
+    if (memoryStore) {
+      return structuredClone(memoryStore);
+    }
+
+    const error = new Error("Platform store not found");
+    error.name = "BlobNotFoundError";
+    throw error;
+  }
+
+  if (result.statusCode !== 200 || !result.stream) {
+    const error = new Error("Platform store not found");
+    error.name = "BlobNotFoundError";
+    throw error;
+  }
+
+  const text = await new Response(result.stream).text();
   return JSON.parse(text);
 }
 
