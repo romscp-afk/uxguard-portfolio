@@ -481,6 +481,28 @@ export function CaseStudyEditorPage() {
             <h2 className="mb-4 font-semibold text-ink-900">Project Overview</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
+                <UrlOrUploadField
+                  variant="cover"
+                  label={`Cover Image${form.status === "published" || fieldErrors.cover_image ? " *" : ""}`}
+                  value={form.cover_image || ""}
+                  onChange={(url) => {
+                    updateField("cover_image", url);
+                    clearFieldError("cover_image");
+                  }}
+                  inputRef={(el) => {
+                    fieldRefs.current.cover_image = el;
+                  }}
+                  hasError={Boolean(fieldErrors.cover_image)}
+                  required={form.status === "published"}
+                  accept="image/*"
+                  placeholder="https://images.unsplash.com/... or upload from your device"
+                  helpText="Paste an image URL or upload/drag a file from your computer"
+                />
+                {fieldErrors.cover_image ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.cover_image}</p>
+                ) : null}
+              </div>
+              <div className="sm:col-span-2">
                 <label className={fieldLabelClass(Boolean(fieldErrors.title))}>Title *</label>
                 <input
                   ref={(el) => {
@@ -537,26 +559,6 @@ export function CaseStudyEditorPage() {
                   onChange={(e) => updateField("duration", e.target.value)}
                   placeholder="e.g. 6 weeks"
                 />
-              </div>
-              <div className="sm:col-span-2">
-                <UrlOrUploadField
-                  label={`Cover Image${form.status === "published" || fieldErrors.cover_image ? " *" : ""}`}
-                  value={form.cover_image || ""}
-                  onChange={(url) => {
-                    updateField("cover_image", url);
-                    clearFieldError("cover_image");
-                  }}
-                  inputRef={(el) => {
-                    fieldRefs.current.cover_image = el;
-                  }}
-                  hasError={Boolean(fieldErrors.cover_image)}
-                  required={form.status === "published"}
-                  accept="image/*"
-                  helpText="Paste an image URL or upload from your device"
-                />
-                {fieldErrors.cover_image ? (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.cover_image}</p>
-                ) : null}
               </div>
               <div className="sm:col-span-2">
                 <label className={fieldLabelClass(Boolean(fieldErrors.summary))}>

@@ -98,6 +98,32 @@ export async function updateUserProfile(userId, updates) {
   return updated;
 }
 
+export async function resetUserPassword(email, newPassword) {
+  if (!email || !newPassword) {
+    return { error: "Email and new password are required", status: 400 };
+  }
+  if (newPassword.length < 8) {
+    return { error: "Password must be at least 8 characters", status: 400 };
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  let found = false;
+
+  await updateStore((store) => {
+    const index = store.users.findIndex((u) => u.email.toLowerCase() === normalizedEmail);
+    if (index === -1) return store;
+    store.users[index] = { ...store.users[index], password: newPassword };
+    found = true;
+    return store;
+  });
+
+  if (!found) {
+    return { error: "No account found with that email address", status: 404 };
+  }
+
+  return { success: true };
+}
+
 export function toUserOut(user) {
   const { password: _password, ...rest } = user;
   return { ...rest, portfolio_url: `/u/${user.username}` };
