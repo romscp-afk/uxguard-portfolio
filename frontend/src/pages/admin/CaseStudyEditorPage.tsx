@@ -307,16 +307,23 @@ export function CaseStudyEditorPage() {
   async function persistDraftQuietly(nextCoverUrl?: string) {
     if (isNew || studyId == null) return;
     const payload = buildStudyPayload(form.status === "published" ? "published" : "draft");
-    if (nextCoverUrl !== undefined) payload.cover_image = nextCoverUrl;
+    if (nextCoverUrl !== undefined) payload.cover_image = nextCoverUrl || undefined;
     try {
       const updated = await api.updateCaseStudy(studyId, payload);
-      saveCaseStudyToCache(updated);
-      setForm((prev) => ({ ...prev, ...updated, cover_image: updated.cover_image ?? nextCoverUrl }));
+      const coverImage =
+        nextCoverUrl !== undefined ? nextCoverUrl || undefined : updated.cover_image;
+      const merged = { ...updated, cover_image: coverImage };
+      saveCaseStudyToCache(merged);
+      setForm((prev) => ({ ...prev, ...merged }));
     } catch {
       const cached = buildCachedStudy(form.status === "published" ? "published" : "draft");
       if (cached) {
-        if (nextCoverUrl !== undefined) cached.cover_image = nextCoverUrl;
+        if (nextCoverUrl !== undefined) cached.cover_image = nextCoverUrl || undefined;
         saveCaseStudyToCache(cached);
+        setForm((prev) => ({
+          ...prev,
+          cover_image: nextCoverUrl !== undefined ? nextCoverUrl : prev.cover_image,
+        }));
       }
     }
   }
@@ -397,7 +404,11 @@ export function CaseStudyEditorPage() {
           removeCaseStudyFromCache(studyId);
           navigate(`/admin/case-studies/${updated.id}`, { replace: true });
         }
-        saveCaseStudyToCache(updated);
+        const merged = {
+          ...updated,
+          cover_image: payload.cover_image ?? updated.cover_image,
+        };
+        saveCaseStudyToCache(merged);
         if (user) {
           try {
             await syncCachedCaseStudies(user.id);
@@ -405,7 +416,7 @@ export function CaseStudyEditorPage() {
             // Sync is optional when using alternate backends.
           }
         }
-        setForm(updated);
+        setForm(merged);
         setMethodsInput(updated.methods.join(", "));
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
@@ -434,8 +445,12 @@ export function CaseStudyEditorPage() {
     try {
       const payload = buildStudyPayload(form.status === "published" ? "published" : "draft");
       const updated = await api.updateCaseStudy(studyId, payload);
-      saveCaseStudyToCache(updated);
-      setForm(updated);
+      const merged = {
+        ...updated,
+        cover_image: payload.cover_image ?? updated.cover_image,
+      };
+      saveCaseStudyToCache(merged);
+      setForm(merged);
       setMethodsInput(updated.methods.join(", "));
       window.open(`/admin/case-studies/${studyId}/preview`, "_blank", "noopener,noreferrer");
     } catch {
@@ -562,7 +577,9 @@ export function CaseStudyEditorPage() {
                   onChange={(url) => {
                     updateField("cover_image", url);
                     clearFieldError("cover_image");
-                    if (url.trim()) void persistDraftQuietly(url);
+                  }}
+                  onCommit={(url) => {
+                    if (!isNew && studyId != null) void persistDraftQuietly(url);
                   }}
                   onValidationError={(message) => {
                     setFieldErrors((prev) => ({ ...prev, cover_image: message }));

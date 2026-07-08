@@ -82,7 +82,7 @@ export async function validateCoverImageFile(file: File): Promise<string | null>
 }
 
 export async function validateCoverImageUrl(url: string): Promise<string | null> {
-  if (!url.trim()) return "Cover image is required to publish.";
+  if (!url.trim()) return null;
   if (url.includes("/api/v1/media/file/")) return null;
 
   try {

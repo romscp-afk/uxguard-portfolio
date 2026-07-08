@@ -20,6 +20,8 @@ type UrlOrUploadFieldProps = {
   showPreview?: boolean;
   variant?: "default" | "cover";
   onValidationError?: (message: string) => void;
+  /** Called after a successful upload or validated URL blur (cover edits). */
+  onCommit?: (url: string) => void;
 };
 
 export function UrlOrUploadField({
@@ -35,6 +37,7 @@ export function UrlOrUploadField({
   showPreview = true,
   variant = "default",
   onValidationError,
+  onCommit,
 }: UrlOrUploadFieldProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,17 +46,21 @@ export function UrlOrUploadField({
 
   const isCover = variant === "cover";
 
-  async function validateAndApplyUrl(url: string) {
-    if (isCover && url.trim()) {
-      const dimensionError = await validateCoverImageUrl(url);
-      if (dimensionError) {
-        setUploadError(dimensionError);
-        onValidationError?.(dimensionError);
-        return;
-      }
+  async function validateCoverUrl(url: string): Promise<boolean> {
+    if (!isCover || !url.trim()) return true;
+    const dimensionError = await validateCoverImageUrl(url);
+    if (dimensionError) {
+      setUploadError(dimensionError);
+      onValidationError?.(dimensionError);
+      return false;
     }
     setUploadError("");
-    onChange(url);
+    return true;
+  }
+
+  async function commitUrl(url: string) {
+    if (!(await validateCoverUrl(url))) return;
+    onCommit?.(url);
   }
 
   async function handleUpload(files: FileList | null) {
@@ -80,6 +87,7 @@ export function UrlOrUploadField({
           : `${window.location.origin}${asset.url.startsWith("/") ? asset.url : `/${asset.url}`}`;
       onChange(absoluteUrl);
       setUploadError("");
+      onCommit?.(absoluteUrl);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
       setUploadError(message);
@@ -132,7 +140,12 @@ export function UrlOrUploadField({
           tabIndex={0}
         >
           {isImage ? (
-            <img src={previewUrl} alt="" className="aspect-[16/10] w-full object-cover" />
+            <>
+              <img key={previewUrl} src={previewUrl} alt="" className="aspect-[16/10] w-full object-cover" />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3 text-center">
+                <p className="text-xs font-medium text-white">Click or drop to replace cover image</p>
+              </div>
+            </>
           ) : (
             <div className="flex aspect-[16/10] flex-col items-center justify-center px-6 text-center">
               <ImagePlus className="h-10 w-10 text-ink-300" />
@@ -157,9 +170,12 @@ export function UrlOrUploadField({
           inputMode="url"
           className={hasError ? "input-field input-field-error flex-1" : "input-field flex-1"}
           value={value}
-          onChange={(e) => validateAndApplyUrl(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setUploadError("");
+          }}
           onBlur={() => {
-            if (isCover && value.trim()) validateAndApplyUrl(value);
+            if (isCover && value.trim()) void commitUrl(value);
           }}
           placeholder={placeholder}
         />
@@ -184,10 +200,23 @@ export function UrlOrUploadField({
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              {isCover ? "Upload from device" : "Upload"}
+              {isCover ? "Replace" : "Upload"}
             </>
           )}
         </button>
+        {isCover && value ? (
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setUploadError("");
+              onCommit?.("");
+            }}
+            className="btn-secondary shrink-0 whitespace-nowrap py-2.5 text-red-600"
+          >
+            Remove
+          </button>
+        ) : null}
       </div>
 
       <p className="mt-1 text-xs text-ink-400">{helpText || (isCover ? COVER_HELP_TEXT : null)}</p>
