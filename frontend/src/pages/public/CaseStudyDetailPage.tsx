@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { AuthorBadge } from "../../components/case-study/AuthorBadge";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
+import { CommentsSection } from "../../components/community/CommentsSection";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
@@ -120,6 +121,7 @@ export function CaseStudyDetailPage() {
         </div>
       ) : null}
       <CaseStudyArticle study={study} author={author} username={username} />
+      <CommentsSection caseStudyId={study.id} />
       <PublicFooter />
     </div>
   );

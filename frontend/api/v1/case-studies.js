@@ -1,4 +1,5 @@
 import { createCaseStudy, listCaseStudies, toListItem } from "../_lib/demo-data.js";
+import { notifyNewPublication } from "../_lib/community.js";
 import { requireAuthUser } from "../_lib/auth.js";
 import { withApi } from "../_lib/withApi.js";
 
@@ -18,6 +19,9 @@ export default withApi(async (req, res) => {
     if (!user) return;
     try {
       const created = await createCaseStudy(user.id, req.body || {});
+      if (created.status === "published") {
+        await notifyNewPublication(created, user);
+      }
       res.status(201).json(created);
     } catch (err) {
       res.status(500).json({ detail: err.message || "Failed to create case study" });

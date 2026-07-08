@@ -160,6 +160,9 @@ function seedStore() {
     portfolioSettings: structuredClone(portfolioSettings),
     mediaAssets: [],
     passwordResetTokens: [],
+    follows: [],
+    comments: [],
+    notifications: [],
   };
 }
 
@@ -210,8 +213,13 @@ export async function readStore() {
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       const data = await loadFromBlob();
-      memoryStore = data;
-      return structuredClone(data);
+      memoryStore = {
+        ...data,
+        follows: data.follows || [],
+        comments: data.comments || [],
+        notifications: data.notifications || [],
+      };
+      return structuredClone(memoryStore);
     } catch (error) {
       if (isMissingBlobError(error)) {
         memoryStore = seedStore();

@@ -14,7 +14,9 @@ import { ProfileSettingsPage } from "./pages/admin/ProfileSettingsPage";
 import { AboutPage } from "./pages/public/AboutPage";
 import { CaseStudyDetailPage } from "./pages/public/CaseStudyDetailPage";
 import { HomePage } from "./pages/public/HomePage";
+import { SearchPage } from "./pages/public/SearchPage";
 import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
+import { NotificationsPage } from "./pages/admin/NotificationsPage";
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
 
@@ -37,6 +40,7 @@ export default function App() {
             <Route path="case-studies/new" element={<CaseStudyEditorPage />} />
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />
             <Route path="media" element={<MediaLibraryPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="profile" element={<ProfileSettingsPage />} />
             <Route path="settings" element={<Navigate to="/admin/profile" replace />} />
           </Route>

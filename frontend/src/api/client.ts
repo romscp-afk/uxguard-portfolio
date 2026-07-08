@@ -2,9 +2,13 @@ import type {
   Attachment,
   CaseStudy,
   CaseStudyListItem,
+  Comment,
   FeedCaseStudyItem,
+  FollowStats,
   MediaAsset,
+  Notification,
   PortfolioSettings,
+  SearchResults,
   User,
   UserProfile,
   RegisterPayload,
@@ -100,6 +104,39 @@ export const api = {
     }),
 
   getFeed: () => request<FeedCaseStudyItem[]>("/feed/case-studies"),
+
+  getFollowingFeed: () => request<FeedCaseStudyItem[]>("/feed/following"),
+
+  search: (q: string) =>
+    request<SearchResults>(`/search?q=${encodeURIComponent(q)}`),
+
+  getFollowStats: (username: string) => request<FollowStats>(`/users/${username}/follow`),
+
+  followUser: (username: string) =>
+    request<FollowStats & { ok: boolean }>(`/users/${username}/follow`, { method: "POST" }),
+
+  unfollowUser: (username: string) =>
+    request<FollowStats>(`/users/${username}/follow`, { method: "DELETE" }),
+
+  listComments: (caseStudyId: number) =>
+    request<Comment[]>(`/comments?case_study_id=${caseStudyId}`),
+
+  addComment: (caseStudyId: number, body: string) =>
+    request<Comment>("/comments", {
+      method: "POST",
+      body: JSON.stringify({ case_study_id: caseStudyId, body }),
+    }),
+
+  deleteComment: (id: number) => request<void>(`/comments/${id}`, { method: "DELETE" }),
+
+  getNotifications: () =>
+    request<{ notifications: Notification[]; unread_count: number }>("/notifications"),
+
+  markNotificationsRead: (ids?: number[]) =>
+    request<{ ok: boolean; unread_count: number }>("/notifications", {
+      method: "POST",
+      body: JSON.stringify(ids ? { ids } : {}),
+    }),
 
   getUserProfile: (username: string) => request<UserProfile>(`/users/${username}`),
 

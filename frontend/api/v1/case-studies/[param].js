@@ -1,10 +1,20 @@
 import {
   deleteCaseStudy,
+  getCaseStudyByIdForAuthor,
   getCaseStudyBySlug,
   updateCaseStudy,
 } from "../../_lib/demo-data.js";
+import { notifyNewPublication } from "../../_lib/community.js";
 import { requireAuthUser } from "../../_lib/auth.js";
 import { withApi } from "../../_lib/withApi.js";
+
+async function maybeNotifyPublish(previous, updated, author) {
+  const wasPublished = previous?.status === "published";
+  const isPublished = updated?.status === "published";
+  if (!wasPublished && isPublished) {
+    await notifyNewPublication(updated, author);
+  }
+}
 
 export default withApi(async (req, res) => {
   const param = String(req.query.param || "");
@@ -16,7 +26,9 @@ export default withApi(async (req, res) => {
 
     if (req.method === "PATCH") {
       try {
+        const previous = await getCaseStudyByIdForAuthor(id, user.id);
         const updated = await updateCaseStudy(id, user.id, req.body || {});
+        await maybeNotifyPublish(previous, updated, user);
         res.status(200).json(updated);
       } catch (err) {
         const status = err.message === "Forbidden" ? 403 : err.message === "Case study not found" ? 404 : 400;

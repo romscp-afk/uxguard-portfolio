@@ -1,5 +1,6 @@
 import { getUserProfile } from "../../_lib/demo-data.js";
-import { requireAuth } from "../../_lib/auth.js";
+import { getFollowStats } from "../../_lib/community.js";
+import { getAuthUser, requireAuth } from "../../_lib/auth.js";
 import { withApi } from "../../_lib/withApi.js";
 
 function profileFromSession(session) {
@@ -38,5 +39,8 @@ export default withApi(async (req, res) => {
     res.status(404).json({ detail: "User not found" });
     return;
   }
-  res.status(200).json(profile);
+
+  const viewer = await getAuthUser(req);
+  const followStats = await getFollowStats(profile.id, viewer?.id ?? null);
+  res.status(200).json({ ...profile, ...followStats });
 });

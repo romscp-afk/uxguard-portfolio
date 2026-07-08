@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BarChart3, FileText, LineChart, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3, FileText, LineChart, Sparkles, Users } from "lucide-react";
 import { api } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
+import { useAuth } from "../../context/AuthContext";
 import { DEFAULT_PORTFOLIO_SETTINGS } from "../../lib/defaultSettings";
 import type { FeedCaseStudyItem } from "../../types";
 
@@ -11,7 +12,9 @@ import type { FeedCaseStudyItem } from "../../types";
 const HOME = DEFAULT_PORTFOLIO_SETTINGS;
 
 export function HomePage() {
+  const { user } = useAuth();
   const [feed, setFeed] = useState<FeedCaseStudyItem[]>([]);
+  const [feedMode, setFeedMode] = useState<"all" | "following">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -23,12 +26,17 @@ export function HomePage() {
       setError("");
 
       try {
-        const feedResult = await api.getFeed();
+        const feedResult =
+          feedMode === "following" && user
+            ? await api.getFollowingFeed()
+            : await api.getFeed();
         if (!cancelled) setFeed(feedResult);
       } catch {
         if (!cancelled) {
           setError(
-            "Could not load the discover feed. Restart with: cd frontend && npm run dev (uses live API). For local backend: ./start.sh",
+            feedMode === "following"
+              ? "Could not load your following feed. Follow members to see their published work here."
+              : "Could not load the discover feed. Restart with: cd frontend && npm run dev (uses live API). For local backend: ./start.sh",
           );
         }
       } finally {
@@ -40,7 +48,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [feedMode, user?.id]);
 
   return (
     <div className="min-h-screen">
@@ -91,8 +99,8 @@ export function HomePage() {
               },
               {
                 icon: BarChart3,
-                label: "Discover community",
-                desc: "Learn from practitioners who show their evidence",
+                label: "Community discover",
+                desc: "Follow members, comment on case studies, and get alerts",
               },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="card p-5">
@@ -106,13 +114,39 @@ export function HomePage() {
       </section>
 
       <section id="discover" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="mb-10">
-          <h2 className="font-display text-3xl font-bold text-ink-950">Recently Published</h2>
-          <p className="mt-2 max-w-3xl text-ink-500">
-            Explore how researchers present their work — each card shows a title, summary, methods, and
-            author intro. Click <strong className="font-medium text-ink-700">Read full case study</strong> to
-            open the complete portfolio piece, or use these as a guide when creating your own.
-          </p>
+        <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-bold text-ink-950">Community Feed</h2>
+            <p className="mt-2 max-w-3xl text-ink-500">
+              Explore published case studies, follow professionals, leave feedback, and get notified when
+              new work is shared.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setFeedMode("all")}
+              className={feedMode === "all" ? "btn-primary py-2 text-sm" : "btn-secondary py-2 text-sm"}
+            >
+              All published
+            </button>
+            {user ? (
+              <button
+                type="button"
+                onClick={() => setFeedMode("following")}
+                className={
+                  feedMode === "following" ? "btn-primary py-2 text-sm" : "btn-secondary py-2 text-sm"
+                }
+              >
+                <Users className="h-4 w-4" />
+                Following
+              </button>
+            ) : (
+              <Link to="/admin/login" className="btn-secondary py-2 text-sm">
+                Sign in to follow
+              </Link>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -123,10 +157,20 @@ export function HomePage() {
           </div>
         ) : feed.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-ink-500">No published case studies yet.</p>
-            <Link to="/admin" className="btn-primary mt-4 inline-flex">
-              Be the first to publish
-            </Link>
+            <p className="text-ink-500">
+              {feedMode === "following"
+                ? "No case studies from people you follow yet."
+                : "No published case studies yet."}
+            </p>
+            {feedMode === "following" ? (
+              <Link to="/search" className="btn-primary mt-4 inline-flex">
+                Find people to follow
+              </Link>
+            ) : (
+              <Link to="/admin" className="btn-primary mt-4 inline-flex">
+                Be the first to publish
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

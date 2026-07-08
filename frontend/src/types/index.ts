@@ -90,6 +90,9 @@ export interface UserPublic {
 export interface UserProfile extends UserPublic {
   case_studies: CaseStudyListItem[];
   case_study_count: number;
+  follower_count?: number;
+  following_count?: number;
+  is_following?: boolean;
 }
 
 export interface PortfolioSettings {
@@ -135,4 +138,36 @@ export interface MediaAsset {
   url: string;
   alt_text?: string;
   created_at: string;
+}
+
+export interface Comment {
+  id: number;
+  case_study_id: number;
+  body: string;
+  created_at: string;
+  author: AuthorSummary | null;
+}
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  type: "new_case_study" | "comment" | "follow";
+  title: string;
+  message: string;
+  link?: string | null;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface SearchResults {
+  query: string;
+  users: (AuthorSummary & { title?: string; bio?: string; portfolio_url: string })[];
+  case_studies: (FeedCaseStudyItem & { url?: string | null })[];
+}
+
+export interface FollowStats {
+  username?: string;
+  follower_count: number;
+  following_count: number;
+  is_following: boolean;
 }

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ExternalLink, Mail, MapPin } from "lucide-react";
 import { api, resolveAssetUrl } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
+import { FollowButton } from "../../components/community/FollowButton";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
 import {
@@ -145,6 +146,18 @@ export function UserPortfolioPage() {
               <p className="text-sm font-medium text-brand-600">@{profile.username}</p>
               <h1 className="mt-1 font-display text-4xl font-bold text-ink-950">{profile.name}</h1>
               {profile.title ? <p className="mt-2 text-lg text-ink-600">{profile.title}</p> : null}
+              <div className="mt-4">
+                <FollowButton
+                  username={profile.username}
+                  initialFollowing={profile.is_following}
+                  followerCount={profile.follower_count || 0}
+                  onStatsChange={(stats) =>
+                    setProfile((prev) =>
+                      prev ? { ...prev, is_following: stats.is_following, follower_count: stats.follower_count } : prev,
+                    )
+                  }
+                />
+              </div>
               {profile.bio ? <p className="mt-4 max-w-2xl leading-relaxed text-ink-600">{profile.bio}</p> : null}
               <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-ink-500">
                 {profile.location ? (
