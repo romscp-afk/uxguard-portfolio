@@ -36,7 +36,9 @@ export function AdminLoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
         <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
-          <p className="mt-4 text-sm text-ink-400">Portfolio management for UX researchers</p>
+          <p className="mt-4 text-sm text-ink-400">
+            Your professional operating system for impact-driven case studies
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-8">
@@ -87,7 +89,7 @@ export function AdminLoginPage() {
           <p className="mt-6 text-center text-sm text-ink-500">
             Don&apos;t have an account?{" "}
             <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
-              Create your portfolio
+              Start your journey
             </Link>
           </p>
 

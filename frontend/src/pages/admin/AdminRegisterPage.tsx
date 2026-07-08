@@ -66,9 +66,10 @@ export function AdminRegisterPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
-          <h1 className="mt-6 font-display text-2xl font-bold text-white">Create your portfolio</h1>
+          <h1 className="mt-6 font-display text-2xl font-bold text-white">Build your professional legacy</h1>
           <p className="mt-2 text-sm text-ink-400">
-            Sign up free and get a shareable link like Behance — perfect for your CV.
+            Document your impact, organize your journey, and present yourself with confidence—not just another
+            portfolio link.
           </p>
         </div>
 

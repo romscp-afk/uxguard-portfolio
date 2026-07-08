@@ -12,7 +12,7 @@ export function PublicHeader() {
           <Link to="/#discover" className="text-ink-600 hover:text-brand-600">
             Discover
           </Link>
-          <Link to="/#about" className="text-ink-600 hover:text-brand-600">
+          <Link to="/about" className="text-ink-600 hover:text-brand-600">
             About
           </Link>
           <Link to="/admin/register" className="btn-secondary py-2 text-xs">
@@ -27,9 +27,17 @@ export function PublicHeader() {
 export function PublicFooter() {
   return (
     <footer className="border-t border-ink-100 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-10 sm:flex-row sm:px-6">
-        <Logo variant="mark" className="h-10 w-auto max-w-[220px]" />
-        <p className="text-xs text-ink-400">Built for UX researchers to showcase evidence-driven work.</p>
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <Logo variant="mark" className="h-10 w-auto max-w-[220px]" />
+          <p className="text-center text-xs text-ink-400 sm:text-right">
+            Build Your Legacy. Showcase Your Impact.
+          </p>
+        </div>
+        <p className="mt-4 text-center text-xs text-ink-400 sm:text-left">
+          UXGuard Studio isn&apos;t just another portfolio platform—it&apos;s your professional operating
+          system.
+        </p>
       </div>
     </footer>
   );

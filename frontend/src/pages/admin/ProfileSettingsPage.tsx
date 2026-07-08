@@ -106,7 +106,9 @@ export function ProfileSettingsPage() {
       {portfolioUrl ? (
         <div className="card mb-6 max-w-2xl p-6">
           <p className="text-sm font-semibold text-ink-700">Your portfolio link</p>
-          <p className="mt-1 text-xs text-ink-500">Share this URL — like a Behance profile for your research work</p>
+          <p className="mt-1 text-xs text-ink-500">
+            Share this URL to showcase your professional identity and impact
+          </p>
           <div className="mt-3 flex items-center gap-2">
             <code className="flex-1 truncate rounded-lg bg-ink-50 px-3 py-2 text-sm text-brand-700">
               {portfolioUrl}

@@ -11,6 +11,7 @@ import { CaseStudyEditorPage } from "./pages/admin/CaseStudyEditorPage";
 import { MediaLibraryPage } from "./pages/admin/MediaLibraryPage";
 import { CaseStudyPreviewPage } from "./pages/admin/CaseStudyPreviewPage";
 import { ProfileSettingsPage } from "./pages/admin/ProfileSettingsPage";
+import { AboutPage } from "./pages/public/AboutPage";
 import { CaseStudyDetailPage } from "./pages/public/CaseStudyDetailPage";
 import { HomePage } from "./pages/public/HomePage";
 import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
@@ -21,6 +22,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
 

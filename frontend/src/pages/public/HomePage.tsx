@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, FileText, Layers, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3, FileText, LineChart, Sparkles } from "lucide-react";
 import { api } from "../../api/client";
 import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
@@ -67,21 +67,33 @@ export function HomePage() {
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-ink-600">{HOME.hero_subtitle}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#discover" className="btn-primary">
-                Explore Case Studies
+              <Link to="/admin/register" className="btn-primary">
+                Start Your Journey
                 <ArrowRight className="h-4 w-4" />
-              </a>
-              <Link to="/admin/register" className="btn-secondary">
-                Create Your Portfolio
               </Link>
+              <a href="#discover" className="btn-secondary">
+                Explore Case Studies
+              </a>
             </div>
           </div>
 
           <div className="mt-16 grid gap-4 sm:grid-cols-3">
             {[
-              { icon: Layers, label: "Personal portfolios", desc: "Shareable /u/username links" },
-              { icon: FileText, label: "Research case studies", desc: "Problem → Method → Impact" },
-              { icon: Sparkles, label: "Discover feed", desc: "Latest published work from all users" },
+              {
+                icon: LineChart,
+                label: "Professional identity",
+                desc: "Build your legacy—not just a gallery of screens",
+              },
+              {
+                icon: FileText,
+                label: "Impact case studies",
+                desc: "Problem → Research → Decisions → Outcomes",
+              },
+              {
+                icon: BarChart3,
+                label: "Discover community",
+                desc: "Learn from practitioners who show their evidence",
+              },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="card p-5">
                 <Icon className="h-5 w-5 text-brand-600" />
@@ -125,10 +137,22 @@ export function HomePage() {
         )}
       </section>
 
-      <section id="about" className="border-t border-ink-100 bg-white">
+      <section className="border-t border-ink-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <h2 className="font-display text-3xl font-bold text-ink-950">About UXguard</h2>
-          <p className="mt-4 max-w-3xl leading-relaxed text-ink-600">{HOME.about}</p>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="font-display text-3xl font-bold text-ink-950">More than a portfolio</h2>
+              <p className="mt-4 leading-relaxed text-ink-600">
+                UXGuard Studio is your professional operating system. Protect your work, organize your
+                journey, present your impact—and build a legacy that goes far beyond Behance, Dribbble, or a
+                static personal site.
+              </p>
+            </div>
+            <Link to="/about" className="btn-secondary shrink-0">
+              About UXGuard Studio
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
