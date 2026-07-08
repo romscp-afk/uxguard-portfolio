@@ -14,6 +14,10 @@ import {
   Target,
   Users,
   X,
+  Linkedin,
+  Clock,
+  FileText,
+  FileCheck,
 } from "lucide-react";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 
@@ -160,6 +164,36 @@ const VALUES = [
     desc: "Great work creates measurable value—not just beautiful interfaces.",
   },
 ] as const;
+
+const CLIENT_SERVICES = [
+  {
+    icon: Clock,
+    title: "Save your time",
+    desc: "Stop rebuilding portfolios from scratch every time you apply for a role or pitch a client. We handle the heavy lifting.",
+  },
+  {
+    icon: FileText,
+    title: "We write your case studies",
+    desc: "Share your project notes, research, and outcomes—we turn them into polished, evidence-driven case study narratives.",
+  },
+  {
+    icon: FileCheck,
+    title: "Ready to publish",
+    desc: "Your case study is structured, formatted, and published on UXGuard Studio—ready to share with recruiters, clients, and employers.",
+  },
+] as const;
+
+const DONE_FOR_YOU_INCLUDES = [
+  "Discovery call to understand your project, role, and impact",
+  "Structured narrative: problem, research, decisions, outcomes, and business value",
+  "Professional writing aligned with UX, product, and research hiring standards",
+  "Cover image guidance and portfolio-ready formatting",
+  "Published directly to your UXGuard Studio profile",
+  "Ongoing updates as your project evolves",
+] as const;
+
+const FOUNDER_LINKEDIN = "https://www.linkedin.com/in/romalperera/";
+const FOUNDER_PHOTO = "/founder-romal-perera.png";
 
 export function AboutPage() {
   return (
@@ -383,25 +417,95 @@ export function AboutPage() {
         </div>
       </section>
 
+      <section className="border-b border-ink-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+          <div className="max-w-3xl">
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
+              For busy professionals
+            </p>
+            <h2 className="font-display text-3xl font-bold text-ink-950">
+              We&apos;ll Build Your Case Studies For You
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-ink-600">
+              You&apos;ve done the work—the research, the design, the strategy, the impact. But turning that
+              into a compelling case study takes hours you don&apos;t have. UXGuard Studio can do it for you,
+              so you can focus on your next project while your portfolio works for you.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            {CLIENT_SERVICES.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="card p-6">
+                <Icon className="h-6 w-6 text-brand-600" />
+                <h3 className="mt-4 font-semibold text-ink-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-500">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="card mt-10 border-brand-200 bg-brand-50/30 p-8">
+            <h3 className="font-display text-xl font-bold text-ink-950">What&apos;s included</h3>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {DONE_FOR_YOU_INCLUDES.map((item) => (
+                <li key={item} className="flex items-start gap-3 text-sm text-ink-700">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-8 text-sm leading-relaxed text-ink-600">
+              Ideal for UX researchers, designers, product managers, and consultants who want a trusted
+              portfolio without spending weekends writing and formatting. Whether you&apos;re preparing for a
+              job search, pitching clients, or building your professional brand—we help you show your impact
+              with confidence.
+            </p>
+            <a href="mailto:hello@uxguard.io" className="btn-primary mt-6 inline-flex">
+              Get your case study done for you
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-ink-100 bg-ink-50">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <h2 className="font-display text-3xl font-bold text-ink-950">Founder Message</h2>
-          <blockquote className="card mt-8 border-l-4 border-l-brand-500 p-8">
-            <p className="text-lg leading-relaxed text-ink-700">
-              &ldquo;For years, I maintained documents, presentations, prototypes, research reports, user
-              journeys, product strategies, and case studies across countless folders and tools. Every time I
-              applied for a role, I had to rebuild my portfolio from scratch.
-            </p>
-            <p className="mt-4 text-lg leading-relaxed text-ink-700">
-              UXGuard Studio was born from that frustration. It&apos;s the platform I always wished
-              existed—a single workspace where professionals can capture their journey, showcase their impact,
-              and grow their careers with confidence.&rdquo;
-            </p>
-            <footer className="mt-6 border-t border-ink-100 pt-6">
-              <p className="font-semibold text-ink-900">Romal Perera</p>
-              <p className="text-sm text-ink-500">Founder, UXGuard Studio</p>
-            </footer>
-          </blockquote>
+          <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr] lg:items-start">
+            <div className="mx-auto w-full max-w-[240px] shrink-0 lg:mx-0">
+              <img
+                src={FOUNDER_PHOTO}
+                alt="Romal Perera, Founder of UXGuard Studio"
+                className="aspect-[4/5] w-full rounded-2xl object-cover object-top shadow-lg ring-4 ring-white"
+              />
+              <p className="mt-4 text-center text-sm font-semibold text-ink-900 lg:text-left">
+                Romal Perera
+              </p>
+              <p className="text-center text-xs text-ink-500 lg:text-left">Founder, UXGuard Studio</p>
+            </div>
+            <blockquote className="card border-l-4 border-l-brand-500 p-8">
+              <p className="text-lg leading-relaxed text-ink-700">
+                &ldquo;For years, I maintained documents, presentations, prototypes, research reports, user
+                journeys, product strategies, and case studies across countless folders and tools. Every time I
+                applied for a role, I had to rebuild my portfolio from scratch.
+              </p>
+              <p className="mt-4 text-lg leading-relaxed text-ink-700">
+                UXGuard Studio was born from that frustration. It&apos;s the platform I always wished
+                existed—a single workspace where professionals can capture their journey, showcase their impact,
+                and grow their careers with confidence.&rdquo;
+              </p>
+              <footer className="mt-6 border-t border-ink-100 pt-6">
+                <a
+                  href={FOUNDER_LINKEDIN}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
+                >
+                  <Linkedin className="h-4 w-4" />
+                  Connect on LinkedIn
+                </a>
+              </footer>
+            </blockquote>
+          </div>
         </div>
       </section>
 
