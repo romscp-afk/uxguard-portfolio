@@ -64,7 +64,7 @@ export function AdminLoginPage() {
                 Password
               </label>
               <Link
-                to="/admin/reset-password"
+                to="/admin/forgot-password"
                 className="text-xs font-medium text-brand-600 hover:text-brand-700"
               >
                 Forgot password?

@@ -12,6 +12,13 @@ function parseStudyId(raw: string | undefined): number | null {
   return Number(raw);
 }
 
+function pickNewerStudy(cached: CaseStudy | null, remote: CaseStudy | null): CaseStudy | null {
+  if (cached && remote) {
+    return new Date(cached.updated_at) >= new Date(remote.updated_at) ? cached : remote;
+  }
+  return cached || remote;
+}
+
 export function CaseStudyPreviewPage() {
   const { id } = useParams<{ id: string }>();
   const studyId = parseStudyId(id);
@@ -27,17 +34,25 @@ export function CaseStudyPreviewPage() {
       return;
     }
 
+    const cached = getCaseStudyFromCache(studyId);
+    if (cached) {
+      setStudy(cached);
+      setLoading(false);
+    }
+
     api
       .adminGetCaseStudy(studyId)
       .then((loaded) => {
-        saveCaseStudyToCache(loaded);
-        setStudy(loaded);
+        const best = pickNewerStudy(cached, loaded);
+        if (best) {
+          setStudy(best);
+          saveCaseStudyToCache(best);
+        } else if (!cached) {
+          setError("Could not load preview. Save your draft in the editor, then try again.");
+        }
       })
       .catch(() => {
-        const cached = getCaseStudyFromCache(studyId);
-        if (cached) {
-          setStudy(cached);
-        } else {
+        if (!cached) {
           setError("Could not load preview. Save your draft in the editor, then try again.");
         }
       })

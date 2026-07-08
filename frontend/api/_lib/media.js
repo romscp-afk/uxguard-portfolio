@@ -3,6 +3,7 @@ import { readStore, updateStore } from "./store.js";
 
 const MEDIA_PREFIX = "uxguard/media";
 const MAX_BYTES = 10 * 1024 * 1024;
+const COVER_MAX_BYTES = 5 * 1024 * 1024;
 
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -49,12 +50,19 @@ export async function getMediaAssetById(assetId) {
   return (store.mediaAssets || []).find((asset) => asset.id === Number(assetId)) || null;
 }
 
-export async function uploadMediaAsset(userId, file, altText) {
+export async function uploadMediaAsset(userId, file, altText, purpose = "media") {
   if (!ALLOWED_TYPES.has(file.mimeType)) {
     throw new Error("File type not allowed. Use images, PDF, or Word documents.");
   }
-  if (file.buffer.length > MAX_BYTES) {
-    throw new Error("File exceeds 10MB limit");
+
+  const isCover = purpose === "cover";
+  if (isCover && !file.mimeType.startsWith("image/")) {
+    throw new Error("Cover image must be JPG, PNG, or WebP.");
+  }
+
+  const maxBytes = isCover ? COVER_MAX_BYTES : MAX_BYTES;
+  if (file.buffer.length > maxBytes) {
+    throw new Error(isCover ? "Cover image must be 5 MB or smaller" : "File exceeds 10MB limit");
   }
 
   const ext = fileExtension(file.filename, file.mimeType);

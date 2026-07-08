@@ -10,6 +10,7 @@ import {
   saveCaseStudyToCache,
   syncCachedCaseStudies,
 } from "../../lib/caseStudyStore";
+import { COVER_HELP_TEXT, validateCoverImageUrl } from "../../lib/coverImage";
 import type { CaseStudy, ContentBlock, MetricItem } from "../../types";
 
 const RESEARCH_METHODS = [
@@ -292,6 +293,34 @@ export function CaseStudyEditorPage() {
     };
   }
 
+  async function runValidation(publish: boolean): Promise<Partial<Record<FieldKey, string>>> {
+    const errors = validateForm(form, methodsInput, publish);
+    if (form.cover_image?.trim()) {
+      const coverError = await validateCoverImageUrl(form.cover_image);
+      if (coverError) errors.cover_image = coverError;
+    } else if (publish) {
+      errors.cover_image = errors.cover_image || "Cover image is required to publish.";
+    }
+    return errors;
+  }
+
+  async function persistDraftQuietly(nextCoverUrl?: string) {
+    if (isNew || studyId == null) return;
+    const payload = buildStudyPayload(form.status === "published" ? "published" : "draft");
+    if (nextCoverUrl !== undefined) payload.cover_image = nextCoverUrl;
+    try {
+      const updated = await api.updateCaseStudy(studyId, payload);
+      saveCaseStudyToCache(updated);
+      setForm((prev) => ({ ...prev, ...updated, cover_image: updated.cover_image ?? nextCoverUrl }));
+    } catch {
+      const cached = buildCachedStudy(form.status === "published" ? "published" : "draft");
+      if (cached) {
+        if (nextCoverUrl !== undefined) cached.cover_image = nextCoverUrl;
+        saveCaseStudyToCache(cached);
+      }
+    }
+  }
+
   function buildCachedStudy(status: CaseStudy["status"]): CaseStudy | null {
     if (studyId == null || !user) return null;
     const payload = buildStudyPayload(status);
@@ -333,7 +362,7 @@ export function CaseStudyEditorPage() {
     setMessage("");
     setFieldErrors({});
 
-    const validationErrors = validateForm(form, methodsInput, publish);
+    const validationErrors = await runValidation(publish);
     if (Object.keys(validationErrors).length > 0) {
       showValidationErrors(validationErrors);
       return;
@@ -352,7 +381,13 @@ export function CaseStudyEditorPage() {
       if (isNew) {
         const created = await api.createCaseStudy(payload);
         saveCaseStudyToCache(created);
-        if (user) await syncCachedCaseStudies(user.id);
+        if (user) {
+          try {
+            await syncCachedCaseStudies(user.id);
+          } catch {
+            // Sync is optional when using alternate backends.
+          }
+        }
         navigate(`/admin/case-studies/${created.id}`, { replace: true });
         setMessageType("success");
         setMessage(publish ? "Published successfully." : "Draft saved.");
@@ -363,7 +398,13 @@ export function CaseStudyEditorPage() {
           navigate(`/admin/case-studies/${updated.id}`, { replace: true });
         }
         saveCaseStudyToCache(updated);
-        if (user) await syncCachedCaseStudies(user.id);
+        if (user) {
+          try {
+            await syncCachedCaseStudies(user.id);
+          } catch {
+            // Sync is optional when using alternate backends.
+          }
+        }
         setForm(updated);
         setMethodsInput(updated.methods.join(", "));
         setMessageType("success");
@@ -387,13 +428,32 @@ export function CaseStudyEditorPage() {
       setMessage("Save your draft first, then preview.");
       return;
     }
-    const cached = buildCachedStudy(form.status === "published" ? "published" : "draft");
-    if (cached) saveCaseStudyToCache(cached);
-    window.open(`/admin/case-studies/${studyId}/preview`, "_blank", "noopener,noreferrer");
+
+    setSaving(true);
+    setMessage("");
+    try {
+      const payload = buildStudyPayload(form.status === "published" ? "published" : "draft");
+      const updated = await api.updateCaseStudy(studyId, payload);
+      saveCaseStudyToCache(updated);
+      setForm(updated);
+      setMethodsInput(updated.methods.join(", "));
+      window.open(`/admin/case-studies/${studyId}/preview`, "_blank", "noopener,noreferrer");
+    } catch {
+      const cached = buildCachedStudy(form.status === "published" ? "published" : "draft");
+      if (cached) {
+        saveCaseStudyToCache(cached);
+        window.open(`/admin/case-studies/${studyId}/preview`, "_blank", "noopener,noreferrer");
+      } else {
+        setMessageType("error");
+        setMessage("Could not save preview. Fix any errors and save your draft first.");
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handlePublish() {
-    const validationErrors = validateForm(form, methodsInput, true);
+    const validationErrors = await runValidation(true);
     if (Object.keys(validationErrors).length > 0) {
       showValidationErrors(validationErrors);
       return;
@@ -488,15 +548,19 @@ export function CaseStudyEditorPage() {
                   onChange={(url) => {
                     updateField("cover_image", url);
                     clearFieldError("cover_image");
+                    if (url.trim()) void persistDraftQuietly(url);
+                  }}
+                  onValidationError={(message) => {
+                    setFieldErrors((prev) => ({ ...prev, cover_image: message }));
                   }}
                   inputRef={(el) => {
                     fieldRefs.current.cover_image = el;
                   }}
                   hasError={Boolean(fieldErrors.cover_image)}
                   required={form.status === "published"}
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   placeholder="https://images.unsplash.com/... or upload from your device"
-                  helpText="Paste an image URL or upload/drag a file from your computer"
+                  helpText={COVER_HELP_TEXT}
                 />
                 {fieldErrors.cover_image ? (
                   <p className="mt-1 text-xs text-red-600">{fieldErrors.cover_image}</p>

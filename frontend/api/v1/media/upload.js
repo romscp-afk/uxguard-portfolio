@@ -20,7 +20,8 @@ export default withApi(async (req, res) => {
 
   try {
     const { file, altText } = await parseMultipartForm(req);
-    const asset = await uploadMediaAsset(user.id, file, altText);
+    const purpose = String(req.query.purpose || "media");
+    const asset = await uploadMediaAsset(user.id, file, altText, purpose);
     res.status(200).json(asset);
   } catch (err) {
     res.status(400).json({ detail: err.message || "Upload failed" });

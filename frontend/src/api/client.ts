@@ -63,11 +63,22 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
-  resetPassword: (email: string, newPassword: string) =>
+  resetPassword: (token: string, newPassword: string) =>
     request<{ message: string }>("/auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ email, new_password: newPassword }),
+      body: JSON.stringify({ token, new_password: newPassword }),
     }),
+
+  forgotPassword: (email: string) =>
+    request<{ message: string }>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  verifyResetToken: (token: string) =>
+    request<{ valid: boolean; email?: string; detail?: string }>(
+      `/auth/reset-password?token=${encodeURIComponent(token)}`,
+    ),
 
   register: (data: RegisterPayload) =>
     request<{ access_token: string; user: User }>("/auth/register", {
@@ -152,11 +163,12 @@ export const api = {
 
   listMedia: () => request<MediaAsset[]>("/media"),
 
-  uploadMedia: (file: File, altText?: string) => {
+  uploadMedia: (file: File, options?: { altText?: string; purpose?: "cover" | "media" }) => {
     const form = new FormData();
     form.append("file", file);
-    if (altText) form.append("alt_text", altText);
-    return request<MediaAsset>("/media/upload", {
+    if (options?.altText) form.append("alt_text", options.altText);
+    const purpose = options?.purpose || "media";
+    return request<MediaAsset>(`/media/upload?purpose=${purpose}`, {
       method: "POST",
       body: form,
     });

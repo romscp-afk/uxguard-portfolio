@@ -1,6 +1,11 @@
 import { DragEvent, useRef, useState } from "react";
 import { ImagePlus, Loader2, Upload } from "lucide-react";
 import { api, resolveAssetUrl } from "../../api/client";
+import {
+  COVER_HELP_TEXT,
+  validateCoverImageFile,
+  validateCoverImageUrl,
+} from "../../lib/coverImage";
 
 type UrlOrUploadFieldProps = {
   label: string;
@@ -13,8 +18,8 @@ type UrlOrUploadFieldProps = {
   inputRef?: (el: HTMLInputElement | null) => void;
   helpText?: string;
   showPreview?: boolean;
-  /** Larger drop zone for case study cover images */
   variant?: "default" | "cover";
+  onValidationError?: (message: string) => void;
 };
 
 export function UrlOrUploadField({
@@ -29,11 +34,27 @@ export function UrlOrUploadField({
   helpText,
   showPreview = true,
   variant = "default",
+  onValidationError,
 }: UrlOrUploadFieldProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false);
+
+  const isCover = variant === "cover";
+
+  async function validateAndApplyUrl(url: string) {
+    if (isCover && url.trim()) {
+      const dimensionError = await validateCoverImageUrl(url);
+      if (dimensionError) {
+        setUploadError(dimensionError);
+        onValidationError?.(dimensionError);
+        return;
+      }
+    }
+    setUploadError("");
+    onChange(url);
+  }
 
   async function handleUpload(files: FileList | null) {
     const file = files?.[0];
@@ -41,11 +62,24 @@ export function UrlOrUploadField({
 
     setUploading(true);
     setUploadError("");
+
     try {
-      const asset = await api.uploadMedia(file);
+      if (isCover) {
+        const validationError = await validateCoverImageFile(file);
+        if (validationError) {
+          setUploadError(validationError);
+          onValidationError?.(validationError);
+          return;
+        }
+      }
+
+      const asset = await api.uploadMedia(file, { purpose: isCover ? "cover" : "media" });
       onChange(asset.url);
+      setUploadError("");
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed");
+      const message = err instanceof Error ? err.message : "Upload failed";
+      setUploadError(message);
+      onValidationError?.(message);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -65,8 +99,6 @@ export function UrlOrUploadField({
     (/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(previewUrl) ||
       previewUrl.includes("/api/v1/media/file/") ||
       previewUrl.startsWith("blob:"));
-
-  const isCover = variant === "cover";
 
   return (
     <div>
@@ -90,14 +122,18 @@ export function UrlOrUploadField({
           }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
+          onClick={() => fileRef.current?.click()}
+          onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
+          role="button"
+          tabIndex={0}
         >
           {isImage ? (
-            <img src={previewUrl} alt="" className="aspect-[16/9] w-full object-cover" />
+            <img src={previewUrl} alt="" className="aspect-[16/10] w-full object-cover" />
           ) : (
-            <div className="flex aspect-[16/9] flex-col items-center justify-center px-6 text-center">
+            <div className="flex aspect-[16/10] flex-col items-center justify-center px-6 text-center">
               <ImagePlus className="h-10 w-10 text-ink-300" />
-              <p className="mt-3 text-sm font-medium text-ink-700">Drop a cover image here</p>
-              <p className="mt-1 text-xs text-ink-400">PNG, JPG, WebP — or use URL below</p>
+              <p className="mt-3 text-sm font-medium text-ink-700">Drop cover image here or click to upload</p>
+              <p className="mt-1 text-xs text-ink-400">{COVER_HELP_TEXT}</p>
             </div>
           )}
           {uploading ? (
@@ -117,16 +153,16 @@ export function UrlOrUploadField({
           inputMode="url"
           className={hasError ? "input-field input-field-error flex-1" : "input-field flex-1"}
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setUploadError("");
+          onChange={(e) => validateAndApplyUrl(e.target.value)}
+          onBlur={() => {
+            if (isCover && value.trim()) validateAndApplyUrl(value);
           }}
           placeholder={placeholder}
         />
         <input
           ref={fileRef}
           type="file"
-          accept={accept}
+          accept={isCover ? "image/jpeg,image/png,image/webp" : accept}
           className="hidden"
           onChange={(e) => handleUpload(e.target.files)}
         />
@@ -150,7 +186,7 @@ export function UrlOrUploadField({
         </button>
       </div>
 
-      {helpText ? <p className="mt-1 text-xs text-ink-400">{helpText}</p> : null}
+      <p className="mt-1 text-xs text-ink-400">{helpText || (isCover ? COVER_HELP_TEXT : null)}</p>
       {uploadError ? <p className="mt-1 text-xs text-red-600">{uploadError}</p> : null}
 
       {!isCover && isImage ? (

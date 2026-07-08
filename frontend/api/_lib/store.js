@@ -159,6 +159,7 @@ function seedStore() {
     caseStudies: structuredClone(SEED_CASE_STUDIES),
     portfolioSettings: structuredClone(portfolioSettings),
     mediaAssets: [],
+    passwordResetTokens: [],
   };
 }
 

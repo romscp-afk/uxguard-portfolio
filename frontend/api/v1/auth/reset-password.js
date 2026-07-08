@@ -1,24 +1,38 @@
-import { resetUserPassword } from "../../_lib/demo-data.js";
+import {
+  completePasswordReset,
+  verifyPasswordResetToken,
+} from "../../_lib/password-reset.js";
 import { withApi } from "../../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
+  if (req.method === "GET") {
+    const token = String(req.query.token || "");
+    const result = await verifyPasswordResetToken(token);
+    if (!result.valid) {
+      res.status(400).json({ detail: result.error, valid: false });
+      return;
+    }
+    res.status(200).json({ valid: true, email: result.email });
+    return;
+  }
+
   if (req.method !== "POST") {
     res.status(405).json({ detail: "Method not allowed" });
     return;
   }
 
-  const { email, new_password: newPassword } = req.body || {};
+  const { token, new_password: newPassword } = req.body || {};
 
-  if (!email || !newPassword) {
-    res.status(400).json({ detail: "Email and new password are required" });
+  if (!token || !newPassword) {
+    res.status(400).json({ detail: "Reset token and new password are required" });
     return;
   }
 
-  const result = await resetUserPassword(email, newPassword);
+  const result = await completePasswordReset(token, newPassword);
   if (result.error) {
     res.status(result.status || 400).json({ detail: result.error });
     return;
   }
 
-  res.status(200).json({ message: "Password updated. You can sign in with your new password." });
+  res.status(200).json({ message: result.message });
 });
