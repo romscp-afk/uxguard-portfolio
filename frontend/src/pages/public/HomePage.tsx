@@ -96,8 +96,10 @@ export function HomePage() {
       <section id="discover" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <div className="mb-10">
           <h2 className="font-display text-3xl font-bold text-ink-950">Recently Published</h2>
-          <p className="mt-2 text-ink-500">
-            Case studies from researchers on UXguard — click an author to view their full portfolio.
+          <p className="mt-2 max-w-3xl text-ink-500">
+            Explore how researchers present their work — each card shows a title, summary, methods, and
+            author intro. Click <strong className="font-medium text-ink-700">Read full case study</strong> to
+            open the complete portfolio piece, or use these as a guide when creating your own.
           </p>
         </div>
 
@@ -117,7 +119,7 @@ export function HomePage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {feed.map((study) => (
-              <CaseStudyCard key={study.id} study={study} />
+              <CaseStudyCard key={study.id} study={study} showSummary />
             ))}
           </div>
         )}

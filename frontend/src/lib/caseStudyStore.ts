@@ -36,6 +36,7 @@ export function listCachedCaseStudies(authorId: number): CaseStudyListItem[] {
       slug: study.slug,
       title: study.title,
       subtitle: study.subtitle,
+      summary: study.summary,
       client: study.client,
       cover_image: study.cover_image,
       methods: study.methods || [],

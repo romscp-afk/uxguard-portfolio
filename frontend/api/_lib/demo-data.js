@@ -108,7 +108,8 @@ export function authorSummary(user) {
     id: user.id,
     username: user.username,
     name: user.name,
-    title: user.title,
+    title: user.title || null,
+    bio: user.bio || null,
     avatar_url: user.avatar_url,
   };
 }
@@ -119,6 +120,7 @@ export function toListItem(cs) {
     slug: cs.slug,
     title: cs.title,
     subtitle: cs.subtitle,
+    summary: cs.summary,
     client: cs.client,
     cover_image: cs.cover_image,
     methods: cs.methods,
@@ -135,12 +137,14 @@ export async function getFeedItems() {
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
     .map((cs) => {
       const author = store.users.find((u) => u.id === cs.author_id);
+      if (!author) return null;
       return {
         ...toListItem(cs),
         published_at: cs.published_at,
-        author: author ? authorSummary(author) : null,
+        author: authorSummary(author),
       };
-    });
+    })
+    .filter(Boolean);
 }
 
 export async function getUserProfile(username) {

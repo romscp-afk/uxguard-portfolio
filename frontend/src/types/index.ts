@@ -51,6 +51,7 @@ export interface CaseStudyListItem {
   slug: string;
   title: string;
   subtitle?: string;
+  summary?: string;
   client?: string;
   cover_image?: string;
   methods: string[];
@@ -64,12 +65,13 @@ export interface AuthorSummary {
   username: string;
   name: string;
   title?: string;
+  bio?: string;
   avatar_url?: string;
 }
 
 export interface FeedCaseStudyItem extends CaseStudyListItem {
   published_at?: string;
-  author: AuthorSummary;
+  author: AuthorSummary | null;
 }
 
 export interface UserPublic {

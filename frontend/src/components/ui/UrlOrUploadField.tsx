@@ -74,7 +74,11 @@ export function UrlOrUploadField({
       }
 
       const asset = await api.uploadMedia(file, { purpose: isCover ? "cover" : "media" });
-      onChange(asset.url);
+      const absoluteUrl =
+        asset.url.startsWith("http://") || asset.url.startsWith("https://")
+          ? asset.url
+          : `${window.location.origin}${asset.url.startsWith("/") ? asset.url : `/${asset.url}`}`;
+      onChange(absoluteUrl);
       setUploadError("");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";

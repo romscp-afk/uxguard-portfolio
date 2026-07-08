@@ -4,33 +4,76 @@ import { api } from "../../api/client";
 import { AuthorBadge } from "../../components/case-study/AuthorBadge";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
+import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
 import type { CaseStudy, UserProfile } from "../../types";
 
 export function CaseStudyDetailPage() {
-  const { username, slug } = useParams<{ username: string; slug: string }>();
+  const { username: rawUsername, slug: rawSlug } = useParams<{ username: string; slug: string }>();
+  const username = rawUsername ? decodeURIComponent(rawUsername) : "";
+  const slug = rawSlug ? decodeURIComponent(rawSlug) : "";
+
   const [study, setStudy] = useState<CaseStudy | null>(null);
   const [author, setAuthor] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!username || !slug) return;
-    Promise.all([api.getUserCaseStudy(username, slug), api.getUserProfile(username)])
-      .then(([cs, profile]) => {
-        setStudy(cs);
-        setAuthor(profile);
-      })
-      .catch(async () => {
-        const cached = getUserFromRegistry(username);
-        if (cached) {
-          setAuthor(cached);
-          setError("This portfolio is still syncing. Published case studies will appear shortly.");
+    if (!username || !slug) {
+      setError("Invalid case study link.");
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      const [studyResult, profileResult] = await Promise.allSettled([
+        api.getUserCaseStudy(username, slug),
+        api.getUserProfile(username),
+      ]);
+
+      if (cancelled) return;
+
+      if (studyResult.status === "fulfilled") {
+        setStudy(studyResult.value);
+        setError("");
+      } else {
+        const registryUser = getUserFromRegistry(username);
+        const cached = registryUser
+          ? listCachedCaseStudies(registryUser.id).find(
+              (item) => item.slug === slug && item.status === "published",
+            )
+          : null;
+        const cachedFull = cached ? getCaseStudyFromCache(cached.id) : null;
+        if (cachedFull) {
+          setStudy(cachedFull);
+          setError("");
         } else {
           setError("Case study not found");
         }
-      })
-      .finally(() => setLoading(false));
+      }
+
+      if (profileResult.status === "fulfilled") {
+        setAuthor(profileResult.value);
+      } else {
+        const registryUser = getUserFromRegistry(username);
+        if (registryUser) {
+          setAuthor({
+            ...registryUser,
+            case_studies: [],
+            case_study_count: 0,
+          });
+        }
+      }
+
+      setLoading(false);
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [username, slug]);
 
   if (loading) {
@@ -44,13 +87,13 @@ export function CaseStudyDetailPage() {
     );
   }
 
-  if (error || !study || !username) {
+  if (error || !study) {
     return (
       <div className="min-h-screen">
         <PublicHeader />
         <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6">
           <p className="text-ink-500">{error || "Not found"}</p>
-          <Link to="/" className="btn-primary mt-4 inline-flex">
+          <Link to="/#discover" className="btn-primary mt-4 inline-flex">
             Back to discover
           </Link>
         </div>
@@ -59,7 +102,13 @@ export function CaseStudyDetailPage() {
   }
 
   const authorSummary = author
-    ? { id: author.id, username: author.username, name: author.name, title: author.title, avatar_url: author.avatar_url }
+    ? {
+        id: author.id,
+        username: author.username,
+        name: author.name,
+        title: author.title,
+        avatar_url: author.avatar_url,
+      }
     : null;
 
   return (

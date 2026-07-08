@@ -535,6 +535,20 @@ export function CaseStudyEditorPage() {
         </div>
       ) : null}
 
+      {isNew ? (
+        <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50/50 px-4 py-3 text-sm text-ink-700">
+          <p className="font-medium text-ink-900">New here? Use the homepage as your guide.</p>
+          <p className="mt-1">
+            Browse{" "}
+            <Link to="/#discover" className="font-semibold text-brand-700 hover:underline">
+              recently published case studies
+            </Link>{" "}
+            for examples of titles, summaries, cover images (1200×750), methods, and impact sections —
+            then mirror that structure in your own portfolio piece.
+          </p>
+        </div>
+      ) : null}
+
       <form id="case-study-form" onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <section className="card p-6">

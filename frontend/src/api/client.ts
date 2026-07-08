@@ -14,8 +14,13 @@ const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_BASE = `${API_ROOT}/api/v1`;
 
 export function resolveAssetUrl(url: string): string {
-  if (!url || url.startsWith("http://") || url.startsWith("https://")) return url;
-  return `${API_ROOT}${url}`;
+  if (!url) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  const path = url.startsWith("/") ? url : `/${url}`;
+  const root =
+    API_ROOT ||
+    (typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "");
+  return `${root}${path}`;
 }
 
 class ApiError extends Error {
