@@ -19,6 +19,7 @@ import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { useAuth } from "../../context/AuthContext";
 import { DEFAULT_PORTFOLIO_SETTINGS } from "../../lib/defaultSettings";
+import { CONTACT_MAILTO } from "../../lib/contact";
 import type { FeedCaseStudyItem } from "../../types";
 
 const HOME = DEFAULT_PORTFOLIO_SETTINGS;
@@ -51,8 +52,8 @@ const DONE_FOR_YOU = [
 function SectionLabel({ n, children }: { n: string; children: ReactNode }) {
   return (
     <div className="mb-8 flex items-end gap-4">
-      <span className="font-display text-5xl font-bold leading-none text-brand-100">{n}</span>
-      <h2 className="font-display text-3xl font-bold text-ink-950">{children}</h2>
+      <span className="font-display text-5xl font-bold leading-none text-brand-100 dark:text-brand-900/60">{n}</span>
+      <h2 className="font-display text-3xl font-bold text-ink-950 dark:text-white">{children}</h2>
     </div>
   );
 }
@@ -97,7 +98,7 @@ export function HomePage() {
   }, [feedMode, user?.id]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen surface-page">
       <PublicHeader />
 
       {error ? (
@@ -109,9 +110,9 @@ export function HomePage() {
       ) : null}
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-ink-100 bg-white">
-        <div className="absolute -right-20 top-0 h-96 w-96 rounded-full bg-brand-100/40 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-sky-100/50 blur-3xl" />
+      <section className="relative overflow-hidden border-b border-ink-100 dark:border-ink-800 surface-section">
+        <div className="absolute -right-20 top-0 h-96 w-96 rounded-full bg-brand-100/40 blur-3xl dark:bg-brand-900/20" />
+        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-50/80 blur-3xl dark:bg-brand-950/30" />
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
@@ -119,18 +120,18 @@ export function HomePage() {
                 <Sparkles className="h-3.5 w-3.5" />
                 {HOME.tagline}
               </p>
-              <h1 className="font-display text-4xl font-bold leading-[1.1] text-ink-950 sm:text-5xl lg:text-6xl">
+              <h1 className="font-display text-4xl font-bold leading-[1.1] text-ink-950 dark:text-white sm:text-5xl lg:text-6xl">
                 {HERO_LINES.primary}
                 {HERO_LINES.accent ? (
-                  <span className="mt-1 block text-brand-600">{HERO_LINES.accent}</span>
+                  <span className="mt-1 block text-brand-600 dark:text-brand-400">{HERO_LINES.accent}</span>
                 ) : null}
               </h1>
-              <p className="mt-6 text-lg leading-relaxed text-ink-600">{HOME.hero_subtitle}</p>
+              <p className="mt-6 text-lg leading-relaxed text-ink-600 dark:text-ink-300">{HOME.hero_subtitle}</p>
               <div className="mt-8 flex flex-wrap gap-2">
                 {BRAND_PILLARS.map((pillar) => (
                   <span
                     key={pillar}
-                    className="rounded-full border border-brand-200 bg-white px-4 py-1.5 text-sm font-semibold text-brand-800 shadow-sm"
+                    className="rounded-full border border-brand-200 bg-white px-4 py-1.5 text-sm font-semibold text-brand-800 shadow-sm dark:border-brand-800 dark:bg-ink-900 dark:text-brand-300"
                   >
                     {pillar}
                   </span>
@@ -189,7 +190,7 @@ export function HomePage() {
                 next opportunity.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="mailto:hello@uxguard.io" className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-3 font-semibold text-white transition hover:bg-brand-400">
+                <a href={CONTACT_MAILTO} className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-3 font-semibold text-white transition hover:bg-brand-400">
                   Get your case study done
                   <ArrowRight className="h-4 w-4" />
                 </a>
@@ -240,7 +241,7 @@ export function HomePage() {
       </section>
 
       {/* Platform bento */}
-      <section className="border-b border-ink-100 bg-ink-50">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="02">Your Professional Experience Platform</SectionLabel>
           <div className="grid gap-4 lg:grid-cols-12">
@@ -277,7 +278,7 @@ export function HomePage() {
       </section>
 
       {/* Community feed */}
-      <section id="discover" className="border-b border-ink-100 bg-white">
+      <section id="discover" className="border-b border-ink-100 dark:border-ink-800 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <SectionLabel n="03">Community Feed</SectionLabel>
@@ -372,7 +373,7 @@ export function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
-              href="mailto:hello@uxguard.io"
+              href={CONTACT_MAILTO}
               className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-ink-200 transition hover:border-brand-500 hover:text-white"
             >
               We&apos;ll work for you

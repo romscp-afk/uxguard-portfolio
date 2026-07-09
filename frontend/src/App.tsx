@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminLoginPage } from "./pages/admin/AdminLoginPage";
@@ -17,14 +18,17 @@ import { HomePage } from "./pages/public/HomePage";
 import { SearchPage } from "./pages/public/SearchPage";
 import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
 import { NotificationsPage } from "./pages/admin/NotificationsPage";
+import { ContactPage } from "./pages/public/ContactPage";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
@@ -50,5 +54,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

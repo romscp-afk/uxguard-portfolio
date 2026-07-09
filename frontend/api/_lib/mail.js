@@ -15,7 +15,7 @@ export async function sendPasswordResetEmail({ to, resetUrl, userName }) {
   const subject = "Reset your UXguard password";
   const html = `
     <div style="font-family: Inter, Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #111;">
-      <h2 style="color: #0eb5bd;">UXguard</h2>
+      <h2 style="color: #0eb5bd;">UXGuard Studio</h2>
       <p>Hi${userName ? ` ${userName}` : ""},</p>
       <p>We received a request to reset your portfolio account password.</p>
       <p style="margin: 28px 0;">

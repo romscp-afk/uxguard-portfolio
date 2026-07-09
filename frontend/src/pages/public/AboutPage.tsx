@@ -12,6 +12,7 @@ import {
   Heart,
 } from "lucide-react";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
+import { CONTACT_MAILTO } from "../../lib/contact";
 
 const BELIEFS = [
   "Knowledge should never be lost.",
@@ -134,21 +135,21 @@ const FOUNDER_PHOTO = "/founder-romal-perera.png";
 function SectionLabel({ n, children }: { n: string; children: ReactNode }) {
   return (
     <div className="mb-8 flex items-end gap-4">
-      <span className="font-display text-5xl font-bold leading-none text-brand-100">{n}</span>
-      <h2 className="font-display text-3xl font-bold text-ink-950">{children}</h2>
+      <span className="font-display text-5xl font-bold leading-none text-brand-100 dark:text-brand-900/60">{n}</span>
+      <h2 className="font-display text-3xl font-bold text-ink-950 dark:text-white">{children}</h2>
     </div>
   );
 }
 
 export function AboutPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen surface-page">
       <PublicHeader />
 
       {/* Hero — split editorial layout */}
-      <section className="relative overflow-hidden border-b border-ink-100 bg-white">
-        <div className="absolute -right-20 top-0 h-96 w-96 rounded-full bg-brand-100/40 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-sky-100/50 blur-3xl" />
+      <section className="relative overflow-hidden border-b border-ink-100 dark:border-ink-800 surface-section">
+        <div className="absolute -right-20 top-0 h-96 w-96 rounded-full bg-brand-100/40 blur-3xl dark:bg-brand-900/20" />
+        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-50/80 blur-3xl dark:bg-brand-950/30" />
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
@@ -210,7 +211,7 @@ export function AboutPage() {
       </section>
 
       {/* Who we are — bento grid */}
-      <section className="border-b border-ink-100 bg-ink-50">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="01">Who We Are</SectionLabel>
           <div className="grid gap-4 lg:grid-cols-12">
@@ -245,7 +246,7 @@ export function AboutPage() {
       </section>
 
       {/* Mission & Vision — offset cards */}
-      <section className="border-b border-ink-100 bg-white">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="02">Mission &amp; Vision</SectionLabel>
           <div className="relative grid gap-6 lg:grid-cols-2">
@@ -278,7 +279,7 @@ export function AboutPage() {
       </section>
 
       {/* Why we exist — journey timeline */}
-      <section className="border-b border-ink-100 bg-ink-50">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="03">Why We Exist</SectionLabel>
           <p className="-mt-4 mb-10 max-w-2xl text-lg text-ink-600">
@@ -316,7 +317,7 @@ export function AboutPage() {
       </section>
 
       {/* Beliefs — mosaic */}
-      <section className="border-b border-ink-100 bg-white">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="04">What We Believe</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -371,7 +372,7 @@ export function AboutPage() {
       </section>
 
       {/* Professional services */}
-      <section className="border-b border-ink-100 bg-white">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="06">Professional Services</SectionLabel>
           <div className="grid gap-8 lg:grid-cols-3">
@@ -384,7 +385,7 @@ export function AboutPage() {
                 We help individuals and organizations save time—with case studies, portfolios, and research done
                 for you when you need it.
               </p>
-              <a href="mailto:hello@uxguard.io" className="btn-primary mt-6 inline-flex">
+              <a href={CONTACT_MAILTO} className="btn-primary mt-6 inline-flex">
                 Talk to us
                 <ArrowRight className="h-4 w-4" />
               </a>
@@ -404,7 +405,7 @@ export function AboutPage() {
       </section>
 
       {/* Values */}
-      <section className="border-b border-ink-100 bg-ink-50">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="07">Our Core Values</SectionLabel>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -420,8 +421,8 @@ export function AboutPage() {
       </section>
 
       {/* Founder — magazine layout */}
-      <section className="relative overflow-hidden border-b border-ink-100 bg-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_#e0effe_0%,_transparent_50%)]" />
+      <section className="relative overflow-hidden border-b border-ink-100 dark:border-ink-800 surface-section">
+        <div className="absolute inset-0 surface-hero-glow" />
         <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="08">A Message from the Founder</SectionLabel>
 
@@ -501,7 +502,7 @@ export function AboutPage() {
       </section>
 
       {/* Looking ahead + promise */}
-      <section className="border-b border-ink-100 bg-ink-50">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="grid gap-10 lg:grid-cols-2">
             <div>

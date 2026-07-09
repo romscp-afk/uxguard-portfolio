@@ -54,10 +54,10 @@ export function SearchPage() {
   const totalResults = (results?.users.length || 0) + (results?.case_studies.length || 0);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen surface-page">
       <PublicHeader />
 
-      <section className="border-b border-ink-100 bg-white">
+      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <h1 className="font-display text-3xl font-bold text-ink-950">Search the community</h1>
           <p className="mt-2 text-ink-500">

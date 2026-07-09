@@ -6,22 +6,22 @@ type LogoProps = {
 };
 
 function Wordmark({ theme, showTagline }: { theme: "light" | "dark"; showTagline?: boolean }) {
-  const guardClass = theme === "dark" ? "text-white" : "text-[#001334]";
+  const guardClass = theme === "dark" ? "text-white" : "text-ink-950";
 
   return (
     <div className="min-w-0">
       <p className="font-sans text-[1.35rem] font-bold leading-none tracking-tight sm:text-[1.5rem]">
-        <span className="text-[#0eb5bd]">UX</span>
+        <span className="text-brand-500">UX</span>
         <span className={guardClass}>Guard</span>
       </p>
       <div
         className={`mt-1.5 flex items-center gap-2 text-[0.55rem] font-semibold uppercase tracking-[0.32em] sm:text-[0.6rem] ${
-          theme === "dark" ? "text-ink-300" : "text-[#0eb5bd]/80"
+          theme === "dark" ? "text-ink-300" : "text-brand-600/80"
         }`}
       >
-        <span className={`h-px w-3 ${theme === "dark" ? "bg-ink-500" : "bg-[#0eb5bd]/40"}`} />
+        <span className={`h-px w-3 ${theme === "dark" ? "bg-ink-500" : "bg-brand-500/40"}`} />
         Studio
-        <span className={`h-px w-3 ${theme === "dark" ? "bg-ink-500" : "bg-[#0eb5bd]/40"}`} />
+        <span className={`h-px w-3 ${theme === "dark" ? "bg-ink-500" : "bg-brand-500/40"}`} />
       </div>
       {showTagline ? (
         <p
