@@ -218,6 +218,19 @@ export const api = {
 
   deleteMedia: (id: number) =>
     request<void>(`/media/${id}`, { method: "DELETE" }),
+
+  submitContact: (payload: {
+    name: string;
+    email: string;
+    inquiryType: string;
+    subject: string;
+    message: string;
+    website?: string;
+  }) =>
+    request<{ message: string }>("/contact", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
 
 export { ApiError };

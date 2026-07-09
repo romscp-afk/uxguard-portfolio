@@ -1,8 +1,8 @@
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Mail, MessageCircle, Send, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, Mail, MessageCircle, Send, Sparkles } from "lucide-react";
+import { api, ApiError } from "../../api/client";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
-import { buildContactMailto } from "../../lib/contact";
 
 const INQUIRY_OPTIONS = [
   "Case study & portfolio",
@@ -36,11 +36,45 @@ export function ContactPage() {
   const [inquiryType, setInquiryType] = useState<string>(INQUIRY_OPTIONS[0]);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const mailto = buildContactMailto({ name, email, subject, inquiryType, message });
-    window.location.href = mailto;
+    setSubmitting(true);
+    setError("");
+    setSuccess(false);
+
+    try {
+      const result = await api.submitContact({
+        name,
+        email,
+        inquiryType,
+        subject,
+        message,
+        website,
+      });
+      setSuccess(true);
+      setName("");
+      setEmail("");
+      setInquiryType(INQUIRY_OPTIONS[0]);
+      setSubject("");
+      setMessage("");
+      setWebsite("");
+      if (result.message) {
+        // message shown via success UI
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not send your message. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -59,8 +93,8 @@ export function ContactPage() {
             <span className="text-brand-600">professional legacy</span> together.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-600">
-            Send us a message using the form below—it opens your email app with everything filled in.
-            We respond to every inquiry.
+            Send us a message using the form below—we&apos;ll receive it directly and get back to you
+            as soon as we can.
           </p>
         </div>
       </section>
@@ -71,8 +105,21 @@ export function ContactPage() {
             <form onSubmit={handleSubmit} className="card p-8 lg:col-span-7">
               <h2 className="font-display text-2xl font-bold text-ink-950">Send a message</h2>
               <p className="mt-2 text-sm text-ink-500">
-                Submitting opens your default email app addressed to UXGuard Studio.
+                Your message is sent securely—no email app required.
               </p>
+
+              {success ? (
+                <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <p>Thanks for reaching out. Your message was sent and we&apos;ll reply soon.</p>
+                </div>
+              ) : null}
+
+              {error ? (
+                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  {error}
+                </div>
+              ) : null}
 
               <div className="mt-8 grid gap-5 sm:grid-cols-2">
                 <div>
@@ -87,6 +134,7 @@ export function ContactPage() {
                     onChange={(e) => setName(e.target.value)}
                     className="input-field"
                     placeholder="Jane Doe"
+                    disabled={submitting}
                   />
                 </div>
                 <div>
@@ -101,6 +149,7 @@ export function ContactPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="input-field"
                     placeholder="you@company.com"
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -114,6 +163,7 @@ export function ContactPage() {
                   value={inquiryType}
                   onChange={(e) => setInquiryType(e.target.value)}
                   className="input-field"
+                  disabled={submitting}
                 >
                   {INQUIRY_OPTIONS.map((option) => (
                     <option key={option} value={option}>
@@ -135,6 +185,7 @@ export function ContactPage() {
                   onChange={(e) => setSubject(e.target.value)}
                   className="input-field"
                   placeholder="How can we help?"
+                  disabled={submitting}
                 />
               </div>
 
@@ -150,12 +201,37 @@ export function ContactPage() {
                   onChange={(e) => setMessage(e.target.value)}
                   className="input-field resize-y"
                   placeholder="Tell us about your project, goals, or question..."
+                  disabled={submitting}
                 />
               </div>
 
-              <button type="submit" className="btn-primary mt-8 w-full sm:w-auto">
-                <Send className="h-4 w-4" />
-                Open in email app
+              <input
+                type="text"
+                name="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                className="hidden"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+              />
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-primary mt-8 w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Send message
+                  </>
+                )}
               </button>
             </form>
 

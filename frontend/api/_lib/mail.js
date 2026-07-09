@@ -88,3 +88,71 @@ export async function sendNewCaseStudyEmail({ to, userName, authorName, studyTit
 
   return res.json();
 }
+
+export async function sendContactFormEmail({
+  to,
+  name,
+  email,
+  inquiryType,
+  subject,
+  message,
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM || "UXGuard Studio <onboarding@resend.dev>";
+
+  if (!apiKey) {
+    throw new Error(
+      "Email service is not configured. Add RESEND_API_KEY to your deployment environment.",
+    );
+  }
+
+  const fullSubject = inquiryType ? `[${inquiryType}] ${subject}` : subject;
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeType = escapeHtml(inquiryType || "General");
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
+
+  const html = `
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #111;">
+      <h2 style="color: #0eb5bd;">New contact form message</h2>
+      <p><strong>From:</strong> ${safeName} &lt;${safeEmail}&gt;</p>
+      <p><strong>Inquiry type:</strong> ${safeType}</p>
+      <p><strong>Subject:</strong> ${safeSubject}</p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+      <div style="line-height: 1.6; white-space: pre-wrap;">${safeMessage}</div>
+      <p style="margin-top: 28px; font-size: 13px; color: #666;">Reply directly to this email to respond to ${safeName}.</p>
+    </div>
+  `;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      reply_to: email,
+      subject: fullSubject,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Email delivery failed (${res.status})`);
+  }
+
+  return res.json();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
