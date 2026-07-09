@@ -1,4 +1,12 @@
 import { get, put } from "@vercel/blob";
+import { defaultPortfolioConfig } from "./roles.js";
+
+function normalizeMediaAssetUrl(url, assetId) {
+  if (assetId) return `/api/v1/media/file/${assetId}`;
+  const match = String(url || "").match(/\/api\/v1\/media\/file\/(\d+)/);
+  if (match) return `/api/v1/media/file/${match[1]}`;
+  return url;
+}
 
 const STORE_PATH = "uxguard/platform-store.json";
 
@@ -176,6 +184,30 @@ export const portfolioSettings = {
 
 let memoryStore = null;
 
+function normalizeLoadedStore(data) {
+  const store = {
+    ...data,
+    follows: data.follows || [],
+    comments: data.comments || [],
+    notifications: data.notifications || [],
+    contact_messages: data.contact_messages || [],
+    projects: data.projects || [],
+    mediaAssets: (data.mediaAssets || []).map((asset) => ({
+      ...asset,
+      url: normalizeMediaAssetUrl(asset.url, asset.id),
+    })),
+    users: (data.users || []).map((user) => ({
+      ...user,
+      role: user.role === "researcher" ? "professional" : user.role,
+      portfolio_config: {
+        ...defaultPortfolioConfig(),
+        ...(user.portfolio_config || {}),
+      },
+    })),
+  };
+  return store;
+}
+
 function seedStore() {
   return {
     users: structuredClone(SEED_USERS),
@@ -261,14 +293,7 @@ export async function readStore() {
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       const data = await loadFromBlob();
-      memoryStore = {
-        ...data,
-        follows: data.follows || [],
-        comments: data.comments || [],
-        notifications: data.notifications || [],
-        contact_messages: data.contact_messages || [],
-        projects: data.projects || [],
-      };
+      memoryStore = normalizeLoadedStore(data);
       return structuredClone(memoryStore);
     } catch (error) {
       if (isMissingBlobError(error)) {

@@ -1,8 +1,9 @@
-import { assertCanEdit } from "../../_lib/projects.js";
+import { assertCanEdit } from "../_lib/projects.js";
 import {
   getPortfolioConfigForUser,
   updatePortfolioConfigForUser,
-} from "../../_lib/portfolio-config.js";
+} from "../_lib/portfolio-config.js";
+import { defaultPortfolioConfig } from "../_lib/roles.js";
 import { requireAuthUser } from "../_lib/auth.js";
 import { withApi } from "../_lib/withApi.js";
 
@@ -11,7 +12,7 @@ export default withApi(async (req, res) => {
   if (!user) return;
 
   if (req.method === "GET") {
-    const config = await getPortfolioConfigForUser(user.id);
+    const config = (await getPortfolioConfigForUser(user.id)) || defaultPortfolioConfig();
     res.status(200).json(config);
     return;
   }

@@ -7,12 +7,23 @@ import {
 import { requireAuthUser } from "../../_lib/auth.js";
 import { withApi } from "../../_lib/withApi.js";
 
+function parseProjectId(req) {
+  const fromQuery = req.query?.id ?? req.query?.param;
+  if (fromQuery && /^\d+$/.test(String(fromQuery))) {
+    return Number(fromQuery);
+  }
+
+  const path = String(req.url || "").split("?")[0];
+  const match = path.match(/\/projects\/(\d+)(?:\/)?$/);
+  return match ? Number(match[1]) : NaN;
+}
+
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
 
-  const id = Number(req.query.id);
-  if (!id) {
+  const id = parseProjectId(req);
+  if (!Number.isFinite(id) || id <= 0) {
     res.status(400).json({ detail: "Invalid project id" });
     return;
   }

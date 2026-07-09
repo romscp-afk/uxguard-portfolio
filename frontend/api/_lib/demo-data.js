@@ -83,19 +83,36 @@ export async function registerUser({ email, password, name, username, title, rol
   return { user: created };
 }
 
+const PROFILE_FIELDS = new Set([
+  "name",
+  "username",
+  "title",
+  "bio",
+  "avatar_url",
+  "contact_email",
+  "location",
+  "cv_url",
+  "social_links",
+]);
+
 export async function updateUserProfile(userId, updates) {
   let updated = null;
+  const sanitized = {};
+  for (const [key, value] of Object.entries(updates || {})) {
+    if (PROFILE_FIELDS.has(key)) sanitized[key] = value;
+  }
+
   await updateStore((store) => {
     const index = store.users.findIndex((u) => u.id === userId);
-    if (index === -1) return store;
-    if (updates.username) {
-      updates.username = slugify(updates.username);
+    if (index === -1) throw new Error("User not found");
+    if (sanitized.username) {
+      sanitized.username = slugify(sanitized.username);
       const taken = store.users.find(
-        (u) => u.username === updates.username && u.id !== userId,
+        (u) => u.username === sanitized.username && u.id !== userId,
       );
       if (taken) throw new Error("Username already taken");
     }
-    store.users[index] = { ...store.users[index], ...updates };
+    store.users[index] = { ...store.users[index], ...sanitized };
     updated = store.users[index];
     return store;
   });

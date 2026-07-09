@@ -34,16 +34,25 @@ function fileExtension(filename, mimeType) {
   return map[mimeType] || ".bin";
 }
 
-export function mediaPublicUrl(assetId, baseUrl) {
-  const path = `/api/v1/media/file/${assetId}`;
-  if (baseUrl) return `${baseUrl.replace(/\/$/, "")}${path}`;
-  return path;
+export function mediaPublicUrl(assetId) {
+  return `/api/v1/media/file/${assetId}`;
+}
+
+export function normalizeMediaAssetUrl(url, assetId) {
+  if (assetId) return mediaPublicUrl(assetId);
+  const match = String(url || "").match(/\/api\/v1\/media\/file\/(\d+)/);
+  if (match) return mediaPublicUrl(Number(match[1]));
+  return url;
 }
 
 export async function listMediaAssets(userId) {
   const store = await readStore();
   return (store.mediaAssets || [])
     .filter((asset) => asset.uploaded_by_id === userId)
+    .map((asset) => ({
+      ...asset,
+      url: normalizeMediaAssetUrl(asset.url, asset.id),
+    }))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
@@ -79,9 +88,6 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
   });
 
   let created = null;
-  const baseUrl =
-    process.env.APP_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
 
   await updateStore((store) => {
     if (!store.mediaAssets) store.mediaAssets = [];
@@ -93,7 +99,7 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
       mime_type: file.mimeType,
       size_bytes: file.buffer.length,
       pathname,
-      url: mediaPublicUrl(id, baseUrl),
+      url: mediaPublicUrl(id),
       alt_text: altText || null,
       uploaded_by_id: userId,
       created_at: new Date().toISOString(),

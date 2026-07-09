@@ -1,5 +1,6 @@
 import { getAuthUser, requireAuth } from "../../_lib/auth.js";
 import { toUserOut, updateUserProfile } from "../../_lib/demo-data.js";
+import { canEditPlatform, normalizeRole } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
@@ -21,6 +22,10 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "PATCH") {
+    if (!canEditPlatform({ role: normalizeRole(user.role) })) {
+      res.status(403).json({ detail: "Your account is read-only. Upgrade to Professional to edit." });
+      return;
+    }
     try {
       const updates = req.body || {};
       const updated = await updateUserProfile(user.id, updates);

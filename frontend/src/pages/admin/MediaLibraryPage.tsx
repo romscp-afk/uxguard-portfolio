@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Trash2, Upload } from "lucide-react";
+import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { api, resolveAssetUrl } from "../../api/client";
 import type { MediaAsset } from "../../types";
 
@@ -52,6 +53,7 @@ export function MediaLibraryPage() {
 
   return (
     <div>
+      <ReadOnlyNotice />
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Media Library</h1>

@@ -7,6 +7,17 @@ import { useAuth } from "../../context/AuthContext";
 import { canEditPlatform } from "../../lib/roles";
 import type { CaseStudyListItem, PortfolioBuilderConfig } from "../../types";
 
+const DEFAULT_CONFIG: PortfolioBuilderConfig = {
+  show_profile: true,
+  show_projects: true,
+  show_case_studies: true,
+  show_timeline: false,
+  show_achievements: false,
+  show_analytics: false,
+  case_study_order: [],
+  featured_case_study_ids: [],
+};
+
 const SECTION_TOGGLES: { key: keyof PortfolioBuilderConfig; label: string; phase2?: boolean }[] = [
   { key: "show_profile", label: "Professional profile" },
   { key: "show_projects", label: "Projects" },
@@ -31,8 +42,9 @@ export function PortfolioBuilderPage() {
     Promise.all([api.getPortfolioBuilder(), api.adminListCaseStudies()])
       .then(([builderConfig, caseStudies]) => {
         if (cancelled) return;
-        setConfig(builderConfig);
-        const order = builderConfig.case_study_order || [];
+        const config = builderConfig || DEFAULT_CONFIG;
+        setConfig(config);
+        const order = config.case_study_order || [];
         const sorted = [...caseStudies].sort((a, b) => {
           const aIndex = order.indexOf(a.id);
           const bIndex = order.indexOf(b.id);
@@ -42,9 +54,12 @@ export function PortfolioBuilderPage() {
           return aIndex - bIndex;
         });
         setStudies(sorted);
+        setError("");
       })
       .catch((err) => {
         if (!cancelled) {
+          setConfig(DEFAULT_CONFIG);
+          setStudies([]);
           setError(err instanceof ApiError ? err.message : "Could not load portfolio builder.");
         }
       })
@@ -101,8 +116,16 @@ export function PortfolioBuilderPage() {
     }
   }
 
-  if (loading || !config) {
+  if (loading) {
     return <div className="card h-64 animate-pulse bg-ink-100" />;
+  }
+
+  if (!config) {
+    return (
+      <div className="card p-8 text-center">
+        <p className="text-ink-500">Could not load portfolio builder settings.</p>
+      </div>
+    );
   }
 
   return (

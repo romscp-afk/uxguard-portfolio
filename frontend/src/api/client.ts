@@ -22,11 +22,30 @@ const API_BASE = `${API_ROOT}/api/v1`;
 
 export function resolveAssetUrl(url: string): string {
   if (!url) return url;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  const path = url.startsWith("/") ? url : `/${url}`;
+
   const root =
     API_ROOT ||
     (typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "");
+
+  const mediaMatch = String(url).match(/\/api\/v1\/media\/file\/(\d+)/);
+  if (mediaMatch) {
+    return `${root}/api/v1/media/file/${mediaMatch[1]}`;
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      const parsed = new URL(url);
+      const hostedMedia = parsed.pathname.match(/\/api\/v1\/media\/file\/(\d+)/);
+      if (hostedMedia) {
+        return `${root}/api/v1/media/file/${hostedMedia[1]}`;
+      }
+    } catch {
+      return url;
+    }
+    return url;
+  }
+
+  const path = url.startsWith("/") ? url : `/${url}`;
   return `${root}${path}`;
 }
 

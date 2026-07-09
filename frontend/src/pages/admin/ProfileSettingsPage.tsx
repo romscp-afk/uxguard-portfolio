@@ -2,9 +2,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Check, Copy, Save } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
+import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { saveUserToRegistry } from "../../lib/platformRegistry";
 import { useAuth } from "../../context/AuthContext";
-import { api, resolveAssetUrl } from "../../api/client";
+import { api, ApiError, resolveAssetUrl } from "../../api/client";
+import { canEditPlatform } from "../../lib/roles";
 import type { User } from "../../types";
 
 export function ProfileSettingsPage() {
@@ -53,11 +55,22 @@ export function ProfileSettingsPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!canEditPlatform(user)) {
+      setMessage("Your account is read-only. Register as Professional to edit your profile.");
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {
       const payload: Partial<User> = {
-        ...form,
+        name: form.name,
+        username: form.username,
+        title: form.title || undefined,
+        bio: form.bio || undefined,
+        contact_email: form.contact_email || undefined,
+        location: form.location || undefined,
+        avatar_url: form.avatar_url || undefined,
+        cv_url: form.cv_url || undefined,
         social_links: {
           ...(user?.social_links || {}),
           ...(linkedinUrl.trim() ? { linkedin: linkedinUrl.trim() } : {}),
@@ -73,8 +86,8 @@ export function ProfileSettingsPage() {
         });
       }
       setMessage("Profile saved.");
-    } catch {
-      setMessage("Failed to save profile.");
+    } catch (err) {
+      setMessage(err instanceof ApiError ? err.message : "Failed to save profile.");
     } finally {
       setSaving(false);
     }
@@ -86,6 +99,7 @@ export function ProfileSettingsPage() {
 
   return (
     <div>
+      <ReadOnlyNotice />
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-ink-950">Profile & Portfolio</h1>
         <p className="mt-1 text-ink-500">
@@ -221,7 +235,7 @@ export function ProfileSettingsPage() {
           />
         </div>
 
-        <button type="submit" className="btn-primary mt-6" disabled={saving}>
+        <button type="submit" className="btn-primary mt-6" disabled={saving || !canEditPlatform(user)}>
           <Save className="h-4 w-4" />
           {saving ? "Saving..." : "Save Profile"}
         </button>
