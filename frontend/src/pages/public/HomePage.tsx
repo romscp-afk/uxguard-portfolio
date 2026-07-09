@@ -62,7 +62,7 @@ export function HomePage() {
         const feedResult =
           feedMode === "following" && user
             ? await api.getFollowingFeed()
-            : await api.getFeed();
+            : await api.getFeed(12);
         if (!cancelled) setFeed(feedResult);
       } catch {
         if (!cancelled) {
@@ -127,7 +127,7 @@ export function HomePage() {
                   Start Your Journey
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <a href="#discover" className="btn-secondary">
+                <a href="#latest-studies" className="btn-secondary">
                   Explore Case Studies
                 </a>
               </div>
@@ -192,7 +192,7 @@ export function HomePage() {
       </section>
 
       {/* Community feed */}
-      <section id="discover" className="border-b border-ink-100 surface-section">
+      <section id="latest-studies" className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <SectionLabel n="02">Community Feed</SectionLabel>
@@ -251,11 +251,19 @@ export function HomePage() {
               )}
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {feed.map((study) => (
-                <CaseStudyCard key={study.id} study={study} showSummary />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {feed.slice(0, 12).map((study) => (
+                  <CaseStudyCard key={study.id} study={study} showSummary />
+                ))}
+              </div>
+              <div className="mt-10 text-center">
+                <Link to="/discover" className="btn-secondary">
+                  View all case studies
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </>
           )}
         </div>
       </section>

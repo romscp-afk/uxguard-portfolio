@@ -1,6 +1,7 @@
 import { createCaseStudy, listCaseStudies, toListItem } from "../_lib/demo-data.js";
 import { notifyNewPublication } from "../_lib/community.js";
 import { requireAuthUser } from "../_lib/auth.js";
+import { assertCanEdit } from "../_lib/projects.js";
 import { withApi } from "../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
@@ -18,6 +19,7 @@ export default withApi(async (req, res) => {
     const user = await requireAuthUser(req, res);
     if (!user) return;
     try {
+      assertCanEdit(user);
       const created = await createCaseStudy(user.id, req.body || {});
       if (created.status === "published") {
         await notifyNewPublication(created, user);

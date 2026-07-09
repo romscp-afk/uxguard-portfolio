@@ -11,7 +11,7 @@ import {
   syncCachedCaseStudies,
 } from "../../lib/caseStudyStore";
 import { COVER_HELP_TEXT, validateCoverImageUrl } from "../../lib/coverImage";
-import type { CaseStudy, ContentBlock, MetricItem } from "../../types";
+import type { CaseStudy, ContentBlock, MetricItem, Project } from "../../types";
 
 const RESEARCH_METHODS = [
   "Usability Testing",
@@ -59,6 +59,7 @@ const emptyStudy: Partial<CaseStudy> = {
   status: "draft",
   featured: false,
   sort_order: 0,
+  project_id: null,
 };
 
 type FieldKey =
@@ -118,6 +119,7 @@ export function CaseStudyEditorPage() {
   const { user } = useAuth();
 
   const [form, setForm] = useState<Partial<CaseStudy>>(emptyStudy);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [methodsInput, setMethodsInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -126,6 +128,10 @@ export function CaseStudyEditorPage() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
+
+  useEffect(() => {
+    api.listProjects().then(setProjects).catch(() => setProjects([]));
+  }, []);
 
   useEffect(() => {
     if (studyId == null) return;
@@ -355,6 +361,7 @@ export function CaseStudyEditorPage() {
       status,
       featured: payload.featured ?? false,
       sort_order: payload.sort_order ?? 0,
+      project_id: payload.project_id ?? null,
       author_id: user.id,
       created_at: existing?.created_at || form.created_at || now,
       updated_at: now,
@@ -555,7 +562,7 @@ export function CaseStudyEditorPage() {
           <p className="font-medium text-ink-900">New here? Use the homepage as your guide.</p>
           <p className="mt-1">
             Browse{" "}
-            <Link to="/#discover" className="font-semibold text-brand-700 hover:underline">
+            <Link to="/discover" className="font-semibold text-brand-700 hover:underline">
               recently published case studies
             </Link>{" "}
             for examples of titles, summaries, cover images (1200×750), methods, and impact sections —
@@ -621,6 +628,23 @@ export function CaseStudyEditorPage() {
                   value={form.subtitle || ""}
                   onChange={(e) => updateField("subtitle", e.target.value)}
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label-field">Linked project</label>
+                <select
+                  className="input-field"
+                  value={form.project_id ?? ""}
+                  onChange={(e) =>
+                    updateField("project_id", e.target.value ? Number(e.target.value) : null)
+                  }
+                >
+                  <option value="">No project</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="label-field">Client</label>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Edit, Eye, Plus } from "lucide-react";
+import { EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAuth } from "../../context/AuthContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
 import type { CaseStudyListItem } from "../../types";
@@ -21,15 +22,16 @@ export function CaseStudiesListPage() {
 
   return (
     <div>
+      <ReadOnlyNotice />
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Case Studies</h1>
           <p className="mt-1 text-ink-500">Create and manage UX research case studies</p>
         </div>
-        <Link to="/admin/case-studies/new" className="btn-primary">
+        <EditLink to="/admin/case-studies/new">
           <Plus className="h-4 w-4" />
           New Case Study
-        </Link>
+        </EditLink>
       </div>
 
       <div className="mb-6 flex gap-2">

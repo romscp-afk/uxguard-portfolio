@@ -182,7 +182,7 @@ export function AboutPage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/#discover"
+              to="/discover"
               className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
             >
               Explore the Community

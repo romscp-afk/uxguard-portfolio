@@ -6,6 +6,7 @@ import {
 } from "../../_lib/demo-data.js";
 import { notifyNewPublication } from "../../_lib/community.js";
 import { requireAuthUser } from "../../_lib/auth.js";
+import { assertCanEdit } from "../../_lib/projects.js";
 import { withApi } from "../../_lib/withApi.js";
 
 async function maybeNotifyPublish(previous, updated, author) {
@@ -26,6 +27,7 @@ export default withApi(async (req, res) => {
 
     if (req.method === "PATCH") {
       try {
+        assertCanEdit(user);
         const previous = await getCaseStudyByIdForAuthor(id, user.id);
         const updated = await updateCaseStudy(id, user.id, req.body || {});
         await maybeNotifyPublish(previous, updated, user);
@@ -39,6 +41,7 @@ export default withApi(async (req, res) => {
 
     if (req.method === "DELETE") {
       try {
+        assertCanEdit(user);
         await deleteCaseStudy(id, user.id);
         res.status(204).end();
       } catch (err) {

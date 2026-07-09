@@ -113,7 +113,7 @@ export function UserPortfolioPage() {
         <PublicHeader />
         <div className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6">
           <p className="text-ink-500">{error || "Not found"}</p>
-          <Link to="/" className="btn-primary mt-4 inline-flex">
+          <Link to="/discover" className="btn-primary mt-4 inline-flex">
             Back to discover
           </Link>
         </div>
@@ -208,6 +208,29 @@ export function UserPortfolioPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        {profile.projects && profile.projects.length > 0 ? (
+          <div className="mb-16">
+            <h2 className="font-display text-2xl font-bold text-ink-950">Projects</h2>
+            <p className="mt-1 text-ink-500">Professional work organized by project.</p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {profile.projects.map((project) => (
+                <div key={project.id} className="card overflow-hidden">
+                  {project.cover_image ? (
+                    <img src={project.cover_image} alt="" className="h-36 w-full object-cover" />
+                  ) : null}
+                  <div className="p-5">
+                    <p className="font-semibold text-ink-900">{project.title}</p>
+                    <p className="mt-1 text-sm text-ink-500">{project.client || project.role}</p>
+                    {project.description ? (
+                      <p className="mt-3 line-clamp-3 text-sm text-ink-600">{project.description}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mb-8">
           <h2 className="font-display text-2xl font-bold text-ink-950">Case Studies</h2>
           <p className="mt-1 text-ink-500">

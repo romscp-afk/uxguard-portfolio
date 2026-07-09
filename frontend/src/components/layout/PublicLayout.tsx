@@ -57,7 +57,8 @@ export function PublicHeader() {
             <Search className="h-4 w-4" />
             Search
           </NavLink>
-          <NavLink to="/#discover">Discover</NavLink>
+          <NavLink to="/">Home</NavLink>
+          <NavLink to="/discover">Discover</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/contact">Contact</NavLink>
           {user ? (
@@ -104,7 +105,8 @@ export function PublicHeader() {
             <ul className="space-y-1">
               {[
                 { to: "/search", label: "Search", icon: Search },
-                { to: "/#discover", label: "Discover" },
+                { to: "/", label: "Home" },
+                { to: "/discover", label: "Discover" },
                 { to: "/about", label: "About" },
                 { to: "/contact", label: "Contact" },
               ].map(({ to, label, icon: Icon }) => (

@@ -1,17 +1,35 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
-import { FileText, Image, LayoutDashboard, LogOut, Mail, UserCircle, Bell } from "lucide-react";
+import {
+  BarChart3,
+  Bell,
+  Briefcase,
+  FileText,
+  FolderKanban,
+  Image,
+  LayoutDashboard,
+  LogOut,
+  Mail,
+  Palette,
+  UserCircle,
+} from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
 import { useAuth } from "../../context/AuthContext";
+import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 
-const nav = [
-  { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
-  { to: "/admin/case-studies", icon: FileText, label: "Case Studies" },
-  { to: "/admin/notifications", icon: Bell, label: "Notifications" },
-  { to: "/admin/contact-inbox", icon: Mail, label: "Contact Inbox" },
-  { to: "/admin/media", icon: Image, label: "Media Library" },
-  { to: "/admin/profile", icon: UserCircle, label: "Profile & Link" },
-];
+const ICONS: Record<string, typeof LayoutDashboard> = {
+  profile: UserCircle,
+  projects: FolderKanban,
+  portfolio: Palette,
+  "case-studies": FileText,
+  media: Image,
+  notifications: Bell,
+  contact: Mail,
+  resume: Briefcase,
+  timeline: Briefcase,
+  achievements: Briefcase,
+  analytics: BarChart3,
+};
 
 export function AdminLayout() {
   const { user, loading, logout } = useAuth();
@@ -29,6 +47,9 @@ export function AdminLayout() {
     return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />;
   }
 
+  const { primary, phase2 } = dashboardLinksForUser(user);
+  const roleLabel = normalizeRole(user.role);
+
   return (
     <div className="flex min-h-screen bg-ink-100">
       <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-ink-800 bg-ink-950 text-white">
@@ -37,27 +58,71 @@ export function AdminLayout() {
             <Logo variant="mark" theme="dark" />
             <NotificationBell />
           </div>
-          <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">CMS</p>
+          <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">Platform Portal</p>
+          <p className="mt-1 text-xs text-brand-300 capitalize">{roleLabel} account</p>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
-          {nav.map(({ to, icon: Icon, label, end }) => {
-            const active = end ? location.pathname === to : location.pathname.startsWith(to);
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                  active
-                    ? "bg-brand-600 text-white"
-                    : "text-ink-300 hover:bg-ink-800 hover:text-white"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-4 overflow-y-auto p-3">
+          <div>
+            <Link
+              to="/admin"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                location.pathname === "/admin"
+                  ? "bg-brand-600 text-white"
+                  : "text-ink-300 hover:bg-ink-800 hover:text-white"
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+          </div>
+
+          <div>
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+              Platform
+            </p>
+            <div className="space-y-1">
+              {primary.map(({ to, label, section }) => {
+                const Icon = ICONS[section] || Briefcase;
+                const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                      active
+                        ? "bg-brand-600 text-white"
+                        : "text-ink-300 hover:bg-ink-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+              Coming in Phase 2
+            </p>
+            <div className="space-y-1">
+              {phase2.map(({ label, section }) => {
+                const Icon = ICONS[section] || Briefcase;
+                return (
+                  <div
+                    key={label}
+                    className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600"
+                    title="Coming soon"
+                  >
+                    <Icon className="h-4 w-4 opacity-50" />
+                    <span className="opacity-70">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </nav>
 
         <div className="border-t border-ink-800 p-4">

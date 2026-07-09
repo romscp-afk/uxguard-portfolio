@@ -8,7 +8,9 @@ import type {
   FollowStats,
   MediaAsset,
   Notification,
+  PortfolioBuilderConfig,
   PortfolioSettings,
+  Project,
   SearchResults,
   User,
   UserProfile,
@@ -104,7 +106,10 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getFeed: () => request<FeedCaseStudyItem[]>("/feed/case-studies"),
+  getFeed: (limit?: number) =>
+    request<FeedCaseStudyItem[]>(
+      `/feed/case-studies${limit ? `?limit=${limit}` : ""}`,
+    ),
 
   getFollowingFeed: () => request<FeedCaseStudyItem[]>("/feed/following"),
 
@@ -235,6 +240,32 @@ export const api = {
 
   getContactMessages: () =>
     request<{ messages: ContactMessage[]; unread_count: number }>("/contact-messages"),
+
+  listProjects: () => request<Project[]>("/projects"),
+
+  getProject: (id: number) => request<Project>(`/projects/${id}`),
+
+  createProject: (data: Partial<Project>) =>
+    request<Project>("/projects", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateProject: (id: number, data: Partial<Project>) =>
+    request<Project>(`/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteProject: (id: number) => request<void>(`/projects/${id}`, { method: "DELETE" }),
+
+  getPortfolioBuilder: () => request<PortfolioBuilderConfig>("/portfolio-builder"),
+
+  updatePortfolioBuilder: (data: Partial<PortfolioBuilderConfig>) =>
+    request<PortfolioBuilderConfig>("/portfolio-builder", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 export { ApiError };

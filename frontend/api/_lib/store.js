@@ -17,6 +17,17 @@ const SEED_USERS = [
     cv_url: null,
     social_links: { linkedin: "https://linkedin.com/in/alexrivera" },
     role: "admin",
+    onboarding_intent: "publish_case_studies",
+    portfolio_config: {
+      show_profile: true,
+      show_projects: true,
+      show_case_studies: true,
+      show_timeline: false,
+      show_achievements: false,
+      show_analytics: false,
+      case_study_order: [],
+      featured_case_study_ids: [1],
+    },
   },
   {
     id: 2,
@@ -31,7 +42,18 @@ const SEED_USERS = [
     location: "New York, NY",
     cv_url: null,
     social_links: { linkedin: "https://linkedin.com/in/jordankim" },
-    role: "researcher",
+    role: "professional",
+    onboarding_intent: "build_portfolio",
+    portfolio_config: {
+      show_profile: true,
+      show_projects: true,
+      show_case_studies: true,
+      show_timeline: false,
+      show_achievements: false,
+      show_analytics: false,
+      case_study_order: [],
+      featured_case_study_ids: [],
+    },
   },
 ];
 
@@ -74,6 +96,7 @@ const SEED_CASE_STUDIES = [
     status: "published",
     featured: true,
     sort_order: 1,
+    project_id: 1,
     author_id: 1,
     created_at: "2026-07-04T19:26:59.000Z",
     updated_at: "2026-07-04T19:26:59.000Z",
@@ -164,6 +187,30 @@ function seedStore() {
     comments: [],
     notifications: [],
     contact_messages: [],
+    projects: [
+      {
+        id: 1,
+        author_id: 1,
+        title: "FinFlow Checkout Redesign",
+        slug: "finflow-checkout-redesign",
+        client: "FinFlow",
+        status: "completed",
+        description: "End-to-end UX research and checkout optimization for enterprise billing.",
+        start_date: "2025-10-01",
+        end_date: "2025-11-15",
+        tags: ["UX Research", "B2B SaaS", "Checkout"],
+        role: "Lead UX Researcher",
+        team: ["Product Manager", "Design Lead"],
+        outcomes: [
+          { label: "Completion lift", value: "+22%", description: "Payment step" },
+          { label: "Support reduction", value: "-18%", description: "Billing tickets" },
+        ],
+        cover_image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80",
+        attachments: [],
+        created_at: "2026-07-04T19:26:59.000Z",
+        updated_at: "2026-07-04T19:26:59.000Z",
+      },
+    ],
   };
 }
 
@@ -220,6 +267,7 @@ export async function readStore() {
         comments: data.comments || [],
         notifications: data.notifications || [],
         contact_messages: data.contact_messages || [],
+        projects: data.projects || [],
       };
       return structuredClone(memoryStore);
     } catch (error) {

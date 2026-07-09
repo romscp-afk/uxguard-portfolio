@@ -1,39 +1,60 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Eye, FileText, Globe, Plus, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  FileText,
+  FolderKanban,
+  Globe,
+  Palette,
+  Sparkles,
+  UserCircle,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
-import type { CaseStudyListItem } from "../../types";
+import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
+import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { api } from "../../api/client";
+import type { CaseStudyListItem, Project } from "../../types";
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
-  const location = useLocation();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     if (!user) return;
     loadMergedCaseStudies(user.id).then(setStudies);
-  }, [user, location.pathname]);
+    api.listProjects().then(setProjects).catch(() => setProjects([]));
+  }, [user]);
+
+  if (!user) return null;
 
   const published = studies.filter((s) => s.status === "published").length;
   const drafts = studies.filter((s) => s.status === "draft").length;
+  const { primary } = dashboardLinksForUser(user);
+  const role = normalizeRole(user.role);
+
+  const intentLabel =
+    user.onboarding_intent === "publish_case_studies"
+      ? "Publishing case studies"
+      : user.onboarding_intent === "track_career"
+        ? "Tracking your career"
+        : "Building your portfolio";
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-ink-950">Dashboard</h1>
-          <p className="mt-1 text-ink-500">Manage your UX research portfolio</p>
-        </div>
-        <Link to="/admin/case-studies/new" className="btn-primary">
-          <Plus className="h-4 w-4" />
-          New Case Study
-        </Link>
+      <ReadOnlyNotice />
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-bold text-ink-950">Dashboard</h1>
+        <p className="mt-1 text-ink-500">
+          Welcome back, {user.name}. {intentLabel} · {role} account
+        </p>
       </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Case Studies", value: studies.length, icon: FileText, color: "text-brand-600" },
+          { label: "Projects", value: projects.length, icon: FolderKanban, color: "text-brand-600" },
+          { label: "Case Studies", value: studies.length, icon: FileText, color: "text-brand-600" },
           { label: "Published", value: published, icon: Globe, color: "text-emerald-600" },
           { label: "Drafts", value: drafts, icon: Sparkles, color: "text-amber-600" },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -43,6 +64,37 @@ export function AdminDashboardPage() {
             <p className="text-sm text-ink-500">{label}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mb-8">
+        <h2 className="font-semibold text-ink-900">Your platform sections</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          Quick access to the tools configured for your account.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {primary.map(({ to, label, section }) => {
+            const icons: Record<string, typeof UserCircle> = {
+              profile: UserCircle,
+              projects: FolderKanban,
+              portfolio: Palette,
+              "case-studies": FileText,
+            };
+            const Icon = icons[section] || FileText;
+            return (
+              <Link
+                key={to}
+                to={to}
+                className="card flex items-center justify-between p-5 transition hover:border-brand-300"
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className="h-5 w-5 text-brand-600" />
+                  <span className="font-medium text-ink-900">{label}</span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-ink-400" />
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       <div className="card">
@@ -61,32 +113,12 @@ export function AdminDashboardPage() {
                     {study.client || "No client"} · Updated {new Date(study.updated_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      study.status === "published"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {study.status}
-                  </span>
-                  <Link
-                    to={`/admin/case-studies/${study.id}`}
-                    className="text-sm font-medium text-brand-600 hover:text-brand-700"
-                  >
-                    Edit
-                  </Link>
-                  {study.status === "published" && user?.username ? (
-                    <Link
-                      to={`/u/${user.username}/${study.slug}`}
-                      className="text-ink-400 hover:text-ink-600"
-                      aria-label="View published"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                  ) : null}
-                </div>
+                <Link
+                  to={`/admin/case-studies/${study.id}`}
+                  className="text-sm font-medium text-brand-600 hover:text-brand-700"
+                >
+                  Open
+                </Link>
               </div>
             ))
           )}

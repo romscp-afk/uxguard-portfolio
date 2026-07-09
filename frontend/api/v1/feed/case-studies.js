@@ -6,5 +6,7 @@ export default withApi(async (req, res) => {
     res.status(405).json({ detail: "Method not allowed" });
     return;
   }
-  res.status(200).json(await getFeedItems());
+
+  const limit = req.query.limit ? Number(req.query.limit) : undefined;
+  res.status(200).json(await getFeedItems(limit));
 });

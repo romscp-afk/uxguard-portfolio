@@ -39,6 +39,7 @@ export interface CaseStudy {
   status: "draft" | "published";
   featured: boolean;
   sort_order: number;
+  project_id?: number | null;
   author_id: number;
   created_at: string;
   updated_at: string;
@@ -88,6 +89,8 @@ export interface UserPublic {
 }
 
 export interface UserProfile extends UserPublic {
+  portfolio_config?: PortfolioBuilderConfig;
+  projects?: Project[];
   case_studies: CaseStudyListItem[];
   case_study_count: number;
   follower_count?: number;
@@ -105,6 +108,51 @@ export interface PortfolioSettings {
   social_links: Record<string, string>;
 }
 
+export interface ProjectOutcome {
+  label: string;
+  value: string;
+  description?: string;
+}
+
+export interface ProjectAttachment {
+  id: number;
+  title: string;
+  file_url: string;
+  file_type: string;
+  size_bytes: number;
+}
+
+export interface Project {
+  id: number;
+  author_id: number;
+  title: string;
+  slug: string;
+  client?: string | null;
+  status: "planning" | "active" | "completed" | "archived";
+  description?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  tags: string[];
+  role?: string | null;
+  team: string[];
+  outcomes: ProjectOutcome[];
+  cover_image?: string | null;
+  attachments: ProjectAttachment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PortfolioBuilderConfig {
+  show_profile: boolean;
+  show_projects: boolean;
+  show_case_studies: boolean;
+  show_timeline: boolean;
+  show_achievements: boolean;
+  show_analytics: boolean;
+  case_study_order: number[];
+  featured_case_study_ids: number[];
+}
+
 export interface User {
   id: number;
   email: string;
@@ -117,9 +165,13 @@ export interface User {
   location?: string;
   cv_url?: string;
   social_links?: Record<string, string>;
-  role: string;
+  role: "admin" | "professional" | "viewer" | string;
+  onboarding_intent?: OnboardingIntent;
+  portfolio_config?: PortfolioBuilderConfig;
   portfolio_url?: string;
 }
+
+export type OnboardingIntent = "build_portfolio" | "track_career" | "publish_case_studies";
 
 export interface RegisterPayload {
   email: string;
@@ -127,6 +179,8 @@ export interface RegisterPayload {
   name: string;
   username?: string;
   title?: string;
+  role?: "professional" | "viewer";
+  onboarding_intent?: OnboardingIntent;
 }
 
 export interface MediaAsset {

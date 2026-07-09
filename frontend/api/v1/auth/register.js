@@ -9,8 +9,8 @@ export default withApi(async (req, res) => {
   }
 
   try {
-    const { email, password, name, username, title } = req.body || {};
-    const result = await registerUser({ email, password, name, username, title });
+    const { email, password, name, username, title, role, onboarding_intent } = req.body || {};
+    const result = await registerUser({ email, password, name, username, title, role, onboarding_intent });
 
     if (result.error) {
       res.status(result.status || 400).json({ detail: result.error });

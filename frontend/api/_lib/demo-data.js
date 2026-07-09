@@ -1,4 +1,6 @@
 import { portfolioSettings, readStore, updateStore } from "./store.js";
+import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
+import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
 
 export { portfolioSettings };
 
@@ -38,7 +40,7 @@ async function uniqueUsername(base) {
   return candidate;
 }
 
-export async function registerUser({ email, password, name, username, title }) {
+export async function registerUser({ email, password, name, username, title, role, onboarding_intent }) {
   if (!email || !password || !name) {
     return { error: "Name, email, and password are required", status: 400 };
   }
@@ -70,7 +72,9 @@ export async function registerUser({ email, password, name, username, title }) {
       location: null,
       cv_url: null,
       social_links: {},
-      role: "researcher",
+      role: resolveUserRole(email, role),
+      onboarding_intent: onboarding_intent || "build_portfolio",
+      portfolio_config: defaultPortfolioConfig(),
     };
     store.users.push(created);
     return store;
@@ -100,7 +104,15 @@ export async function updateUserProfile(userId, updates) {
 
 export function toUserOut(user) {
   const { password: _password, ...rest } = user;
-  return { ...rest, portfolio_url: `/u/${user.username}` };
+  return {
+    ...rest,
+    role: rest.role === "researcher" ? "professional" : rest.role,
+    portfolio_url: `/u/${user.username}`,
+    portfolio_config: {
+      ...defaultPortfolioConfig(),
+      ...(user.portfolio_config || {}),
+    },
+  };
 }
 
 export function authorSummary(user) {
@@ -126,13 +138,15 @@ export function toListItem(cs) {
     methods: cs.methods,
     featured: cs.featured,
     status: cs.status,
+    sort_order: cs.sort_order,
+    project_id: cs.project_id ?? null,
     updated_at: cs.updated_at,
   };
 }
 
-export async function getFeedItems() {
+export async function getFeedItems(limit) {
   const store = await readStore();
-  return store.caseStudies
+  const items = store.caseStudies
     .filter((cs) => cs.status === "published")
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
     .map((cs) => {
@@ -145,19 +159,34 @@ export async function getFeedItems() {
       };
     })
     .filter(Boolean);
+
+  if (limit && Number.isFinite(limit) && limit > 0) {
+    return items.slice(0, limit);
+  }
+  return items;
 }
 
 export async function getUserProfile(username) {
   const store = await readStore();
   const user = store.users.find((u) => u.username === username);
   if (!user) return null;
-  const studies = store.caseStudies
-    .filter((cs) => cs.author_id === user.id && cs.status === "published")
-    .sort((a, b) => a.sort_order - b.sort_order);
+
+  const config = getUserPortfolioConfig(user);
+  const studies = applyPortfolioOrdering(
+    store.caseStudies.filter((cs) => cs.author_id === user.id && cs.status === "published"),
+    config,
+  );
+
+  const projects = (store.projects || [])
+    .filter((project) => project.author_id === user.id && project.status !== "archived")
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
   const { password: _password, ...publicUser } = user;
   return {
     ...publicUser,
-    case_studies: studies.map(toListItem),
+    portfolio_config: config,
+    projects: config.show_projects ? projects : [],
+    case_studies: config.show_case_studies ? studies.map(toListItem) : [],
     case_study_count: studies.length,
   };
 }
@@ -242,6 +271,7 @@ export async function createCaseStudy(authorId, payload) {
       status: payload.status || "draft",
       featured: payload.featured || false,
       sort_order: payload.sort_order ?? 0,
+      project_id: payload.project_id ?? null,
       author_id: authorId,
       created_at: now,
       updated_at: now,
@@ -291,6 +321,7 @@ export async function updateCaseStudy(id, authorId, payload) {
         status: nextStatus,
         featured: payload.featured || false,
         sort_order: payload.sort_order ?? 0,
+        project_id: payload.project_id ?? null,
         author_id: authorId,
         created_at: payload.created_at || now,
         updated_at: now,
@@ -370,6 +401,7 @@ export async function syncCaseStudies(authorId, studies) {
           status,
           featured: incoming.featured || false,
           sort_order: incoming.sort_order ?? 0,
+          project_id: incoming.project_id ?? null,
           author_id: authorId,
           created_at: incoming.created_at || now,
           updated_at: incoming.updated_at || now,

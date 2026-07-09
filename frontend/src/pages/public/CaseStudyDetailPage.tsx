@@ -94,7 +94,7 @@ export function CaseStudyDetailPage() {
         <PublicHeader />
         <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6">
           <p className="text-ink-500">{error || "Not found"}</p>
-          <Link to="/#discover" className="btn-primary mt-4 inline-flex">
+          <Link to="/discover" className="btn-primary mt-4 inline-flex">
             Back to discover
           </Link>
         </div>
