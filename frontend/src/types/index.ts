@@ -171,3 +171,14 @@ export interface FollowStats {
   following_count: number;
   is_following: boolean;
 }
+
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  inquiry_type: string;
+  subject: string;
+  message: string;
+  created_at: string;
+  read: boolean;
+}

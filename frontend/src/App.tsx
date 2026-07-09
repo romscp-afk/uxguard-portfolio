@@ -18,6 +18,7 @@ import { SearchPage } from "./pages/public/SearchPage";
 import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
 import { NotificationsPage } from "./pages/admin/NotificationsPage";
 import { ContactPage } from "./pages/public/ContactPage";
+import { ContactInboxPage } from "./pages/admin/ContactInboxPage";
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />
             <Route path="media" element={<MediaLibraryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="contact-inbox" element={<ContactInboxPage />} />
             <Route path="profile" element={<ProfileSettingsPage />} />
             <Route path="settings" element={<Navigate to="/admin/profile" replace />} />
           </Route>

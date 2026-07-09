@@ -163,6 +163,7 @@ function seedStore() {
     follows: [],
     comments: [],
     notifications: [],
+    contact_messages: [],
   };
 }
 
@@ -218,6 +219,7 @@ export async function readStore() {
         follows: data.follows || [],
         comments: data.comments || [],
         notifications: data.notifications || [],
+        contact_messages: data.contact_messages || [],
       };
       return structuredClone(memoryStore);
     } catch (error) {

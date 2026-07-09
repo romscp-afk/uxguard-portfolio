@@ -3,6 +3,7 @@ import type {
   CaseStudy,
   CaseStudyListItem,
   Comment,
+  ContactMessage,
   FeedCaseStudyItem,
   FollowStats,
   MediaAsset,
@@ -231,6 +232,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  getContactMessages: () =>
+    request<{ messages: ContactMessage[]; unread_count: number }>("/contact-messages"),
 };
 
 export { ApiError };

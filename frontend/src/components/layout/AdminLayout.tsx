@@ -1,5 +1,5 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
-import { FileText, Image, LayoutDashboard, LogOut, UserCircle, Bell } from "lucide-react";
+import { FileText, Image, LayoutDashboard, LogOut, Mail, UserCircle, Bell } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
 import { useAuth } from "../../context/AuthContext";
@@ -8,6 +8,7 @@ const nav = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/admin/case-studies", icon: FileText, label: "Case Studies" },
   { to: "/admin/notifications", icon: Bell, label: "Notifications" },
+  { to: "/admin/contact-inbox", icon: Mail, label: "Contact Inbox" },
   { to: "/admin/media", icon: Image, label: "Media Library" },
   { to: "/admin/profile", icon: UserCircle, label: "Profile & Link" },
 ];

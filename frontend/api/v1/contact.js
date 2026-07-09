@@ -1,4 +1,6 @@
 import { sendContactFormEmail } from "../../_lib/mail.js";
+import { saveContactMessage } from "../../_lib/contact-store.js";
+import { isPersistentStoreEnabled } from "../../_lib/store.js";
 import { withApi } from "../../_lib/withApi.js";
 
 const CONTACT_TO = process.env.CONTACT_TO || "uxguardstudio@gmail.com";
@@ -41,19 +43,53 @@ export default withApi(async (req, res) => {
     return;
   }
 
-  try {
-    await sendContactFormEmail({
-      to: CONTACT_TO,
-      name: trimmedName,
-      email: trimmedEmail,
-      inquiryType: trimmedType,
-      subject: trimmedSubject,
-      message: trimmedMessage,
-    });
-    res.status(200).json({ message: "Message sent. We'll get back to you soon." });
-  } catch (err) {
-    res.status(503).json({
-      detail: err.message || "Could not send your message. Please try again later.",
-    });
+  const payload = {
+    name: trimmedName,
+    email: trimmedEmail,
+    inquiryType: trimmedType,
+    subject: trimmedSubject,
+    message: trimmedMessage,
+  };
+
+  let saved = false;
+  let emailed = false;
+  let emailError = null;
+
+  if (isPersistentStoreEnabled()) {
+    await saveContactMessage(payload);
+    saved = true;
   }
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      await sendContactFormEmail({
+        to: CONTACT_TO,
+        ...payload,
+      });
+      emailed = true;
+    } catch (err) {
+      emailError = err;
+    }
+  }
+
+  if (saved || emailed) {
+    res.status(200).json({
+      message: emailed
+        ? "Message sent. We'll get back to you soon."
+        : "Message received. We'll get back to you soon.",
+    });
+    return;
+  }
+
+  if (emailError) {
+    res.status(503).json({
+      detail: emailError.message || "Could not send your message. Please try again later.",
+    });
+    return;
+  }
+
+  res.status(503).json({
+    detail:
+      "Contact form storage is not configured. Add BLOB_READ_WRITE_TOKEN or RESEND_API_KEY to your deployment environment.",
+  });
 });
