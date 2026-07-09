@@ -34,7 +34,7 @@ export function AdminLayout() {
         <div className="border-b border-ink-800 px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <Logo variant="mark" theme="dark" />
-            <NotificationBell theme="dark" />
+            <NotificationBell />
           </div>
           <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">CMS</p>
         </div>

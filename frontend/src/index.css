@@ -8,52 +8,52 @@
   }
 
   body {
-    @apply bg-ink-50 text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100;
+    @apply bg-ink-50 text-ink-900 antialiased;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:bg-brand-500 dark:hover:bg-brand-400 dark:focus:ring-offset-ink-950;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-ink-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200 dark:hover:bg-ink-800 dark:focus:ring-offset-ink-950;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-ink-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:placeholder:text-ink-500 dark:focus:border-brand-400;
+    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
   }
 
   .input-field-error {
-    @apply border-red-400 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100 dark:ring-red-900/40;
+    @apply border-red-400 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100;
   }
 
   .label-field-error {
-    @apply text-red-700 dark:text-red-400;
+    @apply text-red-700;
   }
 
   .label-field {
-    @apply mb-1.5 block text-sm font-medium text-ink-700 dark:text-ink-300;
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
   }
 
   .card {
-    @apply rounded-2xl border border-ink-100 bg-white shadow-sm dark:border-ink-800 dark:bg-ink-900 dark:shadow-none;
+    @apply rounded-2xl border border-ink-100 bg-white shadow-sm;
   }
 
   .surface-page {
-    @apply bg-ink-50 dark:bg-ink-950;
+    @apply bg-ink-50;
   }
 
   .surface-section {
-    @apply bg-white dark:bg-ink-900;
+    @apply bg-white;
   }
 
   .surface-section-alt {
-    @apply bg-ink-50 dark:bg-ink-950;
+    @apply bg-ink-50;
   }
 
   .surface-hero-glow {
-    @apply bg-[radial-gradient(circle_at_top_right,_rgba(14,181,189,0.12)_0%,_transparent_55%)] dark:bg-[radial-gradient(circle_at_top_right,_rgba(14,181,189,0.18)_0%,_transparent_55%)];
+    @apply bg-[radial-gradient(circle_at_top_right,_rgba(14,181,189,0.12)_0%,_transparent_55%)];
   }
 }

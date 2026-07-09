@@ -57,7 +57,7 @@ export function SearchPage() {
     <div className="min-h-screen surface-page">
       <PublicHeader />
 
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
+      <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <h1 className="font-display text-3xl font-bold text-ink-950">Search the community</h1>
           <p className="mt-2 text-ink-500">

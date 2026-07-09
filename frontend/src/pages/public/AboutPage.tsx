@@ -135,8 +135,8 @@ const FOUNDER_PHOTO = "/founder-romal-perera.png";
 function SectionLabel({ n, children }: { n: string; children: ReactNode }) {
   return (
     <div className="mb-8 flex items-end gap-4">
-      <span className="font-display text-5xl font-bold leading-none text-brand-100 dark:text-brand-900/60">{n}</span>
-      <h2 className="font-display text-3xl font-bold text-ink-950 dark:text-white">{children}</h2>
+      <span className="font-display text-5xl font-bold leading-none text-brand-100">{n}</span>
+      <h2 className="font-display text-3xl font-bold text-ink-950">{children}</h2>
     </div>
   );
 }
@@ -146,72 +146,80 @@ export function AboutPage() {
     <div className="min-h-screen surface-page">
       <PublicHeader />
 
-      {/* Hero — split editorial layout */}
-      <section className="relative overflow-hidden border-b border-ink-100 dark:border-ink-800 surface-section">
-        <div className="absolute -right-20 top-0 h-96 w-96 rounded-full bg-brand-100/40 blur-3xl dark:bg-brand-900/20" />
-        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-50/80 blur-3xl dark:bg-brand-950/30" />
-        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
-                <Sparkles className="h-3.5 w-3.5" />
-                About UXGuard Studio
-              </p>
-              <h1 className="font-display text-4xl font-bold leading-[1.1] text-ink-950 sm:text-5xl lg:text-6xl">
-                Building
-                <span className="block text-brand-600">Professional Legacies.</span>
-              </h1>
-              <p className="mt-6 text-lg leading-relaxed text-ink-600">
-                Every project tells a story—research, design, strategy, and outcomes shaped by learning,
-                collaboration, and problem-solving. UXGuard Studio exists to preserve that journey.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {BRAND_PILLARS.map((pillar) => (
-                  <span
-                    key={pillar}
-                    className="rounded-full border border-brand-200 bg-white px-4 py-1.5 text-sm font-semibold text-brand-800 shadow-sm"
-                  >
-                    {pillar}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/admin/register" className="btn-primary">
-                  Start Your Journey
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link to="/#discover" className="btn-secondary">
-                  Explore the Community
-                </Link>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">What gets lost today</p>
-              {LOST_ITEMS.map(({ label, detail }, i) => (
-                <div
-                  key={label}
-                  className="card flex items-center justify-between gap-4 border-l-4 p-5"
-                  style={{ borderLeftColor: `hsl(${190 - i * 12} 70% 45%)` }}
-                >
-                  <div>
-                    <p className="font-display text-xl font-bold text-ink-900">{label}</p>
-                    <p className="text-sm text-ink-500">{detail}</p>
-                  </div>
-                  <span className="text-3xl font-bold text-ink-100">{String(i + 1).padStart(2, "0")}</span>
-                </div>
-              ))}
-              <p className="rounded-xl bg-ink-950 px-5 py-4 text-sm font-medium leading-relaxed text-white">
-                We believe professional experience deserves better. Your portfolio should become your{" "}
-                <span className="text-brand-300">professional legacy</span>—not just a collection of projects.
-              </p>
-            </div>
+      {/* Hero — brand story banner */}
+      <section className="relative overflow-hidden border-b border-brand-700 bg-gradient-to-br from-brand-600 via-brand-700 to-ink-950 text-white">
+        <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-100">
+            <Sparkles className="h-3.5 w-3.5" />
+            About UXGuard Studio
+          </p>
+          <h1 className="mx-auto max-w-4xl font-display text-4xl font-bold leading-[1.1] sm:text-5xl lg:text-6xl">
+            Building
+            <span className="block text-brand-200">Professional Legacies.</span>
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-50/90">
+            Every project tells a story—research, design, strategy, and outcomes shaped by learning,
+            collaboration, and problem-solving. UXGuard Studio exists to preserve that journey.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+            {BRAND_PILLARS.map((pillar) => (
+              <span
+                key={pillar}
+                className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold text-white"
+              >
+                {pillar}
+              </span>
+            ))}
+          </div>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/admin/register"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50"
+            >
+              Start Your Journey
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/#discover"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
+            >
+              Explore the Community
+            </Link>
           </div>
         </div>
       </section>
 
+      {/* What gets lost */}
+      <section className="border-b border-ink-100 surface-section">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">The problem we solve</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-ink-950">What gets lost today</h2>
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            {LOST_ITEMS.map(({ label, detail }, i) => (
+              <div
+                key={label}
+                className="card flex items-center justify-between gap-4 border-l-4 p-5"
+                style={{ borderLeftColor: `hsl(${190 - i * 12} 70% 45%)` }}
+              >
+                <div>
+                  <p className="font-display text-xl font-bold text-ink-900">{label}</p>
+                  <p className="text-sm text-ink-500">{detail}</p>
+                </div>
+                <span className="text-3xl font-bold text-ink-100">{String(i + 1).padStart(2, "0")}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-8 rounded-xl bg-ink-950 px-6 py-5 text-center text-sm font-medium leading-relaxed text-white sm:text-base">
+            We believe professional experience deserves better. Your portfolio should become your{" "}
+            <span className="text-brand-300">professional legacy</span>—not just a collection of projects.
+          </p>
+        </div>
+      </section>
+
       {/* Who we are — bento grid */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
+      <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="01">Who We Are</SectionLabel>
           <div className="grid gap-4 lg:grid-cols-12">
@@ -246,7 +254,7 @@ export function AboutPage() {
       </section>
 
       {/* Mission & Vision — offset cards */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
+      <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="02">Mission &amp; Vision</SectionLabel>
           <div className="relative grid gap-6 lg:grid-cols-2">
@@ -279,7 +287,7 @@ export function AboutPage() {
       </section>
 
       {/* Why we exist — journey timeline */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
+      <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="03">Why We Exist</SectionLabel>
           <p className="-mt-4 mb-10 max-w-2xl text-lg text-ink-600">
@@ -317,7 +325,7 @@ export function AboutPage() {
       </section>
 
       {/* Beliefs — mosaic */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
+      <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="04">What We Believe</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -372,7 +380,7 @@ export function AboutPage() {
       </section>
 
       {/* Professional services */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section">
+      <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="06">Professional Services</SectionLabel>
           <div className="grid gap-8 lg:grid-cols-3">
@@ -405,7 +413,7 @@ export function AboutPage() {
       </section>
 
       {/* Values */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
+      <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="07">Our Core Values</SectionLabel>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -421,7 +429,7 @@ export function AboutPage() {
       </section>
 
       {/* Founder — magazine layout */}
-      <section className="relative overflow-hidden border-b border-ink-100 dark:border-ink-800 surface-section">
+      <section className="relative overflow-hidden border-b border-ink-100 surface-section">
         <div className="absolute inset-0 surface-hero-glow" />
         <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="08">A Message from the Founder</SectionLabel>
@@ -502,7 +510,7 @@ export function AboutPage() {
       </section>
 
       {/* Looking ahead + promise */}
-      <section className="border-b border-ink-100 dark:border-ink-800 surface-section-alt">
+      <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="grid gap-10 lg:grid-cols-2">
             <div>
