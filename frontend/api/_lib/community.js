@@ -8,6 +8,7 @@ export function normalizeStore(store) {
     follows: store.follows || [],
     comments: store.comments || [],
     notifications: store.notifications || [],
+    likes: store.likes || [],
   };
 }
 
@@ -38,6 +39,7 @@ export async function followUser(followerId, username) {
   if (!target) return { error: "User not found", status: 404 };
   if (target.id === followerId) return { error: "You cannot follow yourself", status: 400 };
 
+  let newlyFollowed = false;
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     const exists = normalized.follows.some(
@@ -49,9 +51,23 @@ export async function followUser(followerId, username) {
         following_id: target.id,
         created_at: new Date().toISOString(),
       });
+      newlyFollowed = true;
     }
     return normalized;
   });
+
+  if (newlyFollowed) {
+    const follower = (await readStore()).users.find((u) => u.id === followerId);
+    if (follower) {
+      await createNotification({
+        userId: target.id,
+        type: "follow",
+        title: "New follower",
+        message: `${follower.name || "Someone"} started following you`,
+        link: `/u/${follower.username}`,
+      });
+    }
+  }
 
   return { ok: true, user_id: target.id, username: target.username };
 }
@@ -86,6 +102,7 @@ export async function getFollowingFeed(userId) {
   const followingIds = new Set(
     store.follows.filter((f) => f.follower_id === userId).map((f) => f.following_id),
   );
+  const likeCounts = likeCountsByCaseStudy(store);
 
   return store.caseStudies
     .filter((cs) => cs.status === "published" && followingIds.has(cs.author_id))
@@ -93,7 +110,7 @@ export async function getFollowingFeed(userId) {
     .map((cs) => {
       const author = store.users.find((u) => u.id === cs.author_id);
       return {
-        ...toListItem(cs),
+        ...toListItem(cs, likeCounts.get(cs.id) || 0),
         published_at: cs.published_at,
         author: author ? authorSummary(author) : null,
       };
@@ -276,6 +293,7 @@ export async function searchPlatform(query) {
       portfolio_url: `/u/${u.username}`,
     }));
 
+  const likeCounts = likeCountsByCaseStudy(store);
   const caseStudies = store.caseStudies
     .filter((cs) => cs.status === "published")
     .filter((cs) => {
@@ -298,7 +316,7 @@ export async function searchPlatform(query) {
     .map((cs) => {
       const author = store.users.find((u) => u.id === cs.author_id);
       return {
-        ...toListItem(cs),
+        ...toListItem(cs, likeCounts.get(cs.id) || 0),
         published_at: cs.published_at,
         author: author ? authorSummary(author) : null,
         url: author ? `/u/${author.username}/${cs.slug}` : null,
@@ -306,4 +324,72 @@ export async function searchPlatform(query) {
     });
 
   return { query: q, users, case_studies: caseStudies };
+}
+
+export async function getLikeStats(caseStudyId, viewerId = null) {
+  const store = normalizeStore(await readStore());
+  const likes = store.likes.filter((like) => like.case_study_id === caseStudyId);
+  return {
+    case_study_id: caseStudyId,
+    like_count: likes.length,
+    is_liked:
+      viewerId != null ? likes.some((like) => like.user_id === viewerId) : false,
+  };
+}
+
+export function likeCountsByCaseStudy(store) {
+  const counts = new Map();
+  for (const like of store.likes || []) {
+    counts.set(like.case_study_id, (counts.get(like.case_study_id) || 0) + 1);
+  }
+  return counts;
+}
+
+export async function likeCaseStudy(userId, caseStudyId) {
+  const store = await readStore();
+  const study = store.caseStudies.find((cs) => cs.id === caseStudyId && cs.status === "published");
+  if (!study) return { error: "Case study not found", status: 404 };
+
+  let created = false;
+  await updateStore((s) => {
+    const normalized = normalizeStore(s);
+    const exists = normalized.likes.some(
+      (like) => like.user_id === userId && like.case_study_id === caseStudyId,
+    );
+    if (!exists) {
+      normalized.likes.push({
+        id: nextId(normalized.likes),
+        user_id: userId,
+        case_study_id: caseStudyId,
+        created_at: new Date().toISOString(),
+      });
+      created = true;
+    }
+    return normalized;
+  });
+
+  if (created && study.author_id !== userId) {
+    const liker = store.users.find((u) => u.id === userId);
+    const author = store.users.find((u) => u.id === study.author_id);
+    await createNotification({
+      userId: study.author_id,
+      type: "like",
+      title: "Someone liked your case study",
+      message: `${liker?.name || "Someone"} liked "${study.title}"`,
+      link: `/u/${author?.username}/${study.slug}`,
+    });
+  }
+
+  return getLikeStats(caseStudyId, userId);
+}
+
+export async function unlikeCaseStudy(userId, caseStudyId) {
+  await updateStore((store) => {
+    const normalized = normalizeStore(store);
+    normalized.likes = normalized.likes.filter(
+      (like) => !(like.user_id === userId && like.case_study_id === caseStudyId),
+    );
+    return normalized;
+  });
+  return getLikeStats(caseStudyId, userId);
 }

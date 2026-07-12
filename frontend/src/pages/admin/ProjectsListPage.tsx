@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FolderKanban, Plus } from "lucide-react";
-import { api, ApiError } from "../../api/client";
+import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import { EditGuard, EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import type { Project } from "../../types";
 
@@ -81,7 +81,7 @@ export function ProjectsListPage() {
             >
               {project.cover_image ? (
                 <img
-                  src={project.cover_image}
+                  src={resolveAssetUrl(project.cover_image)}
                   alt=""
                   className="h-36 w-full object-cover"
                 />

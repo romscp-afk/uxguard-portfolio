@@ -58,6 +58,7 @@ export interface CaseStudyListItem {
   methods: string[];
   featured: boolean;
   status: string;
+  like_count?: number;
   updated_at: string;
 }
 
@@ -207,12 +208,18 @@ export interface Comment {
 export interface Notification {
   id: number;
   user_id: number;
-  type: "new_case_study" | "comment" | "follow";
+  type: "new_case_study" | "comment" | "follow" | "like";
   title: string;
   message: string;
   link?: string | null;
   read_at?: string | null;
   created_at: string;
+}
+
+export interface LikeStats {
+  case_study_id: number;
+  like_count: number;
+  is_liked: boolean;
 }
 
 export interface SearchResults {

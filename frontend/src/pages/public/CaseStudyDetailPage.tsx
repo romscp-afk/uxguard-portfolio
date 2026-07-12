@@ -4,6 +4,9 @@ import { api } from "../../api/client";
 import { AuthorBadge } from "../../components/case-study/AuthorBadge";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
 import { CommentsSection } from "../../components/community/CommentsSection";
+import { FollowButton } from "../../components/community/FollowButton";
+import { LikeButton } from "../../components/community/LikeButton";
+import { ShareBar } from "../../components/community/ShareBar";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
@@ -112,15 +115,47 @@ export function CaseStudyDetailPage() {
       }
     : null;
 
+  const sharePath = `/u/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`;
+  const shareSummary = study.summary || study.subtitle || study.title;
+
   return (
     <div className="min-h-screen">
       <PublicHeader />
       {authorSummary ? (
-        <div className="mx-auto max-w-4xl px-4 pt-8 sm:px-6">
+        <div className="mx-auto flex w-full max-w-none flex-wrap items-center justify-between gap-4 px-4 pt-8 sm:px-8 lg:px-12 xl:px-16">
           <AuthorBadge author={authorSummary} />
+          {author ? (
+            <FollowButton
+              username={author.username}
+              initialFollowing={author.is_following}
+              followerCount={author.follower_count || 0}
+            />
+          ) : null}
         </div>
       ) : null}
+
+      <section className="sticky top-0 z-20 border-y border-ink-100 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-none flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12 xl:px-16">
+          <LikeButton caseStudyId={study.id} />
+          <ShareBar title={study.title} url={sharePath} summary={shareSummary} />
+        </div>
+      </section>
+
       <CaseStudyArticle study={study} author={author} username={username} />
+
+      <section className="border-t border-ink-100 bg-ink-50/70">
+        <div className="mx-auto flex w-full max-w-none flex-col gap-5 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12 xl:px-16">
+          <div>
+            <p className="text-sm font-semibold text-ink-900">Enjoyed this case study?</p>
+            <p className="mt-1 text-sm text-ink-500">Like it or share it with your network.</p>
+          </div>
+          <div className="flex flex-col gap-4 sm:items-end">
+            <LikeButton caseStudyId={study.id} />
+            <ShareBar title={study.title} url={sharePath} summary={shareSummary} />
+          </div>
+        </div>
+      </section>
+
       <CommentsSection caseStudyId={study.id} />
       <PublicFooter />
     </div>

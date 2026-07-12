@@ -6,6 +6,7 @@ import type {
   ContactMessage,
   FeedCaseStudyItem,
   FollowStats,
+  LikeStats,
   MediaAsset,
   Notification,
   PortfolioBuilderConfig,
@@ -267,6 +268,15 @@ export const api = {
 
   getContactMessages: () =>
     request<{ messages: ContactMessage[]; unread_count: number }>("/contact-messages"),
+
+  getLikeStats: (caseStudyId: number) =>
+    request<LikeStats>(`/case-studies/${caseStudyId}/like`),
+
+  likeCaseStudy: (caseStudyId: number) =>
+    request<LikeStats>(`/case-studies/${caseStudyId}/like`, { method: "POST" }),
+
+  unlikeCaseStudy: (caseStudyId: number) =>
+    request<LikeStats>(`/case-studies/${caseStudyId}/like`, { method: "DELETE" }),
 
   listProjects: () => request<Project[]>("/projects"),
 

@@ -50,7 +50,8 @@ export function CaseStudyArticle({
         </div>
       ) : null}
 
-      <article className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+      <article className="mx-auto w-full max-w-none px-4 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-4xl">
         <Link
           to={backTo}
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-brand-600"
@@ -151,6 +152,7 @@ export function CaseStudyArticle({
             </div>
           </section>
         ) : null}
+        </div>
       </article>
     </>
   );

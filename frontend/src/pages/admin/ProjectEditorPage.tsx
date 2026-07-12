@@ -40,9 +40,17 @@ export function ProjectEditorPage() {
 
   useEffect(() => {
     if (isNew) return;
+
+    const projectId = Number(id);
+    if (!Number.isFinite(projectId) || projectId <= 0) {
+      setError("Invalid project id.");
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     api
-      .getProject(Number(id))
+      .getProject(projectId)
       .then((project) => {
         if (!cancelled) {
           setForm(project);

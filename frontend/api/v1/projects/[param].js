@@ -8,8 +8,9 @@ import { requireAuthUser } from "../../_lib/auth.js";
 import { withApi } from "../../_lib/withApi.js";
 
 function parseProjectId(req) {
-  const fromQuery = req.query?.id ?? req.query?.param;
-  if (fromQuery && /^\d+$/.test(String(fromQuery))) {
+  const raw = req.query?.param ?? req.query?.id;
+  const fromQuery = Array.isArray(raw) ? raw[0] : raw;
+  if (fromQuery != null && /^\d+$/.test(String(fromQuery))) {
     return Number(fromQuery);
   }
 

@@ -1,8 +1,15 @@
 import { portfolioSettings, readStore, updateStore } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
+import { likeCountsByCaseStudy } from "./community.js";
 import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
 
 export { portfolioSettings };
+
+function normalizeProjectId(value) {
+  if (value == null || value === "") return null;
+  const id = Number(value);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
 
 export async function getUserById(id) {
   const store = await readStore();
@@ -161,7 +168,7 @@ export function authorSummary(user) {
   };
 }
 
-export function toListItem(cs) {
+export function toListItem(cs, likeCount = 0) {
   return {
     id: cs.id,
     slug: cs.slug,
@@ -175,12 +182,14 @@ export function toListItem(cs) {
     status: cs.status,
     sort_order: cs.sort_order,
     project_id: cs.project_id ?? null,
+    like_count: likeCount,
     updated_at: cs.updated_at,
   };
 }
 
 export async function getFeedItems(limit) {
   const store = await readStore();
+  const likeCounts = likeCountsByCaseStudy(store);
   const items = store.caseStudies
     .filter((cs) => cs.status === "published")
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
@@ -188,7 +197,7 @@ export async function getFeedItems(limit) {
       const author = store.users.find((u) => u.id === cs.author_id);
       if (!author) return null;
       return {
-        ...toListItem(cs),
+        ...toListItem(cs, likeCounts.get(cs.id) || 0),
         published_at: cs.published_at,
         author: authorSummary(author),
       };
@@ -216,12 +225,15 @@ export async function getUserProfile(username) {
     .filter((project) => project.author_id === user.id && project.status !== "archived")
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
+  const likeCounts = likeCountsByCaseStudy(store);
   const { password: _password, ...publicUser } = user;
   return {
     ...publicUser,
     portfolio_config: config,
     projects: config.show_projects ? projects : [],
-    case_studies: config.show_case_studies ? studies.map(toListItem) : [],
+    case_studies: config.show_case_studies
+      ? studies.map((cs) => toListItem(cs, likeCounts.get(cs.id) || 0))
+      : [],
     case_study_count: studies.length,
   };
 }
@@ -306,7 +318,7 @@ export async function createCaseStudy(authorId, payload) {
       status: payload.status || "draft",
       featured: payload.featured || false,
       sort_order: payload.sort_order ?? 0,
-      project_id: payload.project_id ?? null,
+      project_id: normalizeProjectId(payload.project_id),
       author_id: authorId,
       created_at: now,
       updated_at: now,
@@ -356,7 +368,7 @@ export async function updateCaseStudy(id, authorId, payload) {
         status: nextStatus,
         featured: payload.featured || false,
         sort_order: payload.sort_order ?? 0,
-        project_id: payload.project_id ?? null,
+        project_id: normalizeProjectId(payload.project_id),
         author_id: authorId,
         created_at: payload.created_at || now,
         updated_at: now,
@@ -436,7 +448,7 @@ export async function syncCaseStudies(authorId, studies) {
           status,
           featured: incoming.featured || false,
           sort_order: incoming.sort_order ?? 0,
-          project_id: incoming.project_id ?? null,
+          project_id: normalizeProjectId(incoming.project_id),
           author_id: authorId,
           created_at: incoming.created_at || now,
           updated_at: incoming.updated_at || now,

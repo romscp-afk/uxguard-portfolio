@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Heart } from "lucide-react";
 import { resolveAssetUrl } from "../../api/client";
 import { AuthorBadge } from "./AuthorBadge";
 import type { AuthorSummary, CaseStudyListItem } from "../../types";
@@ -53,7 +53,15 @@ export function CaseStudyCard({
             <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
               {study.client || "Case Study"}
             </span>
-            <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-600" />
+            <div className="flex items-center gap-2">
+              {(study.like_count || 0) > 0 ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-400">
+                  <Heart className="h-3.5 w-3.5" />
+                  {study.like_count}
+                </span>
+              ) : null}
+              <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-600" />
+            </div>
           </div>
           <h3 className="font-display text-xl font-semibold text-ink-900 group-hover:text-brand-700">
             {study.title}

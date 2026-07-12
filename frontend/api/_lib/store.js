@@ -192,6 +192,7 @@ function normalizeLoadedStore(data) {
     follows: data.follows || [],
     comments: data.comments || [],
     notifications: data.notifications || [],
+    likes: data.likes || [],
     contact_messages: data.contact_messages || [],
     projects: data.projects || [],
     mediaAssets: (data.mediaAssets || []).map((asset) => ({
@@ -220,6 +221,7 @@ function seedStore() {
     follows: [],
     comments: [],
     notifications: [],
+    likes: [],
     contact_messages: [],
     projects: [
       {
