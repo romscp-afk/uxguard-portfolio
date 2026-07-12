@@ -1,6 +1,6 @@
 import { portfolioSettings, readStore, updateStore } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
-import { likeCountsByCaseStudy } from "./community.js";
+import { likeCountsByCaseStudy } from "./like-utils.js";
 import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
 
 export { portfolioSettings };
@@ -197,7 +197,7 @@ export async function getFeedItems(limit) {
       const author = store.users.find((u) => u.id === cs.author_id);
       if (!author) return null;
       return {
-        ...toListItem(cs, likeCounts.get(cs.id) || 0),
+        ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
         published_at: cs.published_at,
         author: authorSummary(author),
       };
@@ -232,7 +232,7 @@ export async function getUserProfile(username) {
     portfolio_config: config,
     projects: config.show_projects ? projects : [],
     case_studies: config.show_case_studies
-      ? studies.map((cs) => toListItem(cs, likeCounts.get(cs.id) || 0))
+      ? studies.map((cs) => toListItem(cs, likeCounts.get(Number(cs.id)) || 0))
       : [],
     case_study_count: studies.length,
   };

@@ -1,5 +1,6 @@
 import { readStore, updateStore } from "./store.js";
 import { authorSummary, getUserByUsername, toListItem } from "./demo-data.js";
+import { likeCountsByCaseStudy, sameId } from "./like-utils.js";
 import { sendNewCaseStudyEmail } from "./mail.js";
 
 export function normalizeStore(store) {
@@ -16,9 +17,7 @@ function nextId(items) {
   return items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
 }
 
-function sameId(a, b) {
-  return Number(a) === Number(b);
-}
+export { likeCountsByCaseStudy, sameId };
 
 function searchableText(...parts) {
   return parts
@@ -114,7 +113,7 @@ export async function getFollowingFeed(userId) {
     .map((cs) => {
       const author = store.users.find((u) => u.id === cs.author_id);
       return {
-        ...toListItem(cs, likeCounts.get(cs.id) || 0),
+        ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
         published_at: cs.published_at,
         author: author ? authorSummary(author) : null,
       };
@@ -322,9 +321,9 @@ export async function searchPlatform(query) {
     })
     .slice(0, 24)
     .map((cs) => {
-      const author = store.users.find((u) => u.id === cs.author_id);
+      const author = store.users.find((u) => sameId(u.id, cs.author_id));
       return {
-        ...toListItem(cs, likeCounts.get(cs.id) || 0),
+        ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
         published_at: cs.published_at,
         author: author ? authorSummary(author) : null,
         url: author ? `/u/${author.username}/${cs.slug}` : null,
@@ -344,15 +343,6 @@ export async function getLikeStats(caseStudyId, viewerId = null) {
     is_liked:
       viewerId != null ? likes.some((like) => sameId(like.user_id, viewerId)) : false,
   };
-}
-
-export function likeCountsByCaseStudy(store) {
-  const counts = new Map();
-  for (const like of store.likes || []) {
-    const key = Number(like.case_study_id);
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-  return counts;
 }
 
 export async function likeCaseStudy(userId, caseStudyId) {

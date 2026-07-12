@@ -270,13 +270,13 @@ export const api = {
     request<{ messages: ContactMessage[]; unread_count: number }>("/contact-messages"),
 
   getLikeStats: (caseStudyId: number) =>
-    request<LikeStats>(`/likes?case_study_id=${caseStudyId}`),
+    request<LikeStats>(`/case-studies/${caseStudyId}/like`),
 
   likeCaseStudy: (caseStudyId: number) =>
-    request<LikeStats>(`/likes?case_study_id=${caseStudyId}`, { method: "POST" }),
+    request<LikeStats>(`/case-studies/${caseStudyId}/like`, { method: "POST" }),
 
   unlikeCaseStudy: (caseStudyId: number) =>
-    request<LikeStats>(`/likes?case_study_id=${caseStudyId}`, { method: "DELETE" }),
+    request<LikeStats>(`/case-studies/${caseStudyId}/like`, { method: "DELETE" }),
 
   listProjects: () => request<Project[]>("/projects"),
 
