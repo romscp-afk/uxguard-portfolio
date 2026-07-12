@@ -19,16 +19,23 @@ function parseProjectId(req) {
   return match ? Number(match[1]) : NaN;
 }
 
+async function readBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
-
-  // Guard against /api/v1/projects being incorrectly routed here.
-  const path = String(req.url || "").split("?")[0].replace(/\/$/, "");
-  if (path.endsWith("/projects")) {
-    res.status(404).json({ detail: "Use POST /api/v1/projects via the collection route" });
-    return;
-  }
 
   const id = parseProjectId(req);
   if (!Number.isFinite(id) || id <= 0) {
@@ -49,7 +56,8 @@ export default withApi(async (req, res) => {
   if (req.method === "PATCH") {
     try {
       assertCanEdit(user);
-      const updated = await updateProject(id, user.id, req.body || {});
+      const payload = await readBody(req);
+      const updated = await updateProject(id, user.id, payload || {});
       res.status(200).json(updated);
     } catch (err) {
       res.status(err.status || 500).json({ detail: err.message || "Failed to update project" });

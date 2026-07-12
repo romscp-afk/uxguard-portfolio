@@ -13,7 +13,14 @@ function slugify(text) {
 }
 
 function sameId(a, b) {
-  return Number(a) === Number(b);
+  const left = Number(a);
+  const right = Number(b);
+  return Number.isFinite(left) && Number.isFinite(right) && left === right;
+}
+
+function hasValidAuthor(authorId) {
+  const id = Number(authorId);
+  return Number.isFinite(id) && id > 0;
 }
 
 function nextProjectId(projects) {
@@ -29,15 +36,39 @@ export async function listProjectsForUser(authorId) {
 
 export async function getProjectForAuthor(id, authorId) {
   const store = await readStore();
-  return (
-    (store.projects || []).find(
-      (project) => sameId(project.id, id) && sameId(project.author_id, authorId),
-    ) || null
-  );
+  const project = (store.projects || []).find((item) => sameId(item.id, id));
+  if (!project) return null;
+
+  if (sameId(project.author_id, authorId)) {
+    return project;
+  }
+
+  // Repair orphaned projects created with a missing/invalid author_id.
+  if (!hasValidAuthor(project.author_id)) {
+    let repaired = null;
+    await updateStore((s) => {
+      const item = (s.projects || []).find((p) => sameId(p.id, id));
+      if (item) {
+        item.author_id = Number(authorId);
+        repaired = item;
+      }
+      return s;
+    });
+    return repaired;
+  }
+
+  return null;
 }
 
 export async function createProject(authorId, payload) {
   const now = new Date().toISOString();
+  const ownerId = Number(authorId);
+  if (!Number.isFinite(ownerId) || ownerId <= 0) {
+    const error = new Error("Invalid author for project");
+    error.status = 400;
+    throw error;
+  }
+
   let created = null;
 
   await updateStore((store) => {
@@ -45,7 +76,7 @@ export async function createProject(authorId, payload) {
     const id = nextProjectId(store.projects);
     created = {
       id,
-      author_id: Number(authorId),
+      author_id: ownerId,
       title: payload.title || "Untitled project",
       slug: payload.slug ? slugify(payload.slug) : slugify(payload.title || `project-${id}`),
       client: payload.client || null,
@@ -66,24 +97,36 @@ export async function createProject(authorId, payload) {
     return store;
   });
 
-  return created;
+  // Re-read to confirm persistence and return the stored record.
+  const stored = await getProjectForAuthor(created.id, ownerId);
+  return stored || created;
 }
 
 export async function updateProject(id, authorId, payload) {
   const now = new Date().toISOString();
+  const ownerId = Number(authorId);
   let updated = null;
 
   await updateStore((store) => {
-    const index = (store.projects || []).findIndex(
-      (project) => sameId(project.id, id) && sameId(project.author_id, authorId),
+    const projects = store.projects || [];
+    let index = projects.findIndex(
+      (project) => sameId(project.id, id) && sameId(project.author_id, ownerId),
     );
+
+    // Adopt orphaned records so users can save projects they just created.
+    if (index === -1) {
+      index = projects.findIndex(
+        (project) => sameId(project.id, id) && !hasValidAuthor(project.author_id),
+      );
+    }
+
     if (index === -1) {
       const error = new Error("Project not found");
       error.status = 404;
       throw error;
     }
 
-    const current = store.projects[index];
+    const current = projects[index];
     const {
       id: _id,
       author_id: _authorId,
@@ -95,7 +138,7 @@ export async function updateProject(id, authorId, payload) {
       ...current,
       ...safePayload,
       id: Number(current.id),
-      author_id: Number(authorId),
+      author_id: ownerId,
       tags: Array.isArray(safePayload.tags) ? safePayload.tags : current.tags || [],
       team: Array.isArray(safePayload.team) ? safePayload.team : current.team || [],
       outcomes: Array.isArray(safePayload.outcomes) ? safePayload.outcomes : current.outcomes || [],
@@ -104,10 +147,8 @@ export async function updateProject(id, authorId, payload) {
         : current.attachments || [],
       updated_at: now,
     };
-    if (safePayload.title && safePayload.slug) {
+    if (safePayload.slug) {
       updated.slug = slugify(safePayload.slug);
-    } else if (safePayload.title && !safePayload.slug) {
-      // keep existing slug unless explicitly provided
     }
     store.projects[index] = updated;
     return store;
@@ -119,7 +160,9 @@ export async function updateProject(id, authorId, payload) {
 export async function deleteProject(id, authorId) {
   await updateStore((store) => {
     const project = (store.projects || []).find(
-      (item) => sameId(item.id, id) && sameId(item.author_id, authorId),
+      (item) =>
+        sameId(item.id, id) &&
+        (sameId(item.author_id, authorId) || !hasValidAuthor(item.author_id)),
     );
     if (!project) {
       const error = new Error("Project not found");
@@ -127,11 +170,9 @@ export async function deleteProject(id, authorId) {
       throw error;
     }
 
-    store.projects = store.projects.filter(
-      (item) => !(sameId(item.id, id) && sameId(item.author_id, authorId)),
-    );
+    store.projects = store.projects.filter((item) => !sameId(item.id, id));
 
-    for (const cs of store.caseStudies) {
+    for (const cs of store.caseStudies || []) {
       if (sameId(cs.author_id, authorId) && sameId(cs.project_id, id)) {
         cs.project_id = null;
         cs.updated_at = new Date().toISOString();

@@ -13,7 +13,8 @@ function normalizeProjectId(value) {
 
 export async function getUserById(id) {
   const store = await readStore();
-  return store.users.find((u) => u.id === id) || null;
+  const target = Number(id);
+  return store.users.find((u) => Number(u.id) === target) || null;
 }
 
 export async function getUserByUsername(username) {

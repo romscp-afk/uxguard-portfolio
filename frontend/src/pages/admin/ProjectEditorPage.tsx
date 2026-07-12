@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
@@ -26,6 +26,7 @@ const emptyProject: Partial<Project> = {
 
 export function ProjectEditorPage() {
   const { id } = useParams();
+  const location = useLocation();
   const projectId = Number(id);
   const isNew = !id || id === "new" || !Number.isFinite(projectId) || projectId <= 0;
   const navigate = useNavigate();
@@ -41,13 +42,26 @@ export function ProjectEditorPage() {
 
   useEffect(() => {
     if (isNew) {
+      setForm(emptyProject);
+      setTagsInput("");
+      setTeamInput("");
       setLoading(false);
       setError("");
       return;
     }
 
+    const cached = (location.state as { project?: Project } | null)?.project;
+    if (cached && Number(cached.id) === projectId) {
+      setForm(cached);
+      setTagsInput((cached.tags || []).join(", "));
+      setTeamInput((cached.team || []).join(", "));
+      setLoading(false);
+      setError("");
+    } else {
+      setLoading(true);
+    }
+
     let cancelled = false;
-    setLoading(true);
     api
       .getProject(projectId)
       .then((project) => {
@@ -60,7 +74,10 @@ export function ProjectEditorPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "Project not found.");
+          // Keep cached create payload if reload fails briefly after save.
+          if (!(cached && Number(cached.id) === projectId)) {
+            setError(err instanceof ApiError ? err.message : "Project not found.");
+          }
         }
       })
       .finally(() => {
@@ -69,7 +86,7 @@ export function ProjectEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isNew, projectId]);
+  }, [id, isNew, projectId, location.state]);
 
   function updateField<K extends keyof Project>(key: K, value: Project[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -107,12 +124,13 @@ export function ProjectEditorPage() {
       if (!saved?.id) {
         throw new ApiError(500, "Project saved without an id. Please refresh and try again.");
       }
+      setForm(saved);
+      setTagsInput((saved.tags || []).join(", "));
+      setTeamInput((saved.team || []).join(", "));
       if (andExit) {
         navigate("/admin/projects");
       } else if (isNew) {
-        navigate(`/admin/projects/${saved.id}`, { replace: true });
-      } else {
-        setForm(saved);
+        navigate(`/admin/projects/${saved.id}`, { replace: true, state: { project: saved } });
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not save project.");
