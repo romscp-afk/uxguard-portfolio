@@ -13,7 +13,11 @@ export function normalizeStore(store) {
 }
 
 function nextId(items) {
-  return items.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
+  return items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+}
+
+function sameId(a, b) {
+  return Number(a) === Number(b);
 }
 
 function searchableText(...parts) {
@@ -119,11 +123,12 @@ export async function getFollowingFeed(userId) {
 
 export async function listComments(caseStudyId) {
   const store = normalizeStore(await readStore());
+  const studyId = Number(caseStudyId);
   return store.comments
-    .filter((c) => c.case_study_id === caseStudyId)
+    .filter((c) => sameId(c.case_study_id, studyId))
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     .map((c) => {
-      const author = store.users.find((u) => u.id === c.author_id);
+      const author = store.users.find((u) => sameId(u.id, c.author_id));
       return {
         id: c.id,
         case_study_id: c.case_study_id,
@@ -139,8 +144,11 @@ export async function addComment(caseStudyId, authorId, body) {
   if (!text) return { error: "Comment cannot be empty", status: 400 };
   if (text.length > 2000) return { error: "Comment is too long (max 2000 characters)", status: 400 };
 
+  const studyId = Number(caseStudyId);
   const store = await readStore();
-  const study = store.caseStudies.find((cs) => cs.id === caseStudyId && cs.status === "published");
+  const study = store.caseStudies.find(
+    (cs) => sameId(cs.id, studyId) && cs.status === "published",
+  );
   if (!study) return { error: "Case study not found", status: 404 };
 
   let created = null;
@@ -149,8 +157,8 @@ export async function addComment(caseStudyId, authorId, body) {
     const id = nextId(normalized.comments);
     created = {
       id,
-      case_study_id: caseStudyId,
-      author_id: authorId,
+      case_study_id: studyId,
+      author_id: Number(authorId),
       body: text,
       created_at: new Date().toISOString(),
     };
@@ -158,9 +166,9 @@ export async function addComment(caseStudyId, authorId, body) {
     return normalized;
   });
 
-  const author = store.users.find((u) => u.id === authorId);
-  const studyAuthor = store.users.find((u) => u.id === study.author_id);
-  if (study.author_id !== authorId) {
+  const author = store.users.find((u) => sameId(u.id, authorId));
+  const studyAuthor = store.users.find((u) => sameId(u.id, study.author_id));
+  if (!sameId(study.author_id, authorId)) {
     await createNotification({
       userId: study.author_id,
       type: "comment",
@@ -184,10 +192,10 @@ export async function addComment(caseStudyId, authorId, body) {
 export async function deleteComment(commentId, userId) {
   await updateStore((store) => {
     const normalized = normalizeStore(store);
-    const comment = normalized.comments.find((c) => c.id === commentId);
+    const comment = normalized.comments.find((c) => sameId(c.id, commentId));
     if (!comment) throw new Error("Comment not found");
-    if (comment.author_id !== userId) throw new Error("Forbidden");
-    normalized.comments = normalized.comments.filter((c) => c.id !== commentId);
+    if (!sameId(comment.author_id, userId)) throw new Error("Forbidden");
+    normalized.comments = normalized.comments.filter((c) => !sameId(c.id, commentId));
     return normalized;
   });
 }
@@ -328,39 +336,45 @@ export async function searchPlatform(query) {
 
 export async function getLikeStats(caseStudyId, viewerId = null) {
   const store = normalizeStore(await readStore());
-  const likes = store.likes.filter((like) => like.case_study_id === caseStudyId);
+  const studyId = Number(caseStudyId);
+  const likes = store.likes.filter((like) => sameId(like.case_study_id, studyId));
   return {
-    case_study_id: caseStudyId,
+    case_study_id: studyId,
     like_count: likes.length,
     is_liked:
-      viewerId != null ? likes.some((like) => like.user_id === viewerId) : false,
+      viewerId != null ? likes.some((like) => sameId(like.user_id, viewerId)) : false,
   };
 }
 
 export function likeCountsByCaseStudy(store) {
   const counts = new Map();
   for (const like of store.likes || []) {
-    counts.set(like.case_study_id, (counts.get(like.case_study_id) || 0) + 1);
+    const key = Number(like.case_study_id);
+    counts.set(key, (counts.get(key) || 0) + 1);
   }
   return counts;
 }
 
 export async function likeCaseStudy(userId, caseStudyId) {
+  const studyId = Number(caseStudyId);
+  const uid = Number(userId);
   const store = await readStore();
-  const study = store.caseStudies.find((cs) => cs.id === caseStudyId && cs.status === "published");
+  const study = store.caseStudies.find(
+    (cs) => sameId(cs.id, studyId) && cs.status === "published",
+  );
   if (!study) return { error: "Case study not found", status: 404 };
 
   let created = false;
   await updateStore((s) => {
     const normalized = normalizeStore(s);
     const exists = normalized.likes.some(
-      (like) => like.user_id === userId && like.case_study_id === caseStudyId,
+      (like) => sameId(like.user_id, uid) && sameId(like.case_study_id, studyId),
     );
     if (!exists) {
       normalized.likes.push({
         id: nextId(normalized.likes),
-        user_id: userId,
-        case_study_id: caseStudyId,
+        user_id: uid,
+        case_study_id: studyId,
         created_at: new Date().toISOString(),
       });
       created = true;
@@ -368,9 +382,9 @@ export async function likeCaseStudy(userId, caseStudyId) {
     return normalized;
   });
 
-  if (created && study.author_id !== userId) {
-    const liker = store.users.find((u) => u.id === userId);
-    const author = store.users.find((u) => u.id === study.author_id);
+  if (created && !sameId(study.author_id, uid)) {
+    const liker = store.users.find((u) => sameId(u.id, uid));
+    const author = store.users.find((u) => sameId(u.id, study.author_id));
     await createNotification({
       userId: study.author_id,
       type: "like",
@@ -380,16 +394,18 @@ export async function likeCaseStudy(userId, caseStudyId) {
     });
   }
 
-  return getLikeStats(caseStudyId, userId);
+  return getLikeStats(studyId, uid);
 }
 
 export async function unlikeCaseStudy(userId, caseStudyId) {
+  const studyId = Number(caseStudyId);
+  const uid = Number(userId);
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     normalized.likes = normalized.likes.filter(
-      (like) => !(like.user_id === userId && like.case_study_id === caseStudyId),
+      (like) => !(sameId(like.user_id, uid) && sameId(like.case_study_id, studyId)),
     );
     return normalized;
   });
-  return getLikeStats(caseStudyId, userId);
+  return getLikeStats(studyId, uid);
 }

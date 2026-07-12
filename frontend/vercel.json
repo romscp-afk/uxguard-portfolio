@@ -21,6 +21,17 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/u/:username/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(twitterbot|linkedinbot|facebookexternalhit|facebot|slackbot|discordbot|whatsapp|telegrambot|embedly|quora|pinterest|redditbot|applebot|duckduckbot|microsoftpreview|vkshare|bitlybot).*"
+        }
+      ],
+      "destination": "/api/og/case-study?username=:username&slug=:slug"
+    },
+    {
       "source": "/((?!api/|assets/|.*\\.(?:jpg|jpeg|png|gif|svg|webp|ico|woff2?|ttf|eot)).*)",
       "destination": "/index.html"
     }

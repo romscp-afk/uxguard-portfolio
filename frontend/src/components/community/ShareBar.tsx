@@ -21,8 +21,8 @@ export function ShareBar({ title, url, summary }: ShareBarProps) {
   const shareUrl = absoluteUrl(url);
   const text = summary?.trim() || title;
 
+  const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`${title}${summary ? ` — ${summary}` : ""}`)}`;
   const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-  const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
 
   async function copyLink() {
     try {

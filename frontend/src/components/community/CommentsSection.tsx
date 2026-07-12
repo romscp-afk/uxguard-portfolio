@@ -33,9 +33,14 @@ export function CommentsSection({ caseStudyId }: CommentsSectionProps) {
       setLoading(true);
       try {
         const items = await api.listComments(caseStudyId);
-        if (!cancelled) setComments(items);
-      } catch {
-        if (!cancelled) setError("Could not load comments.");
+        if (!cancelled) {
+          setComments(items);
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : "Could not load comments.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

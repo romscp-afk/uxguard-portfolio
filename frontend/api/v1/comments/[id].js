@@ -1,6 +1,15 @@
-import { deleteComment } from "../../_lib/community.js";
-import { requireAuthUser } from "../../_lib/auth.js";
-import { withApi } from "../../_lib/withApi.js";
+import { deleteComment } from "../../../_lib/community.js";
+import { requireAuthUser } from "../../../_lib/auth.js";
+import { withApi } from "../../../_lib/withApi.js";
+
+function parseCommentId(req) {
+  const raw = req.query?.id ?? req.query?.param;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value != null && /^\d+$/.test(String(value))) return Number(value);
+  const path = String(req.url || "").split("?")[0];
+  const match = path.match(/\/comments\/(\d+)(?:\/)?$/);
+  return match ? Number(match[1]) : NaN;
+}
 
 export default withApi(async (req, res) => {
   if (req.method !== "DELETE") {
@@ -11,8 +20,8 @@ export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
 
-  const id = Number(req.query.id);
-  if (!id) {
+  const id = parseCommentId(req);
+  if (!Number.isFinite(id) || id <= 0) {
     res.status(400).json({ detail: "Comment id is required" });
     return;
   }

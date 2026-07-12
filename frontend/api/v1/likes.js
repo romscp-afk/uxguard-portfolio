@@ -2,24 +2,21 @@ import {
   getLikeStats,
   likeCaseStudy,
   unlikeCaseStudy,
-} from "../../../_lib/community.js";
-import { getAuthUser, requireAuthUser } from "../../../_lib/auth.js";
-import { withApi } from "../../../_lib/withApi.js";
+} from "../../_lib/community.js";
+import { getAuthUser, requireAuthUser } from "../../_lib/auth.js";
+import { withApi } from "../../_lib/withApi.js";
 
-/** Legacy nested route — prefer /api/v1/likes?case_study_id= */
 function parseCaseStudyId(req) {
-  const fromQuery = req.query?.param ?? req.query?.id;
-  const value = Array.isArray(fromQuery) ? fromQuery[0] : fromQuery;
+  const raw = req.query?.case_study_id ?? req.query?.id ?? req.body?.case_study_id;
+  const value = Array.isArray(raw) ? raw[0] : raw;
   if (value != null && /^\d+$/.test(String(value))) return Number(value);
-  const path = String(req.url || "").split("?")[0];
-  const match = path.match(/\/case-studies\/(\d+)\/like(?:\/)?$/);
-  return match ? Number(match[1]) : NaN;
+  return NaN;
 }
 
 export default withApi(async (req, res) => {
   const caseStudyId = parseCaseStudyId(req);
   if (!Number.isFinite(caseStudyId) || caseStudyId <= 0) {
-    res.status(400).json({ detail: "Invalid case study id" });
+    res.status(400).json({ detail: "case_study_id is required" });
     return;
   }
 

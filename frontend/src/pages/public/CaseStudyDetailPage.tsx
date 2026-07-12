@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../../api/client";
+import { api, resolveAssetUrl } from "../../api/client";
 import { AuthorBadge } from "../../components/case-study/AuthorBadge";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
 import { CommentsSection } from "../../components/community/CommentsSection";
@@ -8,6 +8,7 @@ import { FollowButton } from "../../components/community/FollowButton";
 import { LikeButton } from "../../components/community/LikeButton";
 import { ShareBar } from "../../components/community/ShareBar";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
+import { DocumentMeta } from "../../components/seo/DocumentMeta";
 import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
 import type { CaseStudy, UserProfile } from "../../types";
@@ -117,9 +118,19 @@ export function CaseStudyDetailPage() {
 
   const sharePath = `/u/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`;
   const shareSummary = study.summary || study.subtitle || study.title;
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${sharePath}` : sharePath;
+  const shareImage = study.cover_image ? resolveAssetUrl(study.cover_image) : undefined;
+  const pageTitle = `${study.title} · ${author?.name || username} · UXGuard Studio`;
 
   return (
     <div className="min-h-screen">
+      <DocumentMeta
+        title={pageTitle}
+        description={shareSummary}
+        image={shareImage}
+        url={shareUrl}
+      />
       <PublicHeader />
       {authorSummary ? (
         <div className="mx-auto flex w-full max-w-none flex-wrap items-center justify-between gap-4 px-4 pt-8 sm:px-8 lg:px-12 xl:px-16">
