@@ -20,6 +20,8 @@ import type {
 
 const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_BASE = `${API_ROOT}/api/v1`;
+/** Bump when media serving strategy changes so CDN/browser drop bad cached redirects. */
+const MEDIA_CACHE_BUST = "3";
 
 export function resolveAssetUrl(url: string): string {
   if (!url) return url;
@@ -30,7 +32,7 @@ export function resolveAssetUrl(url: string): string {
 
   const mediaMatch = String(url).match(/\/api\/v1\/media\/file\/(\d+)/);
   if (mediaMatch) {
-    return `${root}/api/v1/media/file/${mediaMatch[1]}`;
+    return `${root}/api/v1/media/file/${mediaMatch[1]}?v=${MEDIA_CACHE_BUST}`;
   }
 
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -38,7 +40,7 @@ export function resolveAssetUrl(url: string): string {
       const parsed = new URL(url);
       const hostedMedia = parsed.pathname.match(/\/api\/v1\/media\/file\/(\d+)/);
       if (hostedMedia) {
-        return `${root}/api/v1/media/file/${hostedMedia[1]}`;
+        return `${root}/api/v1/media/file/${hostedMedia[1]}?v=${MEDIA_CACHE_BUST}`;
       }
     } catch {
       return url;

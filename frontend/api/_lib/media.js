@@ -1,7 +1,6 @@
 import { del, get, put } from "@vercel/blob";
 import { readStore, updateStore } from "./store.js";
 
-const MEDIA_PREFIX = "uxguard/media";
 const PUBLIC_MEDIA_PREFIX = "uxguard/media-public";
 const MAX_BYTES = 10 * 1024 * 1024;
 const COVER_MAX_BYTES = 5 * 1024 * 1024;
@@ -46,6 +45,15 @@ export function normalizeMediaAssetUrl(url, assetId) {
   return url;
 }
 
+function isTrustedPublicBlobUrl(url, pathname) {
+  if (!url || typeof url !== "string") return false;
+  if (!url.includes(".blob.vercel-storage.com/")) return false;
+  // Only trust URLs we explicitly uploaded as public copies.
+  if (String(pathname || "").startsWith(PUBLIC_MEDIA_PREFIX)) return true;
+  if (url.includes(`/${PUBLIC_MEDIA_PREFIX}/`)) return true;
+  return false;
+}
+
 export async function listMediaAssets(userId) {
   const store = await readStore();
   return (store.mediaAssets || [])
@@ -62,23 +70,26 @@ export async function getMediaAssetById(assetId) {
   return (store.mediaAssets || []).find((asset) => Number(asset.id) === Number(assetId)) || null;
 }
 
-async function saveBlobUrl(assetId, blobUrl) {
+async function savePublicBlobUrl(assetId, blobUrl, pathname) {
   await updateStore((store) => {
     const item = (store.mediaAssets || []).find((asset) => Number(asset.id) === Number(assetId));
-    if (item) item.blob_url = blobUrl;
+    if (item) {
+      item.blob_url = blobUrl;
+      if (pathname) item.pathname = pathname;
+    }
     return store;
   });
 }
 
 /**
- * Resolve a CDN URL for an asset. New uploads are public; legacy private
- * assets are lazily copied to a public blob once, then redirected forever.
+ * Returns a verified public CDN URL when available.
+ * Never returns private blob URLs — those 403 in the browser.
  */
 export async function resolveMediaCdnUrl(assetId) {
   const asset = await getMediaAssetById(assetId);
   if (!asset) return null;
 
-  if (asset.blob_url) {
+  if (isTrustedPublicBlobUrl(asset.blob_url, asset.pathname)) {
     return {
       url: asset.blob_url,
       contentType: asset.mime_type || "application/octet-stream",
@@ -86,46 +97,45 @@ export async function resolveMediaCdnUrl(assetId) {
     };
   }
 
-  // Prefer reading existing public object if present.
-  try {
-    const publicResult = await get(asset.pathname, { access: "public", useCache: true });
-    if (publicResult?.statusCode === 200 && publicResult.blob?.url) {
-      await saveBlobUrl(asset.id, publicResult.blob.url);
-      return {
-        url: publicResult.blob.url,
-        contentType: publicResult.blob.contentType || asset.mime_type || "application/octet-stream",
-        asset,
-      };
-    }
-  } catch {
-    // Not public yet.
-  }
-
-  // Lazy-migrate private blob → public CDN copy.
-  try {
-    const privateResult = await get(asset.pathname, { access: "private", useCache: true });
-    if (privateResult?.stream) {
-      const buffer = Buffer.from(await new Response(privateResult.stream).arrayBuffer());
-      const ext = fileExtension(asset.original_name || asset.filename, asset.mime_type);
-      const publicPath = `${PUBLIC_MEDIA_PREFIX}/${asset.uploaded_by_id || "shared"}/${asset.id}${ext}`;
-      const blob = await put(publicPath, buffer, {
-        access: "public",
-        contentType: asset.mime_type || "application/octet-stream",
-        addRandomSuffix: false,
-        allowOverwrite: true,
+  // Clear previously saved private/invalid blob_url values.
+  if (asset.blob_url && !isTrustedPublicBlobUrl(asset.blob_url, asset.pathname)) {
+    try {
+      await updateStore((store) => {
+        const item = (store.mediaAssets || []).find((a) => Number(a.id) === Number(asset.id));
+        if (item) delete item.blob_url;
+        return store;
       });
-      await saveBlobUrl(asset.id, blob.url);
-      return {
-        url: blob.url,
-        contentType: asset.mime_type || "application/octet-stream",
-        asset,
-      };
+    } catch {
+      /* ignore */
     }
-  } catch {
-    // Fall through to stream handler.
   }
 
   return { url: null, contentType: asset.mime_type || "application/octet-stream", asset };
+}
+
+/**
+ * Best-effort: copy a private blob to a public CDN object for faster future loads.
+ * Does not block the current response path when used in the background.
+ */
+export async function ensurePublicMediaCopy(assetId) {
+  const asset = await getMediaAssetById(assetId);
+  if (!asset) return null;
+  if (isTrustedPublicBlobUrl(asset.blob_url, asset.pathname)) return asset.blob_url;
+
+  const privateResult = await get(asset.pathname, { access: "private", useCache: true });
+  if (!privateResult?.stream || privateResult.statusCode !== 200) return null;
+
+  const buffer = Buffer.from(await new Response(privateResult.stream).arrayBuffer());
+  const ext = fileExtension(asset.original_name || asset.filename, asset.mime_type);
+  const publicPath = `${PUBLIC_MEDIA_PREFIX}/${asset.uploaded_by_id || "shared"}/${asset.id}${ext}`;
+  const blob = await put(publicPath, buffer, {
+    access: "public",
+    contentType: asset.mime_type || "application/octet-stream",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
+  await savePublicBlobUrl(asset.id, blob.url, publicPath);
+  return blob.url;
 }
 
 export async function uploadMediaAsset(userId, file, altText, purpose = "media") {
@@ -200,20 +210,38 @@ export async function streamMediaAsset(assetId) {
   const asset = await getMediaAssetById(assetId);
   if (!asset) return null;
 
-  // Prefer public CDN object.
-  try {
-    const publicResult = await get(asset.pathname, { access: "public", useCache: true });
-    if (publicResult?.stream) {
-      return {
-        asset,
-        stream: publicResult.stream,
-        contentType: publicResult.blob?.contentType || asset.mime_type || "application/octet-stream",
-      };
+  // Public copies first.
+  if (isTrustedPublicBlobUrl(asset.blob_url, asset.pathname)) {
+    try {
+      const publicResult = await get(asset.blob_url, { access: "public", useCache: true });
+      if (publicResult?.statusCode === 200 && publicResult.stream) {
+        return {
+          asset,
+          stream: publicResult.stream,
+          contentType: publicResult.blob?.contentType || asset.mime_type || "application/octet-stream",
+        };
+      }
+    } catch {
+      /* fall through */
     }
-  } catch {
-    // try private
   }
 
+  if (String(asset.pathname || "").startsWith(PUBLIC_MEDIA_PREFIX)) {
+    try {
+      const publicResult = await get(asset.pathname, { access: "public", useCache: true });
+      if (publicResult?.statusCode === 200 && publicResult.stream) {
+        return {
+          asset,
+          stream: publicResult.stream,
+          contentType: publicResult.blob?.contentType || asset.mime_type || "application/octet-stream",
+        };
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  // Legacy private blobs — stream through the API (works in browser).
   const result = await get(asset.pathname, { access: "private", useCache: true });
   if (!result || result.statusCode !== 200 || !result.stream) return null;
 

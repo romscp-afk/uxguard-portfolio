@@ -1,7 +1,17 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { resolveMediaCdnUrl, streamMediaAsset } from "../../../_lib/media.js";
+import {
+  ensurePublicMediaCopy,
+  resolveMediaCdnUrl,
+  streamMediaAsset,
+} from "../../../_lib/media.js";
 import { handlePreflight } from "../../../_lib/http.js";
+
+export const config = {
+  api: {
+    responseLimit: false,
+  },
+};
 
 function parseMediaId(req) {
   const fromQuery = req.query?.id ?? req.query?.param;
@@ -34,6 +44,7 @@ export default async function handler(req, res) {
       return;
     }
 
+    // Only redirect to verified public CDN URLs (never private blob URLs).
     const resolved = await resolveMediaCdnUrl(id);
     if (!resolved) {
       res.statusCode = 404;
@@ -42,11 +53,11 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Fast path: redirect to Vercel Blob CDN (cacheable, no serverless proxy stream).
     if (resolved.url) {
       res.statusCode = 302;
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+      // Short cache so bad redirects can recover quickly after deploys.
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       res.setHeader("Location", resolved.url);
       res.end();
       return;
@@ -63,19 +74,25 @@ export default async function handler(req, res) {
     res.statusCode = 200;
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Content-Type", result.contentType);
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
     res.setHeader("X-Content-Type-Options", "nosniff");
 
     if (req.method === "HEAD") {
       res.end();
+      // Warm a public copy in the background for faster later loads.
+      ensurePublicMediaCopy(id).catch(() => {});
       return;
     }
 
     await pipeline(Readable.fromWeb(result.stream), res);
+
+    // After a successful private stream, migrate to public CDN for next time.
+    ensurePublicMediaCopy(id).catch(() => {});
   } catch (err) {
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader("Content-Type", "application/json");
+      res.setHeader("Cache-Control", "no-store");
       res.end(JSON.stringify({ detail: err.message || "Failed to load media" }));
     }
   }
