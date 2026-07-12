@@ -1,5 +1,5 @@
-import { searchPlatform } from "../../_lib/community.js";
-import { withApi } from "../../_lib/withApi.js";
+import { searchPlatform } from "../_lib/community.js";
+import { withApi } from "../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
   if (req.method !== "GET") {

@@ -1,7 +1,7 @@
-import { sendContactFormEmail } from "../../_lib/mail.js";
-import { saveContactMessage } from "../../_lib/contact-store.js";
-import { isPersistentStoreEnabled } from "../../_lib/store.js";
-import { withApi } from "../../_lib/withApi.js";
+import { sendContactFormEmail } from "../_lib/mail.js";
+import { saveContactMessage } from "../_lib/contact-store.js";
+import { isPersistentStoreEnabled } from "../_lib/store.js";
+import { withApi } from "../_lib/withApi.js";
 
 const CONTACT_TO = process.env.CONTACT_TO || "uxguardstudio@gmail.com";
 

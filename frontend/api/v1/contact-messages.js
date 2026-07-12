@@ -1,6 +1,6 @@
-import { listContactMessages } from "../../_lib/contact-store.js";
-import { requireAuthUser } from "../../_lib/auth.js";
-import { withApi } from "../../_lib/withApi.js";
+import { listContactMessages } from "../_lib/contact-store.js";
+import { requireAuthUser } from "../_lib/auth.js";
+import { withApi } from "../_lib/withApi.js";
 
 const CONTACT_TO = process.env.CONTACT_TO || "uxguardstudio@gmail.com";
 

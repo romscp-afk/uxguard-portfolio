@@ -1,6 +1,6 @@
-import { addComment, listComments } from "../../../_lib/community.js";
-import { requireAuthUser } from "../../../_lib/auth.js";
-import { withApi } from "../../../_lib/withApi.js";
+import { addComment, listComments } from "../../_lib/community.js";
+import { requireAuthUser } from "../../_lib/auth.js";
+import { withApi } from "../../_lib/withApi.js";
 
 function parseCaseStudyId(value) {
   const raw = Array.isArray(value) ? value[0] : value;

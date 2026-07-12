@@ -1,6 +1,6 @@
-import { deleteComment } from "../../../_lib/community.js";
-import { requireAuthUser } from "../../../_lib/auth.js";
-import { withApi } from "../../../_lib/withApi.js";
+import { deleteComment } from "../../_lib/community.js";
+import { requireAuthUser } from "../../_lib/auth.js";
+import { withApi } from "../../_lib/withApi.js";
 
 function parseCommentId(req) {
   const raw = req.query?.id ?? req.query?.param;
