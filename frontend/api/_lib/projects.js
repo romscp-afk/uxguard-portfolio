@@ -158,28 +158,40 @@ export async function updateProject(id, authorId, payload) {
 }
 
 export async function deleteProject(id, authorId) {
+  const ownerId = Number(authorId);
+  let deleted = false;
+
   await updateStore((store) => {
-    const project = (store.projects || []).find(
-      (item) =>
-        sameId(item.id, id) &&
-        (sameId(item.author_id, authorId) || !hasValidAuthor(item.author_id)),
-    );
-    if (!project) {
+    const projects = store.projects || [];
+    const index = projects.findIndex((item) => sameId(item.id, id));
+    if (index === -1) {
       const error = new Error("Project not found");
       error.status = 404;
       throw error;
     }
 
-    store.projects = store.projects.filter((item) => !sameId(item.id, id));
+    const project = projects[index];
+    const ownsProject =
+      sameId(project.author_id, ownerId) || !hasValidAuthor(project.author_id);
+    if (!ownsProject) {
+      const error = new Error("Project not found");
+      error.status = 404;
+      throw error;
+    }
+
+    store.projects = projects.filter((item) => !sameId(item.id, id));
+    deleted = true;
 
     for (const cs of store.caseStudies || []) {
-      if (sameId(cs.author_id, authorId) && sameId(cs.project_id, id)) {
+      if (sameId(cs.project_id, id)) {
         cs.project_id = null;
         cs.updated_at = new Date().toISOString();
       }
     }
     return store;
   });
+
+  return { ok: deleted };
 }
 
 export function assertCanEdit(user) {

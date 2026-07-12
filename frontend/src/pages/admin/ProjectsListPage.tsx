@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FolderKanban, Plus } from "lucide-react";
+import { FolderKanban, Plus, Trash2 } from "lucide-react";
 import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import { EditGuard, EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import type { Project } from "../../types";
@@ -16,6 +16,7 @@ export function ProjectsListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +37,22 @@ export function ProjectsListPage() {
       cancelled = true;
     };
   }, []);
+
+  async function handleDelete(project: Project) {
+    if (!window.confirm(`Delete “${project.title}”? Linked case studies will be unlinked.`)) {
+      return;
+    }
+    setDeletingId(project.id);
+    setError("");
+    try {
+      await api.deleteProject(project.id);
+      setProjects((prev) => prev.filter((item) => item.id !== project.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not delete project.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div>
@@ -74,49 +91,63 @@ export function ProjectsListPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {projects.map((project) => (
-            <Link
+            <div
               key={project.id}
-              to={`/admin/projects/${project.id}`}
               className="card overflow-hidden transition hover:border-brand-300 hover:shadow-md"
             >
-              {project.cover_image ? (
-                <img
-                  src={resolveAssetUrl(project.cover_image)}
-                  alt=""
-                  className="h-36 w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-36 items-center justify-center bg-brand-50">
-                  <FolderKanban className="h-8 w-8 text-brand-400" />
-                </div>
-              )}
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-ink-900">{project.title}</p>
-                    <p className="mt-1 text-sm text-ink-500">{project.client || "No client"}</p>
+              <Link to={`/admin/projects/${project.id}`} className="block">
+                {project.cover_image ? (
+                  <img
+                    src={resolveAssetUrl(project.cover_image)}
+                    alt=""
+                    className="h-36 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-36 items-center justify-center bg-brand-50">
+                    <FolderKanban className="h-8 w-8 text-brand-400" />
                   </div>
-                  <span className="rounded-full bg-ink-100 px-2.5 py-1 text-xs font-semibold text-ink-600">
-                    {STATUS_LABELS[project.status]}
-                  </span>
-                </div>
-                {project.description ? (
-                  <p className="mt-3 line-clamp-2 text-sm text-ink-600">{project.description}</p>
-                ) : null}
-                {project.tags.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {project.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                )}
+                <div className="p-5 pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-ink-900">{project.title}</p>
+                      <p className="mt-1 text-sm text-ink-500">{project.client || "No client"}</p>
+                    </div>
+                    <span className="rounded-full bg-ink-100 px-2.5 py-1 text-xs font-semibold text-ink-600">
+                      {STATUS_LABELS[project.status] || project.status || "Active"}
+                    </span>
                   </div>
-                ) : null}
-              </div>
-            </Link>
+                  {project.description ? (
+                    <p className="mt-3 line-clamp-2 text-sm text-ink-600">{project.description}</p>
+                  ) : null}
+                  {project.tags?.length ? (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {project.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </Link>
+              <EditGuard>
+                <div className="flex justify-end border-t border-ink-100 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(project)}
+                    disabled={deletingId === project.id}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletingId === project.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </EditGuard>
+            </div>
           ))}
         </div>
       )}

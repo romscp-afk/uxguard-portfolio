@@ -1,10 +1,6 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import {
-  ensurePublicMediaCopy,
-  resolveMediaCdnUrl,
-  streamMediaAsset,
-} from "../../../_lib/media.js";
+import { streamMediaAsset } from "../../../_lib/media.js";
 import { handlePreflight } from "../../../_lib/http.js";
 
 export const config = {
@@ -44,25 +40,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Only redirect to verified public CDN URLs (never private blob URLs).
-    const resolved = await resolveMediaCdnUrl(id);
-    if (!resolved) {
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ detail: "File not found" }));
-      return;
-    }
-
-    if (resolved.url) {
-      res.statusCode = 302;
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      // Short cache so bad redirects can recover quickly after deploys.
-      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-      res.setHeader("Location", resolved.url);
-      res.end();
-      return;
-    }
-
     const result = await streamMediaAsset(id);
     if (!result) {
       res.statusCode = 404;
@@ -79,15 +56,10 @@ export default async function handler(req, res) {
 
     if (req.method === "HEAD") {
       res.end();
-      // Warm a public copy in the background for faster later loads.
-      ensurePublicMediaCopy(id).catch(() => {});
       return;
     }
 
     await pipeline(Readable.fromWeb(result.stream), res);
-
-    // After a successful private stream, migrate to public CDN for next time.
-    ensurePublicMediaCopy(id).catch(() => {});
   } catch (err) {
     if (!res.headersSent) {
       res.statusCode = 500;

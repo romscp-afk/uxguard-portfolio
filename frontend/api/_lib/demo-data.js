@@ -218,20 +218,27 @@ export async function getUserProfile(username) {
 
   const config = getUserPortfolioConfig(user);
   const studies = applyPortfolioOrdering(
-    store.caseStudies.filter((cs) => cs.author_id === user.id && cs.status === "published"),
+    store.caseStudies.filter(
+      (cs) => Number(cs.author_id) === Number(user.id) && cs.status === "published",
+    ),
     config,
   );
 
   const projects = (store.projects || [])
-    .filter((project) => project.author_id === user.id && project.status !== "archived")
+    .filter(
+      (project) =>
+        Number(project.author_id) === Number(user.id) &&
+        String(project.status || "active") !== "archived",
+    )
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
   const likeCounts = likeCountsByCaseStudy(store);
   const { password: _password, ...publicUser } = user;
+  const showProjects = config.show_projects !== false;
   return {
     ...publicUser,
     portfolio_config: config,
-    projects: config.show_projects ? projects : [],
+    projects: showProjects ? projects : [],
     case_studies: config.show_case_studies
       ? studies.map((cs) => toListItem(cs, likeCounts.get(Number(cs.id)) || 0))
       : [],
