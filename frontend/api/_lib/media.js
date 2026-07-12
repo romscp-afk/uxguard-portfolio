@@ -89,11 +89,11 @@ export async function resolveMediaCdnUrl(assetId) {
   // Prefer reading existing public object if present.
   try {
     const publicResult = await get(asset.pathname, { access: "public", useCache: true });
-    if (publicResult?.url) {
-      await saveBlobUrl(asset.id, publicResult.url);
+    if (publicResult?.statusCode === 200 && publicResult.blob?.url) {
+      await saveBlobUrl(asset.id, publicResult.blob.url);
       return {
-        url: publicResult.url,
-        contentType: publicResult.blob?.contentType || asset.mime_type || "application/octet-stream",
+        url: publicResult.blob.url,
+        contentType: publicResult.blob.contentType || asset.mime_type || "application/octet-stream",
         asset,
       };
     }
