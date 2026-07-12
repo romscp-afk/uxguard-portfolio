@@ -23,6 +23,13 @@ export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
 
+  // Guard against /api/v1/projects being incorrectly routed here.
+  const path = String(req.url || "").split("?")[0].replace(/\/$/, "");
+  if (path.endsWith("/projects")) {
+    res.status(404).json({ detail: "Use POST /api/v1/projects via the collection route" });
+    return;
+  }
+
   const id = parseProjectId(req);
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).json({ detail: "Invalid project id" });

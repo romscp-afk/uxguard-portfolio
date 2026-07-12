@@ -26,7 +26,8 @@ const emptyProject: Partial<Project> = {
 
 export function ProjectEditorPage() {
   const { id } = useParams();
-  const isNew = id === "new";
+  const projectId = Number(id);
+  const isNew = !id || id === "new" || !Number.isFinite(projectId) || projectId <= 0;
   const navigate = useNavigate();
   const { user } = useAuth();
   const readOnly = !canEditPlatform(user);
@@ -39,16 +40,14 @@ export function ProjectEditorPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isNew) return;
-
-    const projectId = Number(id);
-    if (!Number.isFinite(projectId) || projectId <= 0) {
-      setError("Invalid project id.");
+    if (isNew) {
       setLoading(false);
+      setError("");
       return;
     }
 
     let cancelled = false;
+    setLoading(true);
     api
       .getProject(projectId)
       .then((project) => {
@@ -56,6 +55,7 @@ export function ProjectEditorPage() {
           setForm(project);
           setTagsInput((project.tags || []).join(", "));
           setTeamInput((project.team || []).join(", "));
+          setError("");
         }
       })
       .catch((err) => {
@@ -69,7 +69,7 @@ export function ProjectEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isNew]);
+  }, [id, isNew, projectId]);
 
   function updateField<K extends keyof Project>(key: K, value: Project[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -103,7 +103,10 @@ export function ProjectEditorPage() {
     try {
       const saved = isNew
         ? await api.createProject(payload)
-        : await api.updateProject(Number(id), payload);
+        : await api.updateProject(projectId, payload);
+      if (!saved?.id) {
+        throw new ApiError(500, "Project saved without an id. Please refresh and try again.");
+      }
       if (andExit) {
         navigate("/admin/projects");
       } else if (isNew) {
@@ -122,7 +125,7 @@ export function ProjectEditorPage() {
     if (readOnly || isNew) return;
     if (!window.confirm("Delete this project? Linked case studies will be unlinked.")) return;
     try {
-      await api.deleteProject(Number(id));
+      await api.deleteProject(projectId);
       navigate("/admin/projects");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not delete project.");
