@@ -168,13 +168,17 @@ export async function addComment(caseStudyId, authorId, body) {
   const author = store.users.find((u) => sameId(u.id, authorId));
   const studyAuthor = store.users.find((u) => sameId(u.id, study.author_id));
   if (!sameId(study.author_id, authorId)) {
-    await createNotification({
-      userId: study.author_id,
-      type: "comment",
-      title: "New feedback on your case study",
-      message: `${author?.name || "Someone"} commented on "${study.title}"`,
-      link: `/u/${studyAuthor?.username}/${study.slug}`,
-    });
+    try {
+      await createNotification({
+        userId: study.author_id,
+        type: "comment",
+        title: "New feedback on your case study",
+        message: `${author?.name || "Someone"} commented on "${study.title}"`,
+        link: `/u/${studyAuthor?.username}/${study.slug}`,
+      });
+    } catch {
+      // Comment is already saved; notification is best-effort.
+    }
   }
 
   return {

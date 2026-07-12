@@ -46,7 +46,13 @@ export function CaseStudyArticle({
 
       {study.cover_image ? (
         <div className="aspect-[21/9] max-h-[480px] w-full overflow-hidden bg-ink-100">
-          <img src={resolveAssetUrl(study.cover_image)} alt={study.title} className="h-full w-full object-cover" />
+          <img
+            src={resolveAssetUrl(study.cover_image)}
+            alt={study.title}
+            className="h-full w-full object-cover"
+            decoding="async"
+            fetchPriority="high"
+          />
         </div>
       ) : null}
 
