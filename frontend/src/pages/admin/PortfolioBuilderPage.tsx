@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, Save, Star } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
@@ -139,9 +138,14 @@ export function PortfolioBuilderPage() {
           </p>
         </div>
         {user?.portfolio_url ? (
-          <Link to={user.portfolio_url} className="btn-secondary">
+          <a
+            href={user.portfolio_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
             View public portfolio
-          </Link>
+          </a>
         ) : null}
       </div>
 

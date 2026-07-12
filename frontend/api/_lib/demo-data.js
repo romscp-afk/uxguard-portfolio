@@ -68,6 +68,7 @@ export async function registerUser({ email, password, name, username, title, rol
       title: title || null,
       bio: null,
       avatar_url: null,
+      cover_image_url: null,
       contact_email: email,
       location: null,
       cv_url: null,
@@ -89,17 +90,34 @@ const PROFILE_FIELDS = new Set([
   "title",
   "bio",
   "avatar_url",
+  "cover_image_url",
   "contact_email",
   "location",
   "cv_url",
   "social_links",
 ]);
 
+function normalizeProfileValue(key, value) {
+  if (key === "social_links") {
+    if (!value || typeof value !== "object") return {};
+    const next = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (typeof v === "string" && v.trim()) next[k] = v.trim();
+    }
+    return next;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  return value ?? null;
+}
+
 export async function updateUserProfile(userId, updates) {
   let updated = null;
   const sanitized = {};
   for (const [key, value] of Object.entries(updates || {})) {
-    if (PROFILE_FIELDS.has(key)) sanitized[key] = value;
+    if (PROFILE_FIELDS.has(key)) sanitized[key] = normalizeProfileValue(key, value);
   }
 
   await updateStore((store) => {

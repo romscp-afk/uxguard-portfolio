@@ -95,6 +95,9 @@ export async function validateCoverImageUrl(url: string): Promise<string | null>
 
 function resolveAssetUrlForValidation(url: string): string {
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  const root = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-  return `${root}${url}`;
+  const root =
+    (import.meta.env.VITE_API_URL || "").replace(/\/$/, "") ||
+    (typeof window !== "undefined" ? window.location.origin : "");
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${root}${path}`;
 }

@@ -49,6 +49,14 @@ export function resolveAssetUrl(url: string): string {
   return `${root}${path}`;
 }
 
+/** Store media refs as stable relative paths so images keep working across deploys. */
+export function toStoredAssetUrl(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  const mediaMatch = String(url).match(/\/api\/v1\/media\/file\/(\d+)/);
+  if (mediaMatch) return `/api/v1/media/file/${mediaMatch[1]}`;
+  return url.trim();
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,

@@ -2,14 +2,15 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink } from "lucide-react";
 import { resolveAssetUrl } from "../../api/client";
 import { ContentBlockRenderer } from "../../components/case-study/ContentBlockRenderer";
+import { RichText } from "../ui/RichText";
 import type { CaseStudy, UserProfile } from "../../types";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  if (!children) return null;
+function Section({ title, children }: { title: string; children?: string | null }) {
+  if (!children?.trim()) return null;
   return (
     <section className="space-y-3">
       <h2 className="font-display text-2xl font-semibold text-ink-900">{title}</h2>
-      <div className="leading-relaxed text-ink-600">{children}</div>
+      <RichText text={children} />
     </section>
   );
 }

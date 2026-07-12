@@ -21,6 +21,7 @@ function profileFromAuthUser(user: NonNullable<ReturnType<typeof useAuth>["user"
     title: user.title,
     bio: user.bio,
     avatar_url: user.avatar_url,
+    cover_image_url: user.cover_image_url,
     contact_email: user.contact_email,
     location: user.location,
     cv_url: user.cv_url,
@@ -123,89 +124,110 @@ export function UserPortfolioPage() {
 
   const featured = profile.case_studies.filter((s) => s.featured);
   const rest = profile.case_studies.filter((s) => !s.featured);
+  const showProfile = profile.portfolio_config?.show_profile !== false;
 
   return (
     <div className="min-h-screen">
       <PublicHeader />
 
-      <section className="border-b border-ink-100 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
-            {profile.avatar_url ? (
-              <img
-                src={resolveAssetUrl(profile.avatar_url)}
-                alt={profile.name}
-                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-brand-50"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 font-display text-3xl font-bold text-white">
-                {profile.name.charAt(0)}
-              </div>
-            )}
-            <div className="flex-1">
-              <p className="text-sm font-medium text-brand-600">@{profile.username}</p>
-              <h1 className="mt-1 font-display text-4xl font-bold text-ink-950">{profile.name}</h1>
-              {profile.title ? <p className="mt-2 text-lg text-ink-600">{profile.title}</p> : null}
-              <div className="mt-4">
-                <FollowButton
-                  username={profile.username}
-                  initialFollowing={profile.is_following}
-                  followerCount={profile.follower_count || 0}
-                  onStatsChange={(stats) =>
-                    setProfile((prev) =>
-                      prev ? { ...prev, is_following: stats.is_following, follower_count: stats.follower_count } : prev,
-                    )
-                  }
+      {profile.cover_image_url ? (
+        <div className="h-48 w-full overflow-hidden bg-ink-100 sm:h-64 md:h-72">
+          <img
+            src={resolveAssetUrl(profile.cover_image_url)}
+            alt=""
+            className="h-full w-full object-cover object-center"
+          />
+        </div>
+      ) : null}
+
+      {showProfile ? (
+        <section className="border-b border-ink-100 bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+            <div className={`flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10 ${profile.cover_image_url ? "-mt-16 sm:-mt-20" : ""}`}>
+              {profile.avatar_url ? (
+                <img
+                  src={resolveAssetUrl(profile.avatar_url)}
+                  alt={profile.name}
+                  className="h-28 w-28 rounded-2xl object-cover object-center ring-4 ring-white shadow-md sm:h-32 sm:w-32"
                 />
-              </div>
-              {profile.bio ? <p className="mt-4 max-w-2xl leading-relaxed text-ink-600">{profile.bio}</p> : null}
-              <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-ink-500">
-                {profile.location ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4" />
-                    {profile.location}
-                  </span>
+              ) : (
+                <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 font-display text-3xl font-bold text-white ring-4 ring-white shadow-md sm:h-32 sm:w-32">
+                  {profile.name.charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 pt-2 sm:pt-8">
+                <p className="text-sm font-medium text-brand-600">@{profile.username}</p>
+                <h1 className="mt-1 font-display text-4xl font-bold text-ink-950">{profile.name}</h1>
+                {profile.title ? <p className="mt-2 text-lg text-ink-600">{profile.title}</p> : null}
+                <div className="mt-4">
+                  <FollowButton
+                    username={profile.username}
+                    initialFollowing={profile.is_following}
+                    followerCount={profile.follower_count || 0}
+                    onStatsChange={(stats) =>
+                      setProfile((prev) =>
+                        prev
+                          ? { ...prev, is_following: stats.is_following, follower_count: stats.follower_count }
+                          : prev,
+                      )
+                    }
+                  />
+                </div>
+                {profile.bio ? (
+                  <p className="mt-4 max-w-2xl whitespace-pre-wrap leading-relaxed text-ink-600">
+                    {profile.bio}
+                  </p>
                 ) : null}
-                {profile.contact_email ? (
-                  <a
-                    href={`mailto:${profile.contact_email}`}
-                    className="inline-flex items-center gap-1.5 hover:text-brand-600"
-                  >
-                    <Mail className="h-4 w-4" />
-                    {profile.contact_email}
-                  </a>
-                ) : null}
-                {profile.cv_url ? (
-                  <a
-                    href={resolveAssetUrl(profile.cv_url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 hover:text-brand-600"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    CV / Resume
-                  </a>
-                ) : null}
-              </div>
-              {Object.keys(profile.social_links).length > 0 ? (
-                <div className="mt-4 flex flex-wrap gap-3">
-                  {Object.entries(profile.social_links).map(([key, url]) => (
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-ink-500">
+                  {profile.location ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4" />
+                      {profile.location}
+                    </span>
+                  ) : null}
+                  {profile.contact_email ? (
                     <a
-                      key={key}
-                      href={url}
+                      href={`mailto:${profile.contact_email}`}
+                      className="inline-flex items-center gap-1.5 hover:text-brand-600"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {profile.contact_email}
+                    </a>
+                  ) : null}
+                  {profile.cv_url ? (
+                    <a
+                      href={resolveAssetUrl(profile.cv_url)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-semibold uppercase tracking-wider text-brand-600 hover:text-brand-700"
+                      className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:text-brand-500"
                     >
-                      {key}
+                      <ExternalLink className="h-4 w-4" />
+                      CV / Resume
                     </a>
-                  ))}
+                  ) : null}
                 </div>
-              ) : null}
+                {Object.keys(profile.social_links || {}).length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {Object.entries(profile.social_links).map(([key, url]) =>
+                      url ? (
+                        <a
+                          key={key}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-semibold uppercase tracking-wider text-brand-600 hover:text-brand-700"
+                        >
+                          {key}
+                        </a>
+                      ) : null,
+                    )}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         {profile.projects && profile.projects.length > 0 ? (
@@ -216,7 +238,11 @@ export function UserPortfolioPage() {
               {profile.projects.map((project) => (
                 <div key={project.id} className="card overflow-hidden">
                   {project.cover_image ? (
-                    <img src={project.cover_image} alt="" className="h-36 w-full object-cover" />
+                    <img
+                      src={resolveAssetUrl(project.cover_image)}
+                      alt=""
+                      className="h-36 w-full object-cover"
+                    />
                   ) : null}
                   <div className="p-5">
                     <p className="font-semibold text-ink-900">{project.title}</p>

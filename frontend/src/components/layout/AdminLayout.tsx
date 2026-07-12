@@ -132,13 +132,23 @@ export function AdminLayout() {
           </div>
           <div className="flex gap-2">
             {user.portfolio_url ? (
-              <Link to={user.portfolio_url} className="btn-secondary flex-1 py-2 text-xs">
+              <a
+                href={user.portfolio_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary flex-1 py-2 text-xs"
+              >
                 My Portfolio
-              </Link>
+              </a>
             ) : (
-              <Link to="/" className="btn-secondary flex-1 py-2 text-xs">
+              <a
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary flex-1 py-2 text-xs"
+              >
                 View Site
-              </Link>
+              </a>
             )}
             <button
               type="button"

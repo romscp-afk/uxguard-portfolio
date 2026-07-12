@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Eye, FileText, Plus, Save, Trash2, Upload } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { useAuth } from "../../context/AuthContext";
-import { api, ApiError } from "../../api/client";
+import { api, ApiError, toStoredAssetUrl } from "../../api/client";
 import {
   getCaseStudyFromCache,
   removeCaseStudyFromCache,
@@ -292,8 +292,32 @@ export function CaseStudyEditorPage() {
       ...rest
     } = form;
 
+    const content_blocks = (rest.content_blocks || []).map((block) => {
+      if (block.type === "image") {
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            url: toStoredAssetUrl(String(block.data.url || "")) || "",
+          },
+        };
+      }
+      if (block.type === "gallery") {
+        const images = ((block.data.images as Array<{ url: string; caption?: string }>) || []).map(
+          (img) => ({
+            ...img,
+            url: toStoredAssetUrl(img.url) || img.url,
+          }),
+        );
+        return { ...block, data: { ...block.data, images } };
+      }
+      return block;
+    });
+
     return {
       ...rest,
+      cover_image: toStoredAssetUrl(rest.cover_image) || undefined,
+      content_blocks,
       methods,
       status,
     };
@@ -772,11 +796,16 @@ export function CaseStudyEditorPage() {
                         onChange={(e) => updateBlock(index, { heading: e.target.value })}
                       />
                       <textarea
-                        className="input-field min-h-[80px]"
-                        placeholder="Body text"
+                        className="input-field min-h-[120px]"
+                        placeholder={"Body text\n- First bullet point\n- Second bullet point"}
                         value={String(block.data.body || "")}
                         onChange={(e) => updateBlock(index, { body: e.target.value })}
                       />
+                      <p className="text-xs text-ink-400">
+                        Tip: start a line with <code className="rounded bg-ink-100 px-1">-</code> or{" "}
+                        <code className="rounded bg-ink-100 px-1">*</code> for bullet points on the
+                        public page.
+                      </p>
                     </div>
                   ) : null}
 

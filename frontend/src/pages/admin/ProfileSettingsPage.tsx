@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Check, Copy, Save } from "lucide-react";
+import { Check, Copy, ExternalLink, Save } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { saveUserToRegistry } from "../../lib/platformRegistry";
 import { useAuth } from "../../context/AuthContext";
-import { api, ApiError, resolveAssetUrl } from "../../api/client";
+import { api, ApiError, resolveAssetUrl, toStoredAssetUrl } from "../../api/client";
 import { canEditPlatform } from "../../lib/roles";
 import type { User } from "../../types";
 
@@ -17,6 +17,7 @@ export function ProfileSettingsPage() {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export function ProfileSettingsPage() {
         contact_email: user.contact_email || "",
         location: user.location || "",
         avatar_url: user.avatar_url || "",
+        cover_image_url: user.cover_image_url || "",
         cv_url: user.cv_url || "",
       });
       setLinkedinUrl(user.social_links?.linkedin || "");
@@ -56,6 +58,7 @@ export function ProfileSettingsPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!canEditPlatform(user)) {
+      setMessageType("error");
       setMessage("Your account is read-only. Register as Professional to edit your profile.");
       return;
     }
@@ -63,30 +66,43 @@ export function ProfileSettingsPage() {
     setMessage("");
     try {
       const payload: Partial<User> = {
-        name: form.name,
-        username: form.username,
-        title: form.title || undefined,
-        bio: form.bio || undefined,
-        contact_email: form.contact_email || undefined,
-        location: form.location || undefined,
-        avatar_url: form.avatar_url || undefined,
-        cv_url: form.cv_url || undefined,
+        name: form.name?.trim() || "",
+        username: form.username?.trim() || "",
+        title: form.title?.trim() || "",
+        bio: form.bio?.trim() || "",
+        contact_email: form.contact_email?.trim() || "",
+        location: form.location?.trim() || "",
+        avatar_url: toStoredAssetUrl(form.avatar_url) || "",
+        cover_image_url: toStoredAssetUrl(form.cover_image_url) || "",
+        cv_url: toStoredAssetUrl(form.cv_url) || form.cv_url?.trim() || "",
         social_links: {
-          ...(user?.social_links || {}),
           ...(linkedinUrl.trim() ? { linkedin: linkedinUrl.trim() } : {}),
         },
       };
-      await api.updateMe(payload);
+
+      const saved = await api.updateMe(payload);
       await refreshUser();
-      if (user) {
-        saveUserToRegistry({
-          ...user,
-          ...payload,
-          username: form.username || user.username,
-        });
-      }
-      setMessage("Profile saved.");
+      saveUserToRegistry({
+        ...saved,
+        username: saved.username,
+        social_links: saved.social_links || {},
+      });
+      setForm({
+        name: saved.name,
+        username: saved.username,
+        title: saved.title || "",
+        bio: saved.bio || "",
+        contact_email: saved.contact_email || "",
+        location: saved.location || "",
+        avatar_url: saved.avatar_url || "",
+        cover_image_url: saved.cover_image_url || "",
+        cv_url: saved.cv_url || "",
+      });
+      setLinkedinUrl(saved.social_links?.linkedin || "");
+      setMessageType("success");
+      setMessage("Profile saved. Open your public profile to confirm the updates.");
     } catch (err) {
+      setMessageType("error");
       setMessage(err instanceof ApiError ? err.message : "Failed to save profile.");
     } finally {
       setSaving(false);
@@ -100,11 +116,24 @@ export function ProfileSettingsPage() {
   return (
     <div>
       <ReadOnlyNotice />
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold text-ink-950">Profile & Portfolio</h1>
-        <p className="mt-1 text-ink-500">
-          Set your public username and share your portfolio link on your CV or LinkedIn
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-ink-950">Profile & Portfolio</h1>
+          <p className="mt-1 text-ink-500">
+            Set your public username and share your portfolio link on your CV or LinkedIn
+          </p>
+        </div>
+        {portfolioUrl ? (
+          <a
+            href={portfolioUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View public profile
+          </a>
+        ) : null}
       </div>
 
       {welcome ? (
@@ -114,7 +143,15 @@ export function ProfileSettingsPage() {
       ) : null}
 
       {message ? (
-        <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>
+        <div
+          className={`mb-4 rounded-lg px-4 py-3 text-sm ${
+            messageType === "error"
+              ? "bg-red-50 text-red-800"
+              : "bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {message}
+        </div>
       ) : null}
 
       {portfolioUrl ? (
@@ -149,6 +186,7 @@ export function ProfileSettingsPage() {
                 onChange={(e) => updateField("username", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                 placeholder="your-name"
                 required
+                disabled={!canEditPlatform(user)}
               />
             </div>
             <p className="mt-1 text-xs text-ink-400">Lowercase letters, numbers, and hyphens only</p>
@@ -160,25 +198,51 @@ export function ProfileSettingsPage() {
               value={form.name || ""}
               onChange={(e) => updateField("name", e.target.value)}
               required
+              disabled={!canEditPlatform(user)}
             />
           </div>
+
+          <UrlOrUploadField
+            label="Cover photo"
+            value={form.cover_image_url || ""}
+            onChange={(url) => updateField("cover_image_url", url)}
+            accept="image/*"
+            helpText="Wide banner image for the top of your public profile (recommended 1600×600)"
+          />
+          {form.cover_image_url ? (
+            <div className="overflow-hidden rounded-xl border border-ink-100 bg-ink-50">
+              <img
+                src={resolveAssetUrl(form.cover_image_url)}
+                alt=""
+                className="aspect-[16/6] w-full object-cover"
+              />
+            </div>
+          ) : null}
+
           <UrlOrUploadField
             label="Profile Photo"
             value={form.avatar_url || ""}
             onChange={(url) => updateField("avatar_url", url)}
             accept="image/*"
-            helpText="Paste a URL or upload a photo from your device"
+            showPreview={false}
+            helpText="Square photos work best. The full image is shown in a circular crop on your public profile."
           />
           {form.avatar_url ? (
-            <div className="flex items-center gap-3 rounded-lg border border-ink-100 bg-ink-50 p-3">
-              <img
-                src={resolveAssetUrl(form.avatar_url)}
-                alt=""
-                className="h-14 w-14 rounded-full object-cover"
-              />
-              <p className="text-sm text-ink-600">Preview of your public profile photo</p>
+            <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 p-4">
+              <div className="h-24 w-24 overflow-hidden rounded-2xl bg-white ring-2 ring-brand-100">
+                <img
+                  src={resolveAssetUrl(form.avatar_url)}
+                  alt=""
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-ink-800">Profile photo preview</p>
+                <p className="mt-1 break-all text-xs text-ink-400">{form.avatar_url}</p>
+              </div>
             </div>
           ) : null}
+
           <div>
             <label className="label-field">Title</label>
             <input
@@ -186,6 +250,7 @@ export function ProfileSettingsPage() {
               value={form.title || ""}
               onChange={(e) => updateField("title", e.target.value)}
               placeholder="Senior UX Researcher"
+              disabled={!canEditPlatform(user)}
             />
           </div>
           <div>
@@ -195,6 +260,7 @@ export function ProfileSettingsPage() {
               value={form.bio || ""}
               onChange={(e) => updateField("bio", e.target.value)}
               placeholder="Short intro for your portfolio page"
+              disabled={!canEditPlatform(user)}
             />
           </div>
           <div>
@@ -204,6 +270,7 @@ export function ProfileSettingsPage() {
               value={form.location || ""}
               onChange={(e) => updateField("location", e.target.value)}
               placeholder="City, Country"
+              disabled={!canEditPlatform(user)}
             />
           </div>
           <div>
@@ -213,6 +280,7 @@ export function ProfileSettingsPage() {
               className="input-field"
               value={form.contact_email || ""}
               onChange={(e) => updateField("contact_email", e.target.value)}
+              disabled={!canEditPlatform(user)}
             />
           </div>
           <div>
@@ -223,6 +291,7 @@ export function ProfileSettingsPage() {
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
               placeholder="https://linkedin.com/in/your-profile"
+              disabled={!canEditPlatform(user)}
             />
           </div>
           <UrlOrUploadField
@@ -231,8 +300,19 @@ export function ProfileSettingsPage() {
             onChange={(url) => updateField("cv_url", url)}
             accept="image/*,.pdf,.doc,.docx"
             showPreview={false}
-            helpText="Paste a link or upload PDF/Word from your device"
+            helpText="Upload a PDF/Word file or paste a link — it appears on your public profile after you save."
           />
+          {form.cv_url ? (
+            <a
+              href={resolveAssetUrl(form.cv_url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-500"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Preview linked CV
+            </a>
+          ) : null}
         </div>
 
         <button type="submit" className="btn-primary mt-6" disabled={saving || !canEditPlatform(user)}>

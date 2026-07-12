@@ -82,6 +82,7 @@ export interface UserPublic {
   title?: string;
   bio?: string;
   avatar_url?: string;
+  cover_image_url?: string;
   contact_email?: string;
   location?: string;
   cv_url?: string;
@@ -161,6 +162,7 @@ export interface User {
   title?: string;
   bio?: string;
   avatar_url?: string;
+  cover_image_url?: string;
   contact_email?: string;
   location?: string;
   cv_url?: string;

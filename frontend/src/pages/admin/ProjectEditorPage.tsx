@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAuth } from "../../context/AuthContext";
-import { api, ApiError } from "../../api/client";
+import { api, ApiError, toStoredAssetUrl } from "../../api/client";
 import { canEditPlatform } from "../../lib/roles";
 import type { Project, ProjectOutcome } from "../../types";
 
@@ -81,6 +81,7 @@ export function ProjectEditorPage() {
 
     const payload = {
       ...form,
+      cover_image: toStoredAssetUrl(form.cover_image) || form.cover_image || null,
       tags: tagsInput
         .split(",")
         .map((tag) => tag.trim())
