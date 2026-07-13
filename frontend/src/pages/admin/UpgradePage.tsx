@@ -59,8 +59,8 @@ export function UpgradePage() {
           <legend className="text-sm font-semibold text-ink-900">Plan</legend>
           <div className="mt-3 space-y-2">
             {[
-              { code: "professional", label: "Professional — $15/mo or $144/yr" },
-              { code: "team", label: "Team — $39/mo" },
+              { code: "professional", label: "Professional — $15/mo or $165/yr (11 months)" },
+              { code: "team", label: "Team — $39/mo or $429/yr (11 months)" },
             ].map((opt) => (
               <label key={opt.code} className="flex items-center gap-3 rounded-xl border border-ink-100 px-3 py-3">
                 <input

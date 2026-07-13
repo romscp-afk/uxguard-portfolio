@@ -17,6 +17,10 @@ const FAQS = [
     a: "Existing work stays safe. You can keep viewing and editing within limits, and upgrade anytime for unlimited case studies and higher AI allowances.",
   },
   {
+    q: "Is there a discount for annual billing?",
+    a: "Yes. Annual plans are billed as 11 months — Professional is $165/year and Team is $429/year — so you effectively get one month free.",
+  },
+  {
     q: "Can I cancel a paid plan?",
     a: "Yes. Paid access continues until the end of the billing period, then you return to Free without deleting your content.",
   },
@@ -28,6 +32,13 @@ function priceLabel(plan: BillingPlan, annual: boolean) {
   if (value == null) return "Custom";
   if (value === 0) return "$0";
   return annual ? `$${value}/yr` : `$${value}/mo`;
+}
+
+function annualSavingsNote(plan: BillingPlan) {
+  if (!plan.monthly_price || !plan.annual_price) return null;
+  const fullYear = plan.monthly_price * 12;
+  if (plan.annual_price >= fullYear) return null;
+  return "Billed as 11 months — 1 month free";
 }
 
 export function PricingPage() {
@@ -82,6 +93,9 @@ export function PricingPage() {
               onClick={() => setAnnual(true)}
             >
               Annual
+              <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                · 1 mo free
+              </span>
             </button>
           </div>
         </div>
@@ -104,6 +118,9 @@ export function PricingPage() {
                 ) : null}
                 <h2 className="font-display text-xl font-bold text-ink-950">{plan.name}</h2>
                 <p className="mt-2 text-3xl font-bold text-ink-950">{priceLabel(plan, annual)}</p>
+                {annual && annualSavingsNote(plan) ? (
+                  <p className="mt-1 text-xs font-medium text-brand-700">{annualSavingsNote(plan)}</p>
+                ) : null}
                 <p className="mt-2 text-sm text-ink-500">{plan.description}</p>
                 <ul className="mt-5 flex-1 space-y-2 text-sm text-ink-700">
                   <li className="flex gap-2">

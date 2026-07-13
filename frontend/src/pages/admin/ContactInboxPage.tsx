@@ -41,7 +41,8 @@ export function ContactInboxPage() {
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-ink-950">Contact Inbox</h1>
         <p className="mt-1 text-ink-500">
-          Messages from the public contact form. Stored securely in your platform data.
+          Messages from the public contact form appear here. Email delivery is disabled for now —
+          submissions are stored in the platform inbox only.
         </p>
       </div>
 

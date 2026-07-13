@@ -2,7 +2,17 @@
 
 Subscription plans, Free auto-activation, usage limits, and payment-ready upgrade flows.
 
-## Architecture notes
+## Plans (list prices)
+
+| Plan | Monthly | Annual (11 months) |
+|------|---------|--------------------|
+| Free | $0 | $0 |
+| Professional | $15 | $165 |
+| Team | $39 | $429 |
+| Enterprise | Custom | Custom |
+
+Annual billing is charged as **11 × monthly** (one month free).
+
 
 - **Live persistence:** Vercel Blob JSON collections (`subscriptions`, `user_usage`, `payment_transactions`, `subscription_events`) via `api/_lib/store.js`.
 - **Plan source of truth:** `api/_lib/billing/plans.js` (server-side only).
