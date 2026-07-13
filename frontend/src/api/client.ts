@@ -179,7 +179,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  adminListUsers: () => request<AdminUserSummary[]>("/admin/users"),
+  adminListUsers: () =>
+    request<AdminUserSummary[]>(`/admin/users?_=${Date.now()}`),
 
   adminGetUser: (id: number) => request<AdminUserSummary>(`/admin/users/${id}`),
 

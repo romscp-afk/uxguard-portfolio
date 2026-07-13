@@ -24,21 +24,34 @@ export function AdminUsersPage() {
   const [query, setQuery] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  async function load() {
-    setLoading(true);
+  async function load(opts?: { quiet?: boolean }) {
+    if (!opts?.quiet) setLoading(true);
     setError("");
     try {
       setUsers(await api.adminListUsers());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not load users.");
     } finally {
-      setLoading(false);
+      if (!opts?.quiet) setLoading(false);
     }
   }
 
   useEffect(() => {
     if (!isAdmin(user)) return;
     void load();
+
+    const onFocus = () => {
+      void load({ quiet: true });
+    };
+    window.addEventListener("focus", onFocus);
+    const timer = window.setInterval(() => {
+      void load({ quiet: true });
+    }, 12000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(timer);
+    };
   }, [user]);
 
   const filtered = useMemo(() => {

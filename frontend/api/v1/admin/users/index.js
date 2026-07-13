@@ -14,6 +14,8 @@ export default withApi(async (req, res) => {
 
   if (req.method === "GET") {
     try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
       const users = await adminListUsers();
       res.status(200).json(users);
     } catch (err) {

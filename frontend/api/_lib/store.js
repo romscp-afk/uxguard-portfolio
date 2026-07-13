@@ -680,20 +680,34 @@ export function registrationBlobPath(userId) {
 /** Durable per-user record so signups survive main-store races across regions. */
 export async function persistRegistrationRecord(user) {
   if (!process.env.BLOB_READ_WRITE_TOKEN || !user?.id) return;
-  await put(registrationBlobPath(user.id), JSON.stringify(user), {
+  const payload = JSON.stringify(user);
+  const options = {
     access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
-  });
+  };
+  await put(registrationBlobPath(user.id), payload, options);
+  const email = String(user.email || "").trim().toLowerCase();
+  if (email) {
+    await put(`${REGISTRATION_PREFIX}email/${encodeURIComponent(email)}.json`, payload, options);
+  }
 }
 
-export async function deleteRegistrationRecord(userId) {
+export async function deleteRegistrationRecord(userId, email) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return;
   try {
     await del(registrationBlobPath(userId));
   } catch {
     // Missing sidecar is fine.
+  }
+  const normalized = String(email || "").trim().toLowerCase();
+  if (normalized) {
+    try {
+      await del(`${REGISTRATION_PREFIX}email/${encodeURIComponent(normalized)}.json`);
+    } catch {
+      // Missing email sidecar is fine.
+    }
   }
 }
 
@@ -701,6 +715,8 @@ export async function listRegistrationRecords() {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return [];
 
   const records = [];
+  const seenEmails = new Set();
+  const seenIds = new Set();
   let cursor;
   do {
     const page = await list({
@@ -710,14 +726,23 @@ export async function listRegistrationRecords() {
     });
     for (const blob of page.blobs || []) {
       try {
-        const result = await get(blob.pathname, {
+        // Prefer downloadUrl/url from list — pathname get() can lag behind put().
+        const target = blob.pathname || blob.url;
+        const result = await get(target, {
           access: "private",
           headers: { "Cache-Control": "no-cache, no-store", Pragma: "no-cache" },
         });
         if (!result?.stream || result.statusCode !== 200) continue;
         const text = await new Response(result.stream).text();
         const user = JSON.parse(text);
-        if (user && typeof user === "object" && user.email) records.push(user);
+        if (!user || typeof user !== "object" || !user.email) continue;
+        const email = String(user.email).trim().toLowerCase();
+        const id = Number(user.id);
+        if (email && seenEmails.has(email)) continue;
+        if (Number.isFinite(id) && seenIds.has(id)) continue;
+        if (email) seenEmails.add(email);
+        if (Number.isFinite(id)) seenIds.add(id);
+        records.push(user);
       } catch (err) {
         console.error("[listRegistrationRecords]", blob.pathname, err);
       }

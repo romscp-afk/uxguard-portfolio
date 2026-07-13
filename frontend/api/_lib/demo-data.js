@@ -116,12 +116,13 @@ export async function registerUser({
   const geo = signup_geo && typeof signup_geo === "object" ? signup_geo : {};
 
   let created = null;
-  await updateStore((store) => {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const after = await updateStore((store) => {
     const id =
       (store.users || []).reduce((max, u) => Math.max(max, Number(u.id) || 0), 0) + 1;
     created = {
       id,
-      email: String(email).trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       username: finalUsername,
       name,
@@ -129,7 +130,7 @@ export async function registerUser({
       bio: null,
       avatar_url: null,
       cover_image_url: null,
-      contact_email: String(email).trim().toLowerCase(),
+      contact_email: normalizedEmail,
       location: geo.signup_location || null,
       signup_location: geo.signup_location || null,
       signup_country: geo.signup_country || null,
@@ -145,6 +146,11 @@ export async function registerUser({
     store.users.push(created);
     return store;
   }, { forceRefresh: true });
+
+  created =
+    (after?.users || []).find(
+      (u) => String(u.email || "").toLowerCase() === normalizedEmail,
+    ) || created;
 
   try {
     await persistRegistrationRecord(created);
