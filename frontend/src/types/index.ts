@@ -144,6 +144,12 @@ export interface Project {
   updated_at: string;
 }
 
+export type PortfolioTheme =
+  | "evidence_lab"
+  | "hiring_signal"
+  | "research_journal"
+  | "impact_gallery";
+
 export interface PortfolioBuilderConfig {
   show_profile: boolean;
   show_projects: boolean;
@@ -153,6 +159,31 @@ export interface PortfolioBuilderConfig {
   show_analytics: boolean;
   case_study_order: number[];
   featured_case_study_ids: number[];
+  /** Public portfolio visual layout */
+  theme?: PortfolioTheme;
+  /** Last applied starter/theme template id */
+  applied_template_id?: string | null;
+}
+
+export type TemplateCategory = "case_study" | "theme" | "starter_kit";
+
+export interface TemplateDefinition {
+  id: string;
+  category: TemplateCategory;
+  name: string;
+  tagline: string;
+  description: string;
+  badge: string;
+  accent: "teal" | "ink" | "amber" | "violet";
+  audience: string;
+  rigorHints: string[];
+  previewSections: string[];
+  theme?: PortfolioTheme;
+  portfolioConfig?: Partial<PortfolioBuilderConfig>;
+  profile?: Partial<Pick<User, "title" | "bio">>;
+  project?: Partial<Project>;
+  caseStudy?: Partial<CaseStudy>;
+  caseStudies?: Partial<CaseStudy>[];
 }
 
 export interface User {

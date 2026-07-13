@@ -7,6 +7,7 @@ import {
   FolderKanban,
   Image,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Mail,
   Palette,
@@ -23,6 +24,7 @@ import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 const ICONS: Record<string, typeof LayoutDashboard> = {
   profile: UserCircle,
   projects: FolderKanban,
+  templates: LayoutTemplate,
   portfolio: Palette,
   "case-studies": FileText,
   media: Image,

@@ -57,6 +57,7 @@ export function dashboardLinksForUser(user?: User | null) {
   const all = [
     { to: "/admin/profile", label: "Professional Profile", section: "profile" },
     { to: "/admin/projects", label: "Projects", section: "projects" },
+    { to: "/admin/templates", label: "Templates", section: "templates" },
     { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
     { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
     { to: "/admin/media", label: "Media Library", section: "media" },
@@ -76,10 +77,10 @@ export function dashboardLinksForUser(user?: User | null) {
 
   const priority =
     intent === "publish_case_studies"
-      ? ["case-studies", "projects", "portfolio", "profile"]
+      ? ["case-studies", "templates", "projects", "portfolio", "profile"]
       : intent === "track_career"
-        ? ["projects", "profile", "portfolio", "case-studies"]
-        : ["portfolio", "profile", "projects", "case-studies"];
+        ? ["projects", "templates", "profile", "portfolio", "case-studies"]
+        : ["templates", "portfolio", "profile", "projects", "case-studies"];
 
   const sorted = [...all].sort((a, b) => {
     const aIndex = priority.indexOf(a.section);

@@ -45,5 +45,7 @@ export function defaultPortfolioConfig() {
     show_analytics: false,
     case_study_order: [],
     featured_case_study_ids: [],
+    theme: "evidence_lab",
+    applied_template_id: null,
   };
 }

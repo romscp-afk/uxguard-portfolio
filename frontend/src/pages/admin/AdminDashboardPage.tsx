@@ -6,6 +6,7 @@ import {
   FileText,
   FolderKanban,
   Globe,
+  LayoutTemplate,
   Palette,
   Sparkles,
   UserCircle,
@@ -73,6 +74,25 @@ export function AdminDashboardPage() {
         </button>
       </div>
 
+      <div className="card mb-8 flex flex-col gap-4 border-ink-200 bg-gradient-to-r from-ink-950 to-ink-800 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brand-300">
+            <LayoutTemplate className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="font-semibold">Templates that feel research-native</h2>
+            <p className="mt-1 max-w-xl text-sm text-ink-300">
+              Evidence Arc scaffolds, recruiter-ready themes, and one-click starter kits — not generic
+              portfolio filler.
+            </p>
+          </div>
+        </div>
+        <Link to="/admin/templates" className="btn-primary shrink-0 bg-brand-500 hover:bg-brand-400">
+          Browse templates
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Projects", value: projects.length, icon: FolderKanban, color: "text-brand-600" },
@@ -98,6 +118,7 @@ export function AdminDashboardPage() {
             const icons: Record<string, typeof UserCircle> = {
               profile: UserCircle,
               projects: FolderKanban,
+              templates: LayoutTemplate,
               portfolio: Palette,
               "case-studies": FileText,
             };

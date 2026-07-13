@@ -32,6 +32,11 @@ export async function updatePortfolioConfigForUser(userId, updates) {
       featured_case_study_ids: Array.isArray(updates.featured_case_study_ids)
         ? updates.featured_case_study_ids
         : current.featured_case_study_ids,
+      theme: updates.theme || current.theme || "evidence_lab",
+      applied_template_id:
+        updates.applied_template_id !== undefined
+          ? updates.applied_template_id
+          : current.applied_template_id ?? null,
     };
 
     store.users[index] = {

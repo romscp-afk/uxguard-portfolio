@@ -23,6 +23,7 @@ import { ContactInboxPage } from "./pages/admin/ContactInboxPage";
 import { ProjectsListPage } from "./pages/admin/ProjectsListPage";
 import { ProjectEditorPage } from "./pages/admin/ProjectEditorPage";
 import { PortfolioBuilderPage } from "./pages/admin/PortfolioBuilderPage";
+import { TemplatesPage } from "./pages/admin/TemplatesPage";
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="projects/new" element={<ProjectEditorPage />} />
             <Route path="projects/:id" element={<ProjectEditorPage />} />
             <Route path="portfolio-builder" element={<PortfolioBuilderPage />} />
+            <Route path="templates" element={<TemplatesPage />} />
             <Route path="case-studies" element={<CaseStudiesListPage />} />
             <Route path="case-studies/new" element={<CaseStudyEditorPage />} />
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Save, Sparkles, Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowDown, ArrowUp, LayoutTemplate, Save, Sparkles, Star } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
+import { themeLabel } from "../../lib/portfolioTemplates";
 import { canEditPlatform } from "../../lib/roles";
-import type { CaseStudyListItem, PortfolioBuilderConfig } from "../../types";
+import type { CaseStudyListItem, PortfolioBuilderConfig, PortfolioTheme } from "../../types";
 
 const DEFAULT_CONFIG: PortfolioBuilderConfig = {
   show_profile: true,
@@ -16,7 +18,16 @@ const DEFAULT_CONFIG: PortfolioBuilderConfig = {
   show_analytics: false,
   case_study_order: [],
   featured_case_study_ids: [],
+  theme: "evidence_lab",
+  applied_template_id: null,
 };
+
+const THEME_OPTIONS: { id: PortfolioTheme; label: string; blurb: string }[] = [
+  { id: "evidence_lab", label: "Evidence Lab", blurb: "Research-first stats + impact stories" },
+  { id: "hiring_signal", label: "Hiring Signal", blurb: "Recruiter-fast, featured work first" },
+  { id: "research_journal", label: "Research Journal", blurb: "Editorial long-form reading" },
+  { id: "impact_gallery", label: "Impact Gallery", blurb: "Visual mosaic of outcomes" },
+];
 
 const SECTION_TOGGLES: { key: keyof PortfolioBuilderConfig; label: string; phase2?: boolean }[] = [
   { key: "show_profile", label: "Professional profile" },
@@ -173,6 +184,10 @@ export function PortfolioBuilderPage() {
           <Sparkles className="h-4 w-4" />
           AI Assistant
         </button>
+        <Link to="/admin/templates" className="btn-secondary">
+          <LayoutTemplate className="h-4 w-4" />
+          Templates
+        </Link>
       </div>
 
       {error ? (
@@ -185,6 +200,42 @@ export function PortfolioBuilderPage() {
           Portfolio settings saved.
         </div>
       ) : null}
+
+      <div className="card mb-6 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-ink-900">Portfolio theme</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Active: {themeLabel(config.theme)}. Themes change how your public page looks — not just
+              which sections show.
+            </p>
+          </div>
+          <Link to="/admin/templates" className="text-sm font-medium text-brand-600 hover:text-brand-500">
+            Browse all templates →
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {THEME_OPTIONS.map((option) => {
+            const active = (config.theme || "evidence_lab") === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                disabled={readOnly}
+                onClick={() => setConfig({ ...config, theme: option.id })}
+                className={`rounded-xl border px-4 py-3 text-left transition ${
+                  active
+                    ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
+                    : "border-ink-100 bg-white hover:border-brand-200"
+                }`}
+              >
+                <p className="text-sm font-semibold text-ink-900">{option.label}</p>
+                <p className="mt-1 text-xs text-ink-500">{option.blurb}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card p-6">

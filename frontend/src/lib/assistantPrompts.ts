@@ -5,6 +5,7 @@ export const QUICK_PROMPTS: Record<AssistantContextType, string[]> = {
     "Help me plan my UX portfolio structure",
     "What makes a strong UX case study?",
     "How do I showcase research impact?",
+    "Which template should I start with?",
   ],
   case_study: [
     "Draft a compelling summary from my notes",
@@ -26,6 +27,7 @@ export const QUICK_PROMPTS: Record<AssistantContextType, string[]> = {
     "Which case studies should I feature first?",
     "How should I order my portfolio sections?",
     "Give me tips to make my public portfolio stand out",
+    "Which portfolio theme fits a job search?",
   ],
 };
 
