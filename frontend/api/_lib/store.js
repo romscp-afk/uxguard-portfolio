@@ -1,4 +1,4 @@
-import { get, put, list, del, BlobPreconditionFailedError } from "@vercel/blob";
+import { get, put, list, del, head, BlobPreconditionFailedError } from "@vercel/blob";
 import { defaultPortfolioConfig } from "./roles.js";
 
 function normalizeMediaAssetUrl(url, assetId) {
@@ -318,12 +318,14 @@ function isMissingBlobError(error) {
 }
 
 function isPreconditionFailed(error) {
+  const message = String(error?.message || error || "").toLowerCase();
   return (
     error instanceof BlobPreconditionFailedError ||
     error?.name === "BlobPreconditionFailedError" ||
     error?.status === 412 ||
     error?.statusCode === 412 ||
-    String(error?.message || "").toLowerCase().includes("precondition")
+    message.includes("precondition") ||
+    message.includes("etag mismatch")
   );
 }
 
@@ -331,11 +333,24 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function readStoreEtag() {
+  try {
+    const meta = await head(STORE_PATH);
+    return meta?.etag || null;
+  } catch (error) {
+    if (isMissingBlobError(error)) return null;
+    throw error;
+  }
+}
+
 /**
- * Load platform JSON + ETag. Sends no-cache headers because Blob get()'s useCache
- * flag is ignored by the backend — stale regional reads caused lost registrations.
+ * Load platform JSON + ETag.
+ * Prefer head() for the ETag — get() can return a cached body/etag that no longer
+ * matches the live blob, which makes every ifMatch put fail with 412.
  */
 async function loadFromBlobWithMeta() {
+  const headEtag = await readStoreEtag();
+
   const result = await get(STORE_PATH, {
     access: "private",
     headers: {
@@ -352,7 +367,7 @@ async function loadFromBlobWithMeta() {
 
   if (result.statusCode === 304) {
     if (memoryStore) {
-      return { data: structuredClone(memoryStore), etag: result.blob?.etag || null };
+      return { data: structuredClone(memoryStore), etag: headEtag || result.blob?.etag || null };
     }
     const error = new Error("Platform store not found");
     error.name = "BlobNotFoundError";
@@ -366,7 +381,28 @@ async function loadFromBlobWithMeta() {
   }
 
   const text = await new Response(result.stream).text();
-  return { data: JSON.parse(text), etag: result.blob?.etag || null };
+  const getEtag = result.blob?.etag || null;
+
+  // If head and get disagree, wait briefly and re-get once so body is closer to live etag.
+  if (headEtag && getEtag && headEtag !== getEtag) {
+    await sleep(75);
+    const retry = await get(STORE_PATH, {
+      access: "private",
+      headers: {
+        "Cache-Control": "no-cache, no-store",
+        Pragma: "no-cache",
+      },
+    });
+    if (retry?.statusCode === 200 && retry.stream) {
+      const retryText = await new Response(retry.stream).text();
+      return {
+        data: JSON.parse(retryText),
+        etag: headEtag,
+      };
+    }
+  }
+
+  return { data: JSON.parse(text), etag: headEtag || getEtag };
 }
 
 async function loadFromBlob() {
@@ -556,14 +592,15 @@ function mergeStoresForWrite(localStore, remote, deleted) {
   };
 }
 
-async function putStore(toWrite, etag) {
+async function putStore(toWrite, etag, { requireMatch = true } = {}) {
   const options = {
     access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
   };
-  if (etag) options.ifMatch = etag;
+  // Only attach ifMatch when we have a live etag and still want CAS.
+  if (requireMatch && etag) options.ifMatch = etag;
   return put(STORE_PATH, JSON.stringify(toWrite), options);
 }
 
@@ -590,10 +627,19 @@ export async function writeStore(store) {
       if (!isMissingBlobError(error)) throw error;
     }
 
+    // Refresh etag from head immediately before put — get() alone is often stale.
+    try {
+      etag = (await readStoreEtag()) || etag;
+    } catch {
+      // keep previous etag
+    }
+
     const toWrite = remote ? mergeStoresForWrite(store, remote, deleted) : store;
+    // Last attempts: overwrite without ifMatch so admin delete/save cannot soft-lock.
+    const requireMatch = Boolean(etag) && attempt < WRITE_MAX_ATTEMPTS - 1;
 
     try {
-      const result = await putStore(toWrite, etag);
+      const result = await putStore(toWrite, etag, { requireMatch });
       memoryStore = toWrite;
       slot.current = toWrite;
       slot.writtenAt = Date.now();
@@ -602,7 +648,7 @@ export async function writeStore(store) {
     } catch (error) {
       lastError = error;
       if (!isPreconditionFailed(error) || attempt === WRITE_MAX_ATTEMPTS) throw error;
-      await sleep(30 * attempt);
+      await sleep(40 * attempt);
     }
   }
 
@@ -610,33 +656,21 @@ export async function writeStore(store) {
 }
 
 export async function updateStore(updater, options = {}) {
-  let lastError = null;
+  // writeStore already retries CAS conflicts; avoid nested 8x8 loops.
+  const current = await readStore({ ...options, forceRefresh: true });
+  const draft = structuredClone(current);
+  const next = updater(draft);
+  const resolved = next && typeof next === "object" ? next : draft;
 
-  for (let attempt = 1; attempt <= WRITE_MAX_ATTEMPTS; attempt++) {
-    // Always re-read from Blob on write attempts so regional isolates see each other.
-    const current = await readStore({ ...options, forceRefresh: true });
-    const draft = structuredClone(current);
-    const next = updater(draft);
-    const resolved = next && typeof next === "object" ? next : draft;
-
-    if (resolved.__uxguardSkipWrite) {
-      delete resolved.__uxguardSkipWrite;
-      memoryStore = resolved;
-      getMemoryStore().current = resolved;
-      return resolved;
-    }
-
-    try {
-      await writeStore(resolved);
-      return getMemoryStore().current || resolved;
-    } catch (error) {
-      lastError = error;
-      if (!isPreconditionFailed(error) || attempt === WRITE_MAX_ATTEMPTS) throw error;
-      await sleep(30 * attempt);
-    }
+  if (resolved.__uxguardSkipWrite) {
+    delete resolved.__uxguardSkipWrite;
+    memoryStore = resolved;
+    getMemoryStore().current = resolved;
+    return resolved;
   }
 
-  throw lastError || new Error("Could not update platform store");
+  await writeStore(resolved);
+  return getMemoryStore().current || resolved;
 }
 
 export function registrationBlobPath(userId) {
