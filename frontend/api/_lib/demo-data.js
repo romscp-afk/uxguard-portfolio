@@ -207,11 +207,14 @@ export function toListItem(cs, likeCount = 0) {
 export async function getFeedItems(limit) {
   const store = await readStore();
   const likeCounts = likeCountsByCaseStudy(store);
-  const items = store.caseStudies
-    .filter((cs) => cs.status === "published")
-    .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+  const users = store.users || [];
+  const studies = Array.isArray(store.caseStudies) ? store.caseStudies : [];
+
+  const items = studies
+    .filter((cs) => cs && cs.status === "published")
+    .sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))
     .map((cs) => {
-      const author = store.users.find((u) => u.id === cs.author_id);
+      const author = users.find((u) => Number(u.id) === Number(cs.author_id));
       if (!author) return null;
       return {
         ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
