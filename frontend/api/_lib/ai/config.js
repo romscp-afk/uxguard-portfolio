@@ -46,6 +46,7 @@ export const ASSISTANT_TYPES = new Set([
 ]);
 
 export function getOpenAiModel() {
+  // Free/trial accounts may only allow certain models — override with OPENAI_MODEL in Vercel.
   return process.env.OPENAI_MODEL || process.env.AI_MODEL || "gpt-4o-mini";
 }
 
