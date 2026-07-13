@@ -10,7 +10,7 @@ export function AdminLoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: string })?.from || "/admin";
 
-  const [email, setEmail] = useState("demo@uxguard.io");
+  const [email, setEmail] = useState("admin@uxguard.io");
   const [password, setPassword] = useState("demo1234");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -94,7 +94,7 @@ export function AdminLoginPage() {
           </p>
 
           <p className="mt-4 text-center text-xs text-ink-400">
-            Demo: demo@uxguard.io / demo1234
+            Try admin@uxguard.io or demo@uxguard.io / demo1234
           </p>
         </form>
 

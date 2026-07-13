@@ -24,7 +24,8 @@ export async function getUserByUsername(username) {
 
 export async function getUserByEmail(email) {
   const store = await readStore();
-  return store.users.find((u) => u.email === email) || null;
+  const needle = String(email || "").trim().toLowerCase();
+  return store.users.find((u) => String(u.email || "").toLowerCase() === needle) || null;
 }
 
 function slugify(text) {

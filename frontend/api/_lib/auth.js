@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { getUserByEmail, getUserById } from "./demo-data.js";
+import { verifyPassword } from "./passwords.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "uxguard-vercel-demo-secret";
 
@@ -54,9 +55,27 @@ export function requireAuth(req) {
   return verifyToken(auth.slice(7));
 }
 
+/** Production emails drifted during launch prep; accept common aliases. */
+const EMAIL_ALIASES = {
+  "demo@uxguard.io": ["admin@uxguard.io", "alex@uxguard.io"],
+  "admin@uxguard.io": ["demo@uxguard.io"],
+  "alex@uxguard.io": ["demo@uxguard.io", "admin@uxguard.io"],
+};
+
 export async function checkLogin(email, password) {
-  const user = await getUserByEmail(email);
-  return user && user.password === password ? user : null;
+  const needle = String(email || "").trim().toLowerCase();
+  if (!needle || !password) return null;
+
+  let user = await getUserByEmail(needle);
+  if (!user) {
+    for (const alt of EMAIL_ALIASES[needle] || []) {
+      user = await getUserByEmail(alt);
+      if (user) break;
+    }
+  }
+
+  if (!user || !verifyPassword(password, user.password)) return null;
+  return user;
 }
 
 export async function getAuthUser(req) {
