@@ -178,7 +178,7 @@ export function HomePage() {
                 { icon: MessageSquare, title: "Community", desc: "Follow peers, leave feedback, get alerts on new work" },
                 { icon: Users, title: "Discover", desc: "Explore evidence-driven case studies worldwide" },
                 { icon: FileText, title: "Case studies", desc: "Tell the full story—not just final screens" },
-                { icon: Sparkles, title: "Grow", desc: "Track achievements and build career readiness" },
+                { icon: Sparkles, title: "UXGuard AI", desc: "Draft case studies, research notes, and portfolio reviews" },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="card p-5">
                   <Icon className="h-5 w-5 text-brand-600" />

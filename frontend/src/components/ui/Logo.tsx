@@ -29,7 +29,7 @@ function Wordmark({ theme, showTagline }: { theme: "light" | "dark"; showTagline
             theme === "dark" ? "text-ink-400" : "text-ink-500"
           }`}
         >
-          Portfolio Management System
+          Professional Experience Platform
         </p>
       ) : null}
     </div>

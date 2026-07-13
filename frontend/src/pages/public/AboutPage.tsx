@@ -27,66 +27,73 @@ const BELIEFS = [
   "Communities grow stronger when knowledge is shared.",
 ] as const;
 
-/** Features available at public launch */
+/**
+ * Available today at launch (real admin + public routes).
+ * Not yet live: Resume Builder, Career Timeline, Achievements, Portfolio Analytics.
+ */
 const LIVE_NOW = [
   {
-    title: "Public portfolio & profile",
-    desc: "Shareable /u/username page for recruiters and hiring managers.",
+    title: "Professional Profile",
+    desc: "Bio, skills, links, and CV upload — published on your shareable /u/username page.",
   },
   {
-    title: "Case study studio",
-    desc: "Draft, structure, and publish evidence-driven UX stories.",
+    title: "Projects",
+    desc: "Create and organize professional work that feeds your public portfolio.",
   },
   {
-    title: "Projects & portfolio builder",
-    desc: "Organize work, themes, and featured case studies in one place.",
+    title: "Portfolio Builder",
+    desc: "Choose themes, feature case studies, and control what appears on your public site.",
+  },
+  {
+    title: "Case Studies",
+    desc: "Draft, preview, and publish evidence-driven UX stories from the case study studio.",
   },
   {
     title: "UXGuard AI",
-    desc: "Case Study Builder, Research Assistant, Documentation, and Portfolio Reviewer.",
+    desc: "AI hub (Case Study, Research, Documentation, Portfolio Review) plus in-app assistant.",
   },
   {
-    title: "Research-native templates",
-    desc: "Starter kits and scaffolds built for UX evidence storytelling.",
+    title: "Templates",
+    desc: "Research-native Evidence Arc scaffolds — not generic website themes.",
+  },
+  {
+    title: "Media Library",
+    desc: "Upload and reuse images and assets across profile, projects, and case studies.",
   },
   {
     title: "Discover & community",
-    desc: "Browse published work, follow professionals, and stay in the loop.",
+    desc: "Browse published work, follow professionals, search, like, and comment.",
   },
   {
-    title: "Free plan to start",
-    desc: "No card required — create your profile and portfolio immediately after signup.",
-  },
-  {
-    title: "Plans that grow with you",
-    desc: "Upgrade to Professional or Team when you need more case studies and AI credits.",
+    title: "Billing",
+    desc: "Free plan with no card, then self-serve upgrade to Professional or Team.",
   },
 ] as const;
 
 const COMING_SOON = [
-  { name: "Resume Builder", desc: "Export recruiter-ready resumes from your portfolio data." },
+  { name: "Resume Builder", desc: "Generate recruiter-ready resumes from your portfolio data." },
   { name: "Career Timeline", desc: "Map roles, milestones, and growth over time." },
-  { name: "Achievements & analytics", desc: "Track impact metrics and portfolio performance." },
-  { name: "UXGuard Experts", desc: "Professional UX, product, and research services." },
-  { name: "Marketplace", desc: "Hire trusted UX and product professionals." },
-  { name: "Academy", desc: "Courses, certifications, and mentoring." },
+  { name: "Achievement Tracking", desc: "Capture wins and impact milestones as career evidence." },
+  { name: "Portfolio Analytics", desc: "Views, engagement, and portfolio performance dashboards." },
+  { name: "Interview prep", desc: "Practice narratives and talking points from your case studies." },
+  { name: "Experts, Marketplace & Academy", desc: "Services, hiring, courses, and mentoring — later phases." },
 ] as const;
 
 const LAUNCH_PLANS = [
   {
     name: "Free",
     price: "$0",
-    detail: "1 portfolio · 2 case studies · 10 AI credits / month · no payment method",
+    detail: "1 portfolio · 2 case studies · 10 AI credits / mo · 500 MB · no payment method",
   },
   {
     name: "Professional",
     price: "$15/mo",
-    detail: "Unlimited case studies · 200 AI credits · advanced tools · or $165/yr",
+    detail: "Unlimited case studies · 200 AI credits · 10 GB · private projects · or $165/yr",
   },
   {
     name: "Team",
     price: "$39/mo",
-    detail: "Shared workspace · 600 AI credits · up to 5 members · or $429/yr",
+    detail: "Up to 5 members · 600 AI credits · 100 GB · shared workspace · or $429/yr",
   },
 ] as const;
 
@@ -202,9 +209,8 @@ export function AboutPage() {
             <span className="block text-brand-200">Professional Legacies.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-50/90">
-            UXGuard Studio is the career and portfolio workspace for UX professionals — publish evidence-driven
-            case studies, use AI built for research storytelling, and grow from Free to Professional when you are
-            ready.
+            Live now: public portfolios, case study studio, projects, research-native templates, UXGuard AI, Discover,
+            and Free → Professional → Team billing — so UX professionals can publish evidence, not just screenshots.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             {BRAND_PILLARS.map((pillar) => (
@@ -282,17 +288,17 @@ export function AboutPage() {
             </div>
             <div className="card p-8 lg:col-span-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">At launch</p>
-              <p className="mt-3 font-display text-xl font-bold text-ink-950">Portfolio + AI workspace</p>
+              <p className="mt-3 font-display text-xl font-bold text-ink-950">What ships today</p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">
-                Create your profile, publish case studies, apply research-native templates, and draft with UXGuard
-                AI — starting on the Free plan with no payment method required.
+                Professional Profile, Projects, Portfolio Builder, Case Studies, Templates, Media Library, UXGuard AI,
+                Discover, and Billing. Resume Builder, Career Timeline, Achievements, and Analytics come next.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3 lg:col-span-12">
               {[
-                { icon: Bot, label: "UXGuard AI", detail: "Four guided assistants for case studies, research, docs, and reviews" },
-                { icon: LayoutTemplate, label: "Templates", detail: "Evidence Arc scaffolds and recruiter-ready themes" },
-                { icon: CreditCard, label: "Simple plans", detail: "Free → Professional → Team as your career grows" },
+                { icon: Bot, label: "UXGuard AI", detail: "AI hub + in-app assistant for case studies, research, docs, and reviews" },
+                { icon: LayoutTemplate, label: "Templates & studio", detail: "Evidence Arc templates, case study editor, and portfolio builder" },
+                { icon: CreditCard, label: "Launch plans", detail: "Free $0 · Pro $15/mo · Team $39/mo — upgrade when you need capacity" },
               ].map(({ icon: Icon, label, detail }) => (
                 <div key={label} className="card p-5">
                   <Icon className="h-5 w-5 text-brand-600" />
@@ -397,8 +403,8 @@ export function AboutPage() {
             <span className="text-white">What&apos;s Live at Launch</span>
           </SectionLabel>
           <p className="-mt-4 mb-10 max-w-2xl text-ink-300">
-            Everything below is available today. Start on Free, then upgrade when you need more case studies and AI
-            capacity.
+            Only the left column is available today. Resume Builder, Career Timeline, Achievement Tracking, and
+            Portfolio Analytics are Phase 2 — listed under Coming next, not as live product.
           </p>
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="rounded-2xl border border-brand-500/30 bg-brand-600/20 p-6 lg:col-span-3">
@@ -542,9 +548,9 @@ export function AboutPage() {
                   transforming experience into evidence, and evidence into opportunity.
                 </p>
                 <p>
-                  Today we launch with portfolios, case studies, research-native templates, and UXGuard AI —
-                  available on a Free plan so anyone can start without a payment method. Paid plans unlock more
-                  capacity when you need it.
+                  Today we launch with Professional Profile, Projects, Portfolio Builder, Case Studies, Templates,
+                  Media Library, UXGuard AI, Discover, and Free / Professional / Team billing. Resume Builder, Career
+                  Timeline, Achievements, and Portfolio Analytics are next — not claimed as live today.
                 </p>
                 <p className="font-medium text-ink-800">
                   Great work deserves to be seen. Great research deserves to be preserved. Great professionals
@@ -574,8 +580,8 @@ export function AboutPage() {
             <div>
               <SectionLabel n="09">Looking Ahead</SectionLabel>
               <p className="-mt-4 text-lg leading-relaxed text-ink-600">
-                Launch is the beginning. Next we deepen career tools — resume builder, timeline, analytics — and
-                grow services, learning, and collaboration for UX teams worldwide.
+                Next up: Resume Builder, Career Timeline, Achievement Tracking, and Portfolio Analytics — then Experts,
+                Marketplace, and Academy.
               </p>
             </div>
             <div>
