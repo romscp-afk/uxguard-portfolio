@@ -197,6 +197,10 @@ export interface User {
   cover_image_url?: string;
   contact_email?: string;
   location?: string;
+  signup_location?: string | null;
+  signup_country?: string | null;
+  signup_city?: string | null;
+  signup_region?: string | null;
   cv_url?: string;
   social_links?: Record<string, string>;
   role: "admin" | "professional" | "viewer" | string;

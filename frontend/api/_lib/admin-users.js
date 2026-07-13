@@ -1,4 +1,10 @@
-import { readStore, updateStore } from "./store.js";
+import {
+  readStore,
+  updateStore,
+  listRegistrationRecords,
+  deleteRegistrationRecord,
+  persistRegistrationRecord,
+} from "./store.js";
 import { sanitizeUserMediaFields } from "./media.js";
 import { defaultPortfolioConfig, normalizeRole } from "./roles.js";
 
@@ -31,6 +37,10 @@ function toAdminUserOut(user, store) {
     cover_image_url: rest.cover_image_url || null,
     contact_email: rest.contact_email || null,
     location: rest.location || null,
+    signup_location: rest.signup_location || null,
+    signup_country: rest.signup_country || null,
+    signup_city: rest.signup_city || null,
+    signup_region: rest.signup_region || null,
     cv_url: rest.cv_url || null,
     social_links: rest.social_links && typeof rest.social_links === "object" ? rest.social_links : {},
     role: normalizeRole(rest.role),
@@ -49,13 +59,81 @@ function toAdminUserOut(user, store) {
   };
 }
 
+async function repairUsersFromRegistrationRecords(storeUsers) {
+  let records = [];
+  try {
+    records = await listRegistrationRecords();
+  } catch (err) {
+    console.error("[adminListUsers] registration scan failed", err);
+    return storeUsers;
+  }
+  if (!records.length) return storeUsers;
+
+  const byId = new Map(storeUsers.map((u) => [Number(u.id), u]));
+  const byEmail = new Map(
+    storeUsers.map((u) => [String(u.email || "").toLowerCase(), u]),
+  );
+  const missing = [];
+
+  for (const record of records) {
+    const id = Number(record.id);
+    const email = String(record.email || "").toLowerCase();
+    if ((Number.isFinite(id) && byId.has(id)) || (email && byEmail.has(email))) continue;
+    missing.push(record);
+  }
+
+  if (!missing.length) return storeUsers;
+
+  await updateStore((store) => {
+    const existingIds = new Set((store.users || []).map((u) => Number(u.id)));
+    const existingEmails = new Set(
+      (store.users || []).map((u) => String(u.email || "").toLowerCase()),
+    );
+    let nextId =
+      (store.users || []).reduce((max, u) => Math.max(max, Number(u.id) || 0), 0) + 1;
+
+    for (const record of missing) {
+      const email = String(record.email || "").toLowerCase();
+      if (email && existingEmails.has(email)) continue;
+
+      let id = Number(record.id);
+      if (!Number.isFinite(id) || existingIds.has(id)) {
+        id = nextId;
+        nextId += 1;
+      }
+
+      const restored = { ...record, id };
+      store.users.push(restored);
+      existingIds.add(id);
+      if (email) existingEmails.add(email);
+
+      persistRegistrationRecord(restored).catch((err) => {
+        console.error("[adminListUsers] re-persist registration", err);
+      });
+    }
+    return store;
+  }, { forceRefresh: true });
+
+  const refreshed = await readStore({ forceRefresh: true });
+  return refreshed.users || [];
+}
+
 /** Always reload from Blob so newly registered accounts appear across isolates. */
 export async function adminListUsers() {
   const store = await readStore({ forceRefresh: true });
-  return (store.users || [])
+  let users = store.users || [];
+
+  try {
+    users = await repairUsersFromRegistrationRecords(users);
+  } catch (err) {
+    console.error("[adminListUsers] repair failed", err);
+  }
+
+  const latest = await readStore({ forceRefresh: true });
+  return (latest.users || users)
     .map((user) => {
       try {
-        return toAdminUserOut(user, store);
+        return toAdminUserOut(user, latest);
       } catch (err) {
         console.error("[adminListUsers] skip user", user?.id, err);
         return null;
@@ -251,6 +329,8 @@ export async function adminDeleteUser(userId, actorId) {
 
     return store;
   }, { forceRefresh: true });
+
+  await deleteRegistrationRecord(uid);
 
   return { ok: true, id: uid };
 }

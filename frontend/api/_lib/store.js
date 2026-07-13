@@ -1,4 +1,4 @@
-import { get, put } from "@vercel/blob";
+import { get, put, list, del, BlobPreconditionFailedError } from "@vercel/blob";
 import { defaultPortfolioConfig } from "./roles.js";
 
 function normalizeMediaAssetUrl(url, assetId) {
@@ -9,6 +9,8 @@ function normalizeMediaAssetUrl(url, assetId) {
 }
 
 const STORE_PATH = "uxguard/platform-store.json";
+const REGISTRATION_PREFIX = "uxguard/registrations/";
+const WRITE_MAX_ATTEMPTS = 8;
 
 const SEED_USERS = [
   {
@@ -315,10 +317,31 @@ function isMissingBlobError(error) {
   );
 }
 
-async function loadFromBlob() {
+function isPreconditionFailed(error) {
+  return (
+    error instanceof BlobPreconditionFailedError ||
+    error?.name === "BlobPreconditionFailedError" ||
+    error?.status === 412 ||
+    error?.statusCode === 412 ||
+    String(error?.message || "").toLowerCase().includes("precondition")
+  );
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Load platform JSON + ETag. Sends no-cache headers because Blob get()'s useCache
+ * flag is ignored by the backend — stale regional reads caused lost registrations.
+ */
+async function loadFromBlobWithMeta() {
   const result = await get(STORE_PATH, {
     access: "private",
-    useCache: false,
+    headers: {
+      "Cache-Control": "no-cache, no-store",
+      Pragma: "no-cache",
+    },
   });
 
   if (!result) {
@@ -329,9 +352,8 @@ async function loadFromBlob() {
 
   if (result.statusCode === 304) {
     if (memoryStore) {
-      return structuredClone(memoryStore);
+      return { data: structuredClone(memoryStore), etag: result.blob?.etag || null };
     }
-
     const error = new Error("Platform store not found");
     error.name = "BlobNotFoundError";
     throw error;
@@ -344,7 +366,12 @@ async function loadFromBlob() {
   }
 
   const text = await new Response(result.stream).text();
-  return JSON.parse(text);
+  return { data: JSON.parse(text), etag: result.blob?.etag || null };
+}
+
+async function loadFromBlob() {
+  const { data } = await loadFromBlobWithMeta();
+  return data;
 }
 
 export async function readStore(options = {}) {
@@ -358,7 +385,7 @@ export async function readStore(options = {}) {
       !forceRefresh &&
       slot.current &&
       typeof slot.writtenAt === "number" &&
-      Date.now() - slot.writtenAt < 8000;
+      Date.now() - slot.writtenAt < 2000;
 
     if (freshlyWritten) {
       memoryStore = slot.current;
@@ -366,10 +393,11 @@ export async function readStore(options = {}) {
     }
 
     try {
-      const data = await loadFromBlob();
+      const { data, etag } = await loadFromBlobWithMeta();
       memoryStore = normalizeLoadedStore(data);
       slot.current = memoryStore;
       slot.writtenAt = 0;
+      slot.etag = etag;
       return structuredClone(memoryStore);
     } catch (error) {
       if (isMissingBlobError(error)) {
@@ -435,12 +463,21 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = [], deletedIds
   );
   const seen = new Set();
   const merged = [];
+  const relocated = [];
 
   for (const localUser of localUsers) {
     const id = Number(localUser.id);
     if (!Number.isFinite(id) || deleted.has(id)) continue;
-    seen.add(id);
     const remoteUser = remoteById.get(id);
+    if (
+      remoteUser &&
+      String(remoteUser.email || "").toLowerCase() !== String(localUser.email || "").toLowerCase()
+    ) {
+      // Same numeric id, different person (cross-region race) — keep remote, re-home local later.
+      relocated.push(localUser);
+      continue;
+    }
+    seen.add(id);
     if (!remoteUser) {
       merged.push({
         ...localUser,
@@ -463,15 +500,21 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = [], deletedIds
     const id = Number(remoteUser.id);
     if (!Number.isFinite(id) || deleted.has(id) || seen.has(id)) continue;
     merged.push(remoteUser);
+    seen.add(id);
+  }
+
+  let nextId = merged.reduce((max, u) => Math.max(max, Number(u.id) || 0), 0) + 1;
+  for (const localUser of relocated) {
+    const email = String(localUser.email || "").toLowerCase();
+    const existing = merged.find((u) => String(u.email || "").toLowerCase() === email);
+    if (existing) continue;
+    merged.push({ ...localUser, id: nextId });
+    nextId += 1;
   }
 
   return merged;
 }
 
-/**
- * Before overwriting Blob, merge collections that concurrent isolates often race on.
- * Prevents billing/usage writes from dropping newly uploaded media assets or profile media URLs.
- */
 function takeDeletionMarkers(store) {
   const markers = store?.__uxguardDeleted && typeof store.__uxguardDeleted === "object"
     ? store.__uxguardDeleted
@@ -487,59 +530,123 @@ function takeDeletionMarkers(store) {
   };
 }
 
-async function mergeWithRemoteBeforeWrite(localStore) {
-  const deleted = takeDeletionMarkers(localStore);
-  try {
-    const remote = await loadFromBlob();
-    return {
-      ...localStore,
-      mediaAssets: mergeByNumericId(
-        remote.mediaAssets || [],
-        localStore.mediaAssets || [],
-        deleted.mediaAssets,
-      ),
-      users: mergeUsersPreservingMedia(
-        remote.users || [],
-        localStore.users || [],
-        deleted.users,
-      ),
-      caseStudies: mergeByNumericId(
-        remote.caseStudies || [],
-        localStore.caseStudies || [],
-        deleted.caseStudies,
-      ),
-      projects: mergeByNumericId(
-        remote.projects || [],
-        localStore.projects || [],
-        deleted.projects,
-      ),
-    };
-  } catch (error) {
-    if (isMissingBlobError(error)) return localStore;
-    // If remote cannot be read, still write local — better than blocking saves.
-    return localStore;
-  }
+function mergeStoresForWrite(localStore, remote, deleted) {
+  return {
+    ...localStore,
+    mediaAssets: mergeByNumericId(
+      remote.mediaAssets || [],
+      localStore.mediaAssets || [],
+      deleted.mediaAssets,
+    ),
+    users: mergeUsersPreservingMedia(
+      remote.users || [],
+      localStore.users || [],
+      deleted.users,
+    ),
+    caseStudies: mergeByNumericId(
+      remote.caseStudies || [],
+      localStore.caseStudies || [],
+      deleted.caseStudies,
+    ),
+    projects: mergeByNumericId(
+      remote.projects || [],
+      localStore.projects || [],
+      deleted.projects,
+    ),
+  };
+}
+
+async function putStore(toWrite, etag) {
+  const options = {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  };
+  if (etag) options.ifMatch = etag;
+  return put(STORE_PATH, JSON.stringify(toWrite), options);
 }
 
 export async function writeStore(store) {
-  let toWrite = store;
-
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    toWrite = await mergeWithRemoteBeforeWrite(store);
-  } else {
-    takeDeletionMarkers(toWrite);
-  }
-
-  memoryStore = toWrite;
+  const deleted = takeDeletionMarkers(store);
   const slot = getMemoryStore();
-  slot.current = toWrite;
-  slot.writtenAt = Date.now();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return;
+    memoryStore = store;
+    slot.current = store;
+    slot.writtenAt = Date.now();
+    return store;
   }
 
-  await put(STORE_PATH, JSON.stringify(toWrite), {
+  let lastError = null;
+  for (let attempt = 1; attempt <= WRITE_MAX_ATTEMPTS; attempt++) {
+    let remote = null;
+    let etag = null;
+    try {
+      const loaded = await loadFromBlobWithMeta();
+      remote = loaded.data;
+      etag = loaded.etag;
+    } catch (error) {
+      if (!isMissingBlobError(error)) throw error;
+    }
+
+    const toWrite = remote ? mergeStoresForWrite(store, remote, deleted) : store;
+
+    try {
+      const result = await putStore(toWrite, etag);
+      memoryStore = toWrite;
+      slot.current = toWrite;
+      slot.writtenAt = Date.now();
+      slot.etag = result?.etag || null;
+      return toWrite;
+    } catch (error) {
+      lastError = error;
+      if (!isPreconditionFailed(error) || attempt === WRITE_MAX_ATTEMPTS) throw error;
+      await sleep(30 * attempt);
+    }
+  }
+
+  throw lastError || new Error("Could not persist platform store");
+}
+
+export async function updateStore(updater, options = {}) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= WRITE_MAX_ATTEMPTS; attempt++) {
+    // Always re-read from Blob on write attempts so regional isolates see each other.
+    const current = await readStore({ ...options, forceRefresh: true });
+    const draft = structuredClone(current);
+    const next = updater(draft);
+    const resolved = next && typeof next === "object" ? next : draft;
+
+    if (resolved.__uxguardSkipWrite) {
+      delete resolved.__uxguardSkipWrite;
+      memoryStore = resolved;
+      getMemoryStore().current = resolved;
+      return resolved;
+    }
+
+    try {
+      await writeStore(resolved);
+      return getMemoryStore().current || resolved;
+    } catch (error) {
+      lastError = error;
+      if (!isPreconditionFailed(error) || attempt === WRITE_MAX_ATTEMPTS) throw error;
+      await sleep(30 * attempt);
+    }
+  }
+
+  throw lastError || new Error("Could not update platform store");
+}
+
+export function registrationBlobPath(userId) {
+  return `${REGISTRATION_PREFIX}${Number(userId)}.json`;
+}
+
+/** Durable per-user record so signups survive main-store races across regions. */
+export async function persistRegistrationRecord(user) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN || !user?.id) return;
+  await put(registrationBlobPath(user.id), JSON.stringify(user), {
     access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
@@ -547,22 +654,44 @@ export async function writeStore(store) {
   });
 }
 
-export async function updateStore(updater, options = {}) {
-  const current = await readStore(options);
-  const draft = structuredClone(current);
-  const next = updater(draft);
-  const resolved = next && typeof next === "object" ? next : draft;
-
-  // Skip no-op writes (e.g. ensureFreeSubscription when already provisioned)
-  if (resolved.__uxguardSkipWrite) {
-    delete resolved.__uxguardSkipWrite;
-    memoryStore = resolved;
-    getMemoryStore().current = resolved;
-    return resolved;
+export async function deleteRegistrationRecord(userId) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  try {
+    await del(registrationBlobPath(userId));
+  } catch {
+    // Missing sidecar is fine.
   }
+}
 
-  await writeStore(resolved);
-  return resolved;
+export async function listRegistrationRecords() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return [];
+
+  const records = [];
+  let cursor;
+  do {
+    const page = await list({
+      prefix: REGISTRATION_PREFIX,
+      cursor,
+      limit: 1000,
+    });
+    for (const blob of page.blobs || []) {
+      try {
+        const result = await get(blob.pathname, {
+          access: "private",
+          headers: { "Cache-Control": "no-cache, no-store", Pragma: "no-cache" },
+        });
+        if (!result?.stream || result.statusCode !== 200) continue;
+        const text = await new Response(result.stream).text();
+        const user = JSON.parse(text);
+        if (user && typeof user === "object" && user.email) records.push(user);
+      } catch (err) {
+        console.error("[listRegistrationRecords]", blob.pathname, err);
+      }
+    }
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+
+  return records;
 }
 
 export function isPersistentStoreEnabled() {

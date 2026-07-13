@@ -136,7 +136,7 @@ export function AdminUserDetailPage() {
                 })
               : "—"}
             {" · "}
-            {form.location?.trim() || "No location set"}
+            {form.signup_location?.trim() || form.location?.trim() || "No location set"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

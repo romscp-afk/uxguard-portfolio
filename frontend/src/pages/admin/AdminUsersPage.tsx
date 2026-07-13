@@ -45,7 +45,7 @@ export function AdminUsersPage() {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) =>
-      [u.name, u.email, u.username, u.role, u.title, u.location]
+      [u.name, u.email, u.username, u.role, u.title, u.location, u.signup_location, u.signup_country]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q)),
     );
@@ -166,8 +166,14 @@ export function AdminUsersPage() {
                       <span className="text-ink-400">—</span>
                     )}
                   </td>
-                  <td className="max-w-[10rem] truncate px-4 py-4 text-ink-600">
-                    {row.location?.trim() || <span className="text-ink-400">—</span>}
+                  <td className="max-w-[12rem] px-4 py-4 text-ink-600">
+                    {row.signup_location?.trim() || row.location?.trim() ? (
+                      <span className="line-clamp-2" title={row.signup_location || row.location || ""}>
+                        {row.signup_location?.trim() || row.location?.trim()}
+                      </span>
+                    ) : (
+                      <span className="text-ink-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-4 capitalize text-ink-600">{row.role}</td>
                   <td className="px-4 py-4 text-ink-500">

@@ -1,5 +1,5 @@
 import { signToken } from "../../_lib/auth.js";
-import { registerUser, toUserOut } from "../../_lib/demo-data.js";
+import { registerUser, signupGeoFromRequest, toUserOut } from "../../_lib/demo-data.js";
 import { withApi } from "../../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
@@ -10,7 +10,16 @@ export default withApi(async (req, res) => {
 
   try {
     const { email, password, name, username, title, role, onboarding_intent } = req.body || {};
-    const result = await registerUser({ email, password, name, username, title, role, onboarding_intent });
+    const result = await registerUser({
+      email,
+      password,
+      name,
+      username,
+      title,
+      role,
+      onboarding_intent,
+      signup_geo: signupGeoFromRequest(req),
+    });
 
     if (result.error) {
       res.status(result.status || 400).json({ detail: result.error });

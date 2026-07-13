@@ -1,4 +1,4 @@
-import { portfolioSettings, readStore, updateStore } from "./store.js";
+import { portfolioSettings, readStore, updateStore, persistRegistrationRecord } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
 import { likeCountsByCaseStudy } from "./like-utils.js";
 import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
@@ -10,6 +10,32 @@ function normalizeProjectId(value) {
   if (value == null || value === "") return null;
   const id = Number(value);
   return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function decodeHeaderValue(value) {
+  if (value == null) return null;
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(String(raw)).trim() || null;
+  } catch {
+    return String(raw).trim() || null;
+  }
+}
+
+/** Best-effort signup geography from Vercel / proxy headers (works worldwide). */
+export function signupGeoFromRequest(req) {
+  const headers = req?.headers || {};
+  const country = decodeHeaderValue(headers["x-vercel-ip-country"]);
+  const city = decodeHeaderValue(headers["x-vercel-ip-city"]);
+  const region = decodeHeaderValue(headers["x-vercel-ip-country-region"]);
+  const parts = [city, region, country].filter(Boolean);
+  return {
+    signup_country: country,
+    signup_city: city,
+    signup_region: region,
+    signup_location: parts.length ? parts.join(", ") : null,
+  };
 }
 
 export async function getUserById(id) {
@@ -62,7 +88,16 @@ async function uniqueUsername(base) {
   return candidate;
 }
 
-export async function registerUser({ email, password, name, username, title, role, onboarding_intent }) {
+export async function registerUser({
+  email,
+  password,
+  name,
+  username,
+  title,
+  role,
+  onboarding_intent,
+  signup_geo,
+}) {
   if (!email || !password || !name) {
     return { error: "Name, email, and password are required", status: 400 };
   }
@@ -77,6 +112,8 @@ export async function registerUser({ email, password, name, username, title, rol
   if (username && (await getUserByUsername(finalUsername, { forceRefresh: true }))) {
     return { error: "Username already taken", status: 400 };
   }
+
+  const geo = signup_geo && typeof signup_geo === "object" ? signup_geo : {};
 
   let created = null;
   await updateStore((store) => {
@@ -93,7 +130,11 @@ export async function registerUser({ email, password, name, username, title, rol
       avatar_url: null,
       cover_image_url: null,
       contact_email: String(email).trim().toLowerCase(),
-      location: null,
+      location: geo.signup_location || null,
+      signup_location: geo.signup_location || null,
+      signup_country: geo.signup_country || null,
+      signup_city: geo.signup_city || null,
+      signup_region: geo.signup_region || null,
       cv_url: null,
       social_links: {},
       role: resolveUserRole(email, role),
@@ -104,6 +145,12 @@ export async function registerUser({ email, password, name, username, title, rol
     store.users.push(created);
     return store;
   }, { forceRefresh: true });
+
+  try {
+    await persistRegistrationRecord(created);
+  } catch (err) {
+    console.error("[registerUser] registration sidecar failed", err);
+  }
 
   try {
     const { ensureFreeSubscription, ensureAdminUnlimitedSubscription } = await import(
@@ -125,7 +172,9 @@ export async function registerUser({ email, password, name, username, title, rol
     await notifyPlatformAdmins({
       type: "new_user",
       title: "New user registered",
-      message: `${created.name} · ${created.email}`,
+      message: `${created.name} · ${created.email}${
+        created.signup_location ? ` · ${created.signup_location}` : ""
+      }`,
       link: `/admin/users/${created.id}`,
     });
   } catch {
