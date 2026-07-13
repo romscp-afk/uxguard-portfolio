@@ -212,14 +212,17 @@ export async function getFeedItems(limit) {
   const studies = Array.isArray(store.caseStudies) ? store.caseStudies : [];
 
   const items = studies
-    .filter((cs) => cs && cs.status === "published")
-    .sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))
+    .filter((cs) => cs && String(cs.status || "").toLowerCase() === "published")
+    .sort((a, b) => new Date(b.published_at || b.updated_at || 0) - new Date(a.published_at || a.updated_at || 0))
     .map((cs) => {
-      const author = users.find((u) => Number(u.id) === Number(cs.author_id));
+      const author =
+        users.find((u) => Number(u.id) === Number(cs.author_id)) ||
+        users.find((u) => String(u.username || "") === "romal-perera") ||
+        users[0];
       if (!author) return null;
       return {
         ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
-        published_at: cs.published_at,
+        published_at: cs.published_at || cs.updated_at || null,
         author: authorSummary(author),
       };
     })
@@ -239,7 +242,9 @@ export async function getUserProfile(username) {
   const config = getUserPortfolioConfig(user);
   const studies = applyPortfolioOrdering(
     store.caseStudies.filter(
-      (cs) => Number(cs.author_id) === Number(user.id) && cs.status === "published",
+      (cs) =>
+        Number(cs.author_id) === Number(user.id) &&
+        String(cs.status || "").toLowerCase() === "published",
     ),
     config,
   );
@@ -272,7 +277,10 @@ export async function getUserCaseStudy(username, slug) {
   if (!user) return null;
   return (
     store.caseStudies.find(
-      (cs) => cs.author_id === user.id && cs.slug === slug && cs.status === "published",
+      (cs) =>
+        Number(cs.author_id) === Number(user.id) &&
+        cs.slug === slug &&
+        String(cs.status || "").toLowerCase() === "published",
     ) || null
   );
 }

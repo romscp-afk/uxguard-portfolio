@@ -351,9 +351,14 @@ export async function readStore() {
   const slot = getMemoryStore();
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    // Prefer process memory after a local write so profile saves aren't lost to
-    // blob read-after-write races or separate SSR module instances.
-    if (slot.current) {
+    // Use in-process memory only briefly after a local write (read-your-writes).
+    // Otherwise always reload from Blob so Home/Discover see publishes from other instances.
+    const freshlyWritten =
+      slot.current &&
+      typeof slot.writtenAt === "number" &&
+      Date.now() - slot.writtenAt < 8000;
+
+    if (freshlyWritten) {
       memoryStore = slot.current;
       return structuredClone(slot.current);
     }
@@ -362,6 +367,7 @@ export async function readStore() {
       const data = await loadFromBlob();
       memoryStore = normalizeLoadedStore(data);
       slot.current = memoryStore;
+      slot.writtenAt = 0;
       return structuredClone(memoryStore);
     } catch (error) {
       if (isMissingBlobError(error)) {
@@ -390,7 +396,9 @@ export async function readStore() {
 
 export async function writeStore(store) {
   memoryStore = store;
-  getMemoryStore().current = store;
+  const slot = getMemoryStore();
+  slot.current = store;
+  slot.writtenAt = Date.now();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return;
