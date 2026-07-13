@@ -26,12 +26,17 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "GET") {
-    const user = await adminGetUser(id);
-    if (!user) {
-      res.status(404).json({ detail: "User not found" });
-      return;
+    try {
+      const user = await adminGetUser(id);
+      if (!user) {
+        res.status(404).json({ detail: "User not found" });
+        return;
+      }
+      res.status(200).json(user);
+    } catch (err) {
+      console.error("[admin/users/:id GET]", err);
+      res.status(500).json({ detail: err?.message || "Could not load user." });
     }
-    res.status(200).json(user);
     return;
   }
 

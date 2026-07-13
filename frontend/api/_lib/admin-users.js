@@ -1,7 +1,6 @@
 import { readStore, updateStore } from "./store.js";
 import { sanitizeUserMediaFields } from "./media.js";
-import { normalizeRole } from "./roles.js";
-import { toUserOut } from "./demo-data.js";
+import { defaultPortfolioConfig, normalizeRole } from "./roles.js";
 
 function slugifyUsername(text) {
   return (
@@ -14,36 +13,69 @@ function slugifyUsername(text) {
   );
 }
 
-function stripInternal(user, store) {
-  const cleaned = sanitizeUserMediaFields(user, store);
+function toAdminUserOut(user, store) {
+  if (!user || typeof user !== "object") return null;
+  const cleaned = sanitizeUserMediaFields(user, store) || user;
   const { __mediaSanitized: _flag, password: _password, ...rest } = cleaned;
+  const id = Number(rest.id);
+  if (!Number.isFinite(id)) return null;
+
   return {
-    ...toUserOut(rest),
+    id,
+    email: rest.email || "",
+    username: rest.username || `user-${id}`,
+    name: rest.name || rest.username || `User ${id}`,
+    title: rest.title || null,
+    bio: rest.bio || null,
+    avatar_url: rest.avatar_url || null,
+    cover_image_url: rest.cover_image_url || null,
+    contact_email: rest.contact_email || null,
+    location: rest.location || null,
+    cv_url: rest.cv_url || null,
+    social_links: rest.social_links && typeof rest.social_links === "object" ? rest.social_links : {},
+    role: normalizeRole(rest.role),
+    onboarding_intent: rest.onboarding_intent || "build_portfolio",
+    portfolio_config: {
+      ...defaultPortfolioConfig(),
+      ...(rest.portfolio_config || {}),
+    },
+    portfolio_url: `/u/${rest.username || `user-${id}`}`,
+    created_at: rest.created_at || null,
     case_study_count: (store.caseStudies || []).filter(
-      (cs) => Number(cs.author_id) === Number(user.id),
+      (cs) => Number(cs.author_id) === id,
     ).length,
-    project_count: (store.projects || []).filter(
-      (p) => Number(p.author_id) === Number(user.id),
-    ).length,
-    media_count: (store.mediaAssets || []).filter(
-      (a) => Number(a.uploaded_by_id) === Number(user.id),
-    ).length,
+    project_count: (store.projects || []).filter((p) => Number(p.author_id) === id).length,
+    media_count: (store.mediaAssets || []).filter((a) => Number(a.uploaded_by_id) === id).length,
   };
 }
 
+/** Always reload from Blob so newly registered accounts appear across isolates. */
 export async function adminListUsers() {
-  const store = await readStore();
+  const store = await readStore({ forceRefresh: true });
   return (store.users || [])
-    .map((user) => stripInternal(user, store))
-    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    .map((user) => {
+      try {
+        return toAdminUserOut(user, store);
+      } catch (err) {
+        console.error("[adminListUsers] skip user", user?.id, err);
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (bTime !== aTime) return bTime - aTime;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
 }
 
 export async function adminGetUser(userId) {
-  const store = await readStore();
+  const store = await readStore({ forceRefresh: true });
   const uid = Number(userId);
   const user = (store.users || []).find((u) => Number(u.id) === uid);
   if (!user) return null;
-  return stripInternal(user, store);
+  return toAdminUserOut(user, store);
 }
 
 const ADMIN_EDITABLE = new Set([
@@ -65,7 +97,6 @@ const ADMIN_EDITABLE = new Set([
 
 export async function adminUpdateUser(userId, updates, actorId) {
   const uid = Number(userId);
-  let updated = null;
 
   await updateStore((store) => {
     const index = (store.users || []).findIndex((u) => Number(u.id) === uid);
@@ -79,7 +110,6 @@ export async function adminUpdateUser(userId, updates, actorId) {
 
       if (key === "role") {
         const role = normalizeRole(value);
-        // Prevent demoting the last admin
         if (current.role === "admin" && role !== "admin") {
           const otherAdmins = store.users.filter(
             (u) => Number(u.id) !== uid && normalizeRole(u.role) === "admin",
@@ -88,7 +118,6 @@ export async function adminUpdateUser(userId, updates, actorId) {
             throw new Error("Cannot demote the last admin account.");
           }
         }
-        // Prevent demoting yourself while editing
         if (Number(actorId) === uid && role !== "admin" && normalizeRole(current.role) === "admin") {
           throw new Error("You cannot remove your own admin role.");
         }
@@ -147,7 +176,6 @@ export async function adminUpdateUser(userId, updates, actorId) {
     }
 
     store.users[index] = next;
-    updated = next;
     return store;
   });
 

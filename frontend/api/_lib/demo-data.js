@@ -80,10 +80,11 @@ export async function registerUser({ email, password, name, username, title, rol
 
   let created = null;
   await updateStore((store) => {
-    const id = store.users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+    const id =
+      (store.users || []).reduce((max, u) => Math.max(max, Number(u.id) || 0), 0) + 1;
     created = {
       id,
-      email,
+      email: String(email).trim().toLowerCase(),
       password,
       username: finalUsername,
       name,
@@ -91,13 +92,14 @@ export async function registerUser({ email, password, name, username, title, rol
       bio: null,
       avatar_url: null,
       cover_image_url: null,
-      contact_email: email,
+      contact_email: String(email).trim().toLowerCase(),
       location: null,
       cv_url: null,
       social_links: {},
       role: resolveUserRole(email, role),
       onboarding_intent: onboarding_intent || "build_portfolio",
       portfolio_config: defaultPortfolioConfig(),
+      created_at: new Date().toISOString(),
     };
     store.users.push(created);
     return store;
@@ -116,6 +118,18 @@ export async function registerUser({ email, password, name, username, title, rol
     await syncAiCreditsWithPlan(created.id);
   } catch {
     // Subscription provision is best-effort; entitlement service will repair on next access.
+  }
+
+  try {
+    const { notifyPlatformAdmins } = await import("./community.js");
+    await notifyPlatformAdmins({
+      type: "new_user",
+      title: "New user registered",
+      message: `${created.name} · ${created.email}`,
+      link: `/admin/users/${created.id}`,
+    });
+  } catch {
+    // Registration already succeeded; admin notification is best-effort.
   }
 
   return { user: created };

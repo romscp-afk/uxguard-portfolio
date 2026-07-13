@@ -30,20 +30,26 @@ export function AiHubPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
+    Promise.allSettled([
       api.getAiCredits(),
       api.listAiConversations({ recent: true, limit: 5 }),
       api.listSavedAiOutputs(),
     ])
-      .then(([creditSummary, conversations, outputs]) => {
+      .then(([creditResult, conversationsResult, outputsResult]) => {
         if (cancelled) return;
-        setCredits(creditSummary);
-        setRecent(conversations.conversations || []);
-        setSaved((outputs.outputs || []).slice(0, 5));
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "Could not load UXGuard AI.");
+
+        if (creditResult.status === "fulfilled") {
+          setCredits(creditResult.value);
+        } else {
+          const err = creditResult.reason;
+          setError(err instanceof ApiError ? err.message : "Could not load AI credits.");
+        }
+
+        if (conversationsResult.status === "fulfilled") {
+          setRecent(conversationsResult.value.conversations || []);
+        }
+        if (outputsResult.status === "fulfilled") {
+          setSaved((outputsResult.value.outputs || []).slice(0, 5));
         }
       });
     return () => {
@@ -93,9 +99,11 @@ export function AiHubPage() {
                 ? credits.unlimited
                   ? `${credits.used_credits} used · Unlimited · resets ${credits.reset_date}`
                   : `${credits.remaining_credits} of ${credits.monthly_allowance + credits.purchased_credits} remaining · resets ${credits.reset_date}`
-                : "Loading credit balance…"}
+                : error
+                  ? "Credit balance unavailable."
+                  : "Loading credit balance…"}
             </p>
-            {!credits?.enabled ? (
+            {credits && !credits.enabled ? (
               <p className="mt-2 text-xs text-amber-700">
                 Server needs <code className="rounded bg-amber-50 px-1">OPENAI_API_KEY</code> (and
                 optional <code className="rounded bg-amber-50 px-1">OPENAI_MODEL</code>) to generate.

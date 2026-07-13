@@ -17,6 +17,7 @@ import {
   createConversation,
   getConversationForUser,
   getOrCreateCredits,
+  remainingCredits,
   updateConversation,
 } from "./persistence.js";
 import { assertAiCredits, syncAiCreditsWithPlan } from "../billing/entitlements.js";

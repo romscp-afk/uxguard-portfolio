@@ -13,8 +13,13 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "GET") {
-    const users = await adminListUsers();
-    res.status(200).json(users);
+    try {
+      const users = await adminListUsers();
+      res.status(200).json(users);
+    } catch (err) {
+      console.error("[admin/users]", err);
+      res.status(500).json({ detail: err?.message || "Could not load users." });
+    }
     return;
   }
 

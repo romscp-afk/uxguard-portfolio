@@ -35,17 +35,21 @@ export async function getOrCreateCredits(userId) {
     ensureAiCollections(store);
     const id = Number(userId);
     let row = store.user_ai_credits.find((c) => Number(c.user_id) === id);
+    let touched = false;
     if (!row) {
       row = defaultCredits(id);
       store.user_ai_credits.push(row);
+      touched = true;
     }
     const currentMonth = monthKey();
     if (row.reset_date !== currentMonth) {
       row.used_credits = 0;
       row.reset_date = currentMonth;
       row.monthly_allowance = row.monthly_allowance || DEFAULT_MONTHLY_ALLOWANCE;
+      touched = true;
     }
     credits = { ...row };
+    if (!touched) store.__uxguardSkipWrite = true;
     return store;
   });
   return credits;

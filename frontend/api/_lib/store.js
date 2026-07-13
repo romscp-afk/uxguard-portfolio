@@ -347,13 +347,15 @@ async function loadFromBlob() {
   return JSON.parse(text);
 }
 
-export async function readStore() {
+export async function readStore(options = {}) {
+  const forceRefresh = Boolean(options.forceRefresh);
   const slot = getMemoryStore();
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     // Use in-process memory only briefly after a local write (read-your-writes).
     // Otherwise always reload from Blob so Home/Discover see publishes from other instances.
     const freshlyWritten =
+      !forceRefresh &&
       slot.current &&
       typeof slot.writtenAt === "number" &&
       Date.now() - slot.writtenAt < 8000;

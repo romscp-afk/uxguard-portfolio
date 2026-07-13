@@ -15,6 +15,9 @@ export default withApi(async (req, res) => {
     const summary = await getCreditsSummary(user.id);
     res.status(200).json(summary);
   } catch (err) {
-    res.status(500).json({ detail: "Could not load AI credits." });
+    console.error("[ai/credits]", err);
+    res.status(500).json({
+      detail: err?.message || "Could not load AI credits.",
+    });
   }
 });

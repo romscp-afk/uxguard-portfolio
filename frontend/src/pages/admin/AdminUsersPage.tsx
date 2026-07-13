@@ -80,14 +80,24 @@ export function AdminUsersPage() {
             View, edit, and delete every account on the platform — including Alex and registered users.
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-          <input
-            className="input-field pl-9"
-            placeholder="Search name, email, username…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={loading}
+            className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50"
+          >
+            {loading ? "Refreshing…" : "Refresh"}
+          </button>
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+            <input
+              className="input-field pl-9"
+              placeholder="Search name, email, username…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -134,6 +144,11 @@ export function AdminUsersPage() {
                         <p className="truncate text-xs text-ink-500">
                           @{row.username} · {row.email}
                         </p>
+                        {row.created_at ? (
+                          <p className="text-[11px] text-ink-400">
+                            Joined {new Date(row.created_at).toLocaleDateString()}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </td>

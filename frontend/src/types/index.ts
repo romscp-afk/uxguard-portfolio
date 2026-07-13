@@ -210,6 +210,7 @@ export interface AdminUserSummary extends User {
   case_study_count: number;
   project_count: number;
   media_count: number;
+  created_at?: string | null;
 }
 
 export type OnboardingIntent = "build_portfolio" | "track_career" | "publish_case_studies";
