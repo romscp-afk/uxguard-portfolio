@@ -17,6 +17,12 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "GET") {
+    try {
+      const { ensureFreeSubscription } = await import("../../_lib/billing/persistence.js");
+      await ensureFreeSubscription(user.id);
+    } catch {
+      /* ignore provisioning errors on profile load */
+    }
     res.status(200).json(toUserOut(user));
     return;
   }

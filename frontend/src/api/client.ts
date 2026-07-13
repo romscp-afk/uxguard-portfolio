@@ -9,6 +9,8 @@ import type {
   AiGenerateResponse,
   AiMessage,
   SavedAiOutput,
+  BillingPlan,
+  BillingUsageSummary,
   Attachment,
   CaseStudy,
   CaseStudyListItem,
@@ -402,6 +404,49 @@ export const api = {
     }),
 
   deleteSavedAiOutput: (id: string) => aiRequest<void>(`/saved/${id}`, { method: "DELETE" }),
+
+  listBillingPlans: () => request<{ plans: BillingPlan[]; current?: BillingUsageSummary }>("/billing/plans"),
+
+  getBillingSubscription: () => request<BillingUsageSummary>("/billing/subscription"),
+
+  cancelSubscription: () =>
+    request<BillingUsageSummary>("/billing/subscription", {
+      method: "POST",
+      body: JSON.stringify({ action: "cancel" }),
+    }),
+
+  resumeSubscription: () =>
+    request<BillingUsageSummary>("/billing/subscription", {
+      method: "POST",
+      body: JSON.stringify({ action: "resume" }),
+    }),
+
+  startCheckout: (payload: { planCode: string; billingInterval: "month" | "year"; origin?: string }) =>
+    request<{
+      provider: string;
+      sessionId: string;
+      checkoutUrl: string;
+      amount: number;
+      currency: string;
+    }>("/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ action: "checkout", ...payload }),
+    }),
+
+  completeMockCheckout: (payload: {
+    planCode: string;
+    billingInterval: "month" | "year";
+    outcome: "succeeded" | "failed" | "cancelled";
+  }) =>
+    request<{
+      success: boolean;
+      outcome: string;
+      detail: string;
+      current?: BillingUsageSummary | null;
+    }>("/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ action: "complete_mock", ...payload }),
+    }),
 };
 
 export { ApiError };

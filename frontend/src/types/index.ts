@@ -370,3 +370,73 @@ export interface SavedAiOutput {
   created_at: string;
   updated_at: string;
 }
+
+export interface BillingPlan {
+  code: string;
+  name: string;
+  description: string;
+  monthly_price: number | null;
+  annual_price: number | null;
+  currency: string;
+  ai_credits: number | null;
+  storage_limit_bytes: number | null;
+  portfolio_limit: number | null;
+  case_study_limit: number | null;
+  team_member_limit: number | null;
+  custom_domain_enabled: boolean;
+  private_projects_enabled: boolean;
+  advanced_analytics_enabled: boolean;
+  pdf_export_enabled: boolean;
+  team_workspace_enabled: boolean;
+  ai_tools_enabled: boolean;
+  interview_prep_enabled: boolean;
+  highlight?: boolean;
+}
+
+export interface BillingUsageSummary {
+  plan: {
+    code: string;
+    name: string;
+    description: string;
+    monthly_price: number | null;
+    annual_price: number | null;
+    currency: string;
+  };
+  subscription: {
+    id?: string;
+    status: string;
+    billing_interval: string;
+    current_period_start?: string;
+    current_period_end?: string;
+    cancel_at_period_end: boolean;
+    payment_provider: string;
+  };
+  usage: {
+    portfolios_used: number;
+    portfolios_limit: number | null;
+    case_studies_used: number;
+    case_studies_limit: number | null;
+    storage_used_bytes: number;
+    storage_limit_bytes: number | null;
+    storage_used_label: string;
+    storage_limit_label: string;
+    ai_credits_used: number;
+    ai_credits_limit: number | null;
+    ai_credits_remaining: number | null;
+    cycle_start: string;
+    cycle_end: string;
+  };
+  features: Record<string, boolean>;
+  transactions?: PaymentTransaction[];
+}
+
+export interface PaymentTransaction {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  transaction_type: string;
+  created_at: string;
+  invoice_url?: string | null;
+  receipt_url?: string | null;
+}

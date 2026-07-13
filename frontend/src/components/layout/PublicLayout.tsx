@@ -59,6 +59,7 @@ export function PublicHeader() {
           </NavLink>
           <NavLink to="/">Home</NavLink>
           <NavLink to="/discover">Discover</NavLink>
+          <NavLink to="/pricing">Pricing</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/contact">Contact</NavLink>
           {user ? (
@@ -107,6 +108,7 @@ export function PublicHeader() {
                 { to: "/search", label: "Search", icon: Search },
                 { to: "/", label: "Home" },
                 { to: "/discover", label: "Discover" },
+                { to: "/pricing", label: "Pricing" },
                 { to: "/about", label: "About" },
                 { to: "/contact", label: "Contact" },
               ].map(({ to, label, icon: Icon }) => (

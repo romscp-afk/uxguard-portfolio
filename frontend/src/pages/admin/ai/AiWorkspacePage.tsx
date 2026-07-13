@@ -2,9 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, ApiError } from "../../../api/client";
+import { LimitReachedDialog } from "../../../components/billing/LimitReachedDialog";
 import { AiGenerationProgress } from "../../../components/ai/AiGenerationProgress";
 import { AiOutputWorkspace } from "../../../components/ai/AiOutputWorkspace";
 import { EditGuard, ReadOnlyNotice } from "../../../components/platform/ReadOnlyNotice";
+import { trackBillingEvent } from "../../../lib/analytics";
 import {
   contentToMarkdown,
   getAssistant,
@@ -40,6 +42,11 @@ export function AiWorkspacePage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [limitDialog, setLimitDialog] = useState<{
+    title: string;
+    message: string;
+    resetDate?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (assistant) {
@@ -153,6 +160,14 @@ export function AiWorkspacePage() {
       if (err instanceof ApiError) {
         setError(err.message);
         if (err.remainingCredits !== undefined) setRemaining(err.remainingCredits);
+        if (err.status === 402 || err.code === "insufficient_credits") {
+          trackBillingEvent("usage_limit_reached", { resource: "ai_credits" });
+          trackBillingEvent("upgrade_prompt_viewed", { resource: "ai_credits" });
+          setLimitDialog({
+            title: "AI credits used up",
+            message: err.message,
+          });
+        }
       } else {
         setError("Generation failed. Check your connection and try again.");
       }
@@ -203,6 +218,13 @@ export function AiWorkspacePage() {
 
   return (
     <div>
+      <LimitReachedDialog
+        open={Boolean(limitDialog)}
+        title={limitDialog?.title || ""}
+        message={limitDialog?.message || ""}
+        resetDate={limitDialog?.resetDate}
+        onClose={() => setLimitDialog(null)}
+      />
       <ReadOnlyNotice />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link to="/admin/ai" className="inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-brand-600">

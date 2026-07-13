@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bell,
   Briefcase,
+  CreditCard,
   FileText,
   FolderKanban,
   Image,
@@ -23,6 +24,7 @@ import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   profile: UserCircle,
+  billing: CreditCard,
   projects: FolderKanban,
   ai: Sparkles,
   templates: LayoutTemplate,

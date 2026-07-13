@@ -2,6 +2,7 @@ import { createCaseStudy, listCaseStudies, toListItem } from "../../_lib/demo-da
 import { notifyNewPublication } from "../../_lib/community.js";
 import { requireAuthUser } from "../../_lib/auth.js";
 import { assertCanEdit } from "../../_lib/projects.js";
+import { assertCanCreateCaseStudy, syncCaseStudyUsage } from "../../_lib/billing/entitlements.js";
 import { withApi } from "../../_lib/withApi.js";
 
 async function readBody(req) {
@@ -34,14 +35,21 @@ export default withApi(async (req, res) => {
     if (!user) return;
     try {
       assertCanEdit(user);
+      await assertCanCreateCaseStudy(user.id);
       const body = await readBody(req);
       const created = await createCaseStudy(user.id, body || {});
+      await syncCaseStudyUsage(user.id);
       if (created.status === "published") {
         await notifyNewPublication(created, user);
       }
       res.status(201).json(created);
     } catch (err) {
-      res.status(err.status || 500).json({ detail: err.message || "Failed to create case study" });
+      res.status(err.status || 500).json({
+        detail: err.message || "Failed to create case study",
+        code: err.code,
+        limit: err.limit,
+        upgrade_required: err.upgrade_required || err.code === "limit_reached",
+      });
     }
     return;
   }

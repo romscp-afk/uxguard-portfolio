@@ -200,6 +200,10 @@ function normalizeLoadedStore(data) {
     ai_usage: data.ai_usage || [],
     user_ai_credits: data.user_ai_credits || [],
     saved_ai_outputs: data.saved_ai_outputs || [],
+    subscriptions: data.subscriptions || [],
+    user_usage: data.user_usage || [],
+    payment_transactions: data.payment_transactions || [],
+    subscription_events: data.subscription_events || [],
     mediaAssets: (data.mediaAssets || []).map((asset) => ({
       ...asset,
       url: normalizeMediaAssetUrl(asset.url, asset.id),
@@ -257,6 +261,10 @@ function seedStore() {
     ai_usage: [],
     user_ai_credits: [],
     saved_ai_outputs: [],
+    subscriptions: [],
+    user_usage: [],
+    payment_transactions: [],
+    subscription_events: [],
   };
 }
 
@@ -354,4 +362,12 @@ export async function updateStore(updater) {
 
 export function isPersistentStoreEnabled() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+/** Reset in-memory store for unit tests (no Blob token). */
+export function resetMemoryStoreForTests() {
+  if (process.env.UXGUARD_TEST !== "1") {
+    throw new Error("resetMemoryStoreForTests is only available under UXGUARD_TEST=1");
+  }
+  memoryStore = seedStore();
 }

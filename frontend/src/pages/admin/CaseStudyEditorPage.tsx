@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Eye, FileText, Plus, Save, Sparkles, Trash2, Upload } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
+import { LimitReachedDialog } from "../../components/billing/LimitReachedDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
 import { api, ApiError, toStoredAssetUrl } from "../../api/client";
@@ -11,6 +12,7 @@ import {
   saveCaseStudyToCache,
   syncCachedCaseStudies,
 } from "../../lib/caseStudyStore";
+import { trackBillingEvent } from "../../lib/analytics";
 import { COVER_HELP_TEXT, validateCoverImageUrl } from "../../lib/coverImage";
 import type { CaseStudy, ContentBlock, MetricItem, Project } from "../../types";
 
@@ -125,6 +127,11 @@ export function CaseStudyEditorPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [limitDialog, setLimitDialog] = useState<{
+    title: string;
+    message: string;
+    usageLabel?: string;
+  } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -455,7 +462,20 @@ export function CaseStudyEditorPage() {
       }
     } catch (err) {
       setMessageType("error");
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && (err.code === "limit_reached" || err.status === 403)) {
+        const msg = err.message || "You have reached your plan limit.";
+        if (msg.toLowerCase().includes("case stud") || err.code === "limit_reached") {
+          trackBillingEvent("usage_limit_reached", { resource: "case_study" });
+          trackBillingEvent("upgrade_prompt_viewed", { resource: "case_study" });
+          setLimitDialog({
+            title: "Case study limit reached",
+            message: msg,
+          });
+          setMessage(msg);
+        } else {
+          setMessage(msg);
+        }
+      } else if (err instanceof ApiError) {
         setMessage(err.message || "Failed to save. Please try again.");
       } else {
         setMessage("Failed to save. Please try again.");
@@ -612,6 +632,13 @@ export function CaseStudyEditorPage() {
 
   return (
     <div>
+      <LimitReachedDialog
+        open={Boolean(limitDialog)}
+        title={limitDialog?.title || ""}
+        message={limitDialog?.message || ""}
+        usageLabel={limitDialog?.usageLabel}
+        onClose={() => setLimitDialog(null)}
+      />
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/admin/case-studies" className="text-ink-400 hover:text-ink-600">

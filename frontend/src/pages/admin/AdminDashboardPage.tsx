@@ -16,19 +16,22 @@ import { useAssistant } from "../../context/AssistantContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
 import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { PlanSummaryCard } from "../../components/billing/PlanSummaryCard";
 import { api } from "../../api/client";
-import type { CaseStudyListItem, Project } from "../../types";
+import type { BillingUsageSummary, CaseStudyListItem, Project } from "../../types";
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
   const { setOpen: openAssistant } = useAssistant();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [billing, setBilling] = useState<BillingUsageSummary | null>(null);
 
   useEffect(() => {
     if (!user) return;
     loadMergedCaseStudies(user.id).then(setStudies);
     api.listProjects().then(setProjects).catch(() => setProjects([]));
+    api.getBillingSubscription().then(setBilling).catch(() => setBilling(null));
   }, [user]);
 
   if (!user) return null;
@@ -54,6 +57,12 @@ export function AdminDashboardPage() {
           Welcome back, {user.name}. {intentLabel} · {role} account
         </p>
       </div>
+
+      {billing ? (
+        <div className="mb-8">
+          <PlanSummaryCard summary={billing} />
+        </div>
+      ) : null}
 
       <div className="card mb-8 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">

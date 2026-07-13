@@ -28,6 +28,11 @@ import { AiHubPage } from "./pages/admin/ai/AiHubPage";
 import { AiWorkspacePage } from "./pages/admin/ai/AiWorkspacePage";
 import { AiHistoryPage } from "./pages/admin/ai/AiHistoryPage";
 import { AiSavedPage } from "./pages/admin/ai/AiSavedPage";
+import { PricingPage } from "./pages/public/PricingPage";
+import { UpgradePage } from "./pages/admin/UpgradePage";
+import { BillingSettingsPage } from "./pages/admin/BillingSettingsPage";
+import { MockCheckoutPage } from "./pages/admin/MockCheckoutPage";
+import { CheckoutCancelledPage, CheckoutSuccessPage } from "./pages/admin/CheckoutResultPages";
 
 export default function App() {
   return (
@@ -37,6 +42,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/discover" element={<DiscoverPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
@@ -50,6 +56,8 @@ export default function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="profile" element={<ProfileSettingsPage />} />
+            <Route path="billing" element={<BillingSettingsPage />} />
+            <Route path="upgrade" element={<UpgradePage />} />
             <Route path="projects" element={<ProjectsListPage />} />
             <Route path="projects/new" element={<ProjectEditorPage />} />
             <Route path="projects/:id" element={<ProjectEditorPage />} />
@@ -66,6 +74,18 @@ export default function App() {
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="contact-inbox" element={<ContactInboxPage />} />
             <Route path="settings" element={<Navigate to="/admin/profile" replace />} />
+            <Route path="settings/billing" element={<Navigate to="/admin/billing" replace />} />
+          </Route>
+
+          <Route path="/upgrade" element={<Navigate to="/admin/upgrade" replace />} />
+          <Route path="/checkout/mock" element={<AdminLayout />}>
+            <Route index element={<MockCheckoutPage />} />
+          </Route>
+          <Route path="/checkout/success" element={<AdminLayout />}>
+            <Route index element={<CheckoutSuccessPage />} />
+          </Route>
+          <Route path="/checkout/cancelled" element={<AdminLayout />}>
+            <Route index element={<CheckoutCancelledPage />} />
           </Route>
 
           <Route path="/case-studies/:slug" element={<Navigate to="/discover" replace />} />

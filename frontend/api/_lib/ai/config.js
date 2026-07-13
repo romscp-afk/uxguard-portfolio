@@ -4,14 +4,14 @@ export const AI_CREDIT_COSTS = {
   "generate-complete": 5,
   "generate-section": 2,
   "rewrite-section": 1,
-  "improve-impact": 2,
-  "generate-reflection": 2,
+  "improve-impact": 1,
+  "generate-reflection": 1,
   // Research Assistant
   "research-plan": 3,
-  "interview-questions": 1,
+  "interview-questions": 2,
   "survey-questions": 1,
   "usability-script": 2,
-  "research-summary": 3,
+  "research-summary": 5,
   "findings-recommendations": 3,
   // Product Documentation
   "prd": 6,
@@ -34,7 +34,7 @@ export const AI_CREDIT_COSTS = {
   "regenerate": 2,
 };
 
-export const DEFAULT_MONTHLY_ALLOWANCE = Number(process.env.AI_MONTHLY_CREDITS || 100);
+export const DEFAULT_MONTHLY_ALLOWANCE = Number(process.env.AI_MONTHLY_CREDITS || 10);
 export const MAX_INPUT_CHARS = 24000;
 export const MAX_REQUESTS_PER_HOUR = Number(process.env.AI_RATE_LIMIT_PER_HOUR || 30);
 

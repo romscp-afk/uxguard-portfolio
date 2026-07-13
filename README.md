@@ -68,6 +68,12 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Vercel + Render setup.
 
 **Live:** https://uxguard-portfolio.vercel.app
 
+## Billing & plans
+
+See [docs/BILLING.md](docs/BILLING.md) for Free auto-activation, usage limits, mock payments, and Stripe-ready setup.
+
+Public pricing: `/pricing` · Billing settings: `/admin/billing` · Upgrade: `/upgrade`
+
 ## License
 
 MIT

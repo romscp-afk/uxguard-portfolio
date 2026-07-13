@@ -17,9 +17,10 @@ import {
   createConversation,
   getConversationForUser,
   getOrCreateCredits,
-  remainingCredits,
   updateConversation,
 } from "./persistence.js";
+import { assertAiCredits } from "../billing/entitlements.js";
+import { setAiCreditsUsed } from "../billing/persistence.js";
 
 const INJECTION_PATTERNS = [
   /ignore (all|any|previous|prior) instructions/i,
@@ -129,14 +130,7 @@ export async function generateAiResponse({ user, body }) {
     throw error;
   }
 
-  const credits = await getOrCreateCredits(user.id);
-  if (remainingCredits(credits) < creditsNeeded) {
-    const error = new Error("You have no AI credits remaining this month.");
-    error.status = 402;
-    error.code = "insufficient_credits";
-    error.remainingCredits = remainingCredits(credits);
-    throw error;
-  }
+  await assertAiCredits(user.id, creditsNeeded);
 
   let conversationId = body.conversationId || null;
   let conversation = null;
@@ -179,6 +173,9 @@ export async function generateAiResponse({ user, body }) {
     output_tokens: modelResult.output_tokens,
   });
 
+  const after = await getOrCreateCredits(user.id);
+  await setAiCreditsUsed(user.id, after.used_credits);
+
   const assistantMessage = await appendMessage({
     conversationId,
     role: "assistant",
@@ -201,6 +198,7 @@ export async function generateAiResponse({ user, body }) {
     creditsUsed: charged.creditsUsed,
     remainingCredits: charged.remainingCredits,
     model: modelResult.model,
+    upgrade_required: false,
   };
 }
 

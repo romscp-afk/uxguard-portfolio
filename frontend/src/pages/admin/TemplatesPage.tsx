@@ -10,9 +10,11 @@ import {
   Wand2,
 } from "lucide-react";
 import { api, ApiError } from "../../api/client";
+import { LimitReachedDialog } from "../../components/billing/LimitReachedDialog";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAssistant } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
+import { trackBillingEvent } from "../../lib/analytics";
 import {
   ALL_TEMPLATES,
   TEMPLATE_CATEGORIES,
@@ -49,6 +51,7 @@ export function TemplatesPage() {
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [limitDialog, setLimitDialog] = useState<{ title: string; message: string } | null>(null);
   const [appliedId, setAppliedId] = useState<string | null>(
     user?.portfolio_config?.applied_template_id || null,
   );
@@ -156,6 +159,17 @@ export function TemplatesPage() {
         navigate("/admin/login", { state: { from: "/admin/templates" }, replace: true });
         return;
       }
+      if (err instanceof ApiError && (err.code === "limit_reached" || err.status === 403)) {
+        trackBillingEvent("usage_limit_reached", { resource: "case_study", source: "templates" });
+        trackBillingEvent("upgrade_prompt_viewed", { resource: "case_study" });
+        setLimitDialog({
+          title: "Plan limit reached",
+          message: err.message || "You have reached a Free plan limit. Upgrade to continue.",
+        });
+        setMessageType("error");
+        setMessage(err.message);
+        return;
+      }
       setMessageType("error");
       setMessage(err instanceof ApiError ? err.message : "Could not apply template.");
     } finally {
@@ -165,6 +179,12 @@ export function TemplatesPage() {
 
   return (
     <div>
+      <LimitReachedDialog
+        open={Boolean(limitDialog)}
+        title={limitDialog?.title || ""}
+        message={limitDialog?.message || ""}
+        onClose={() => setLimitDialog(null)}
+      />
       <ReadOnlyNotice />
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>

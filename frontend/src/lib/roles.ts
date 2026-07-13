@@ -56,6 +56,7 @@ export function dashboardLinksForUser(user?: User | null) {
 
   const all = [
     { to: "/admin/profile", label: "Professional Profile", section: "profile" },
+    { to: "/admin/billing", label: "Billing", section: "billing" },
     { to: "/admin/projects", label: "Projects", section: "projects" },
     { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
     { to: "/admin/templates", label: "Templates", section: "templates" },

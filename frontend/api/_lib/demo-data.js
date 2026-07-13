@@ -89,6 +89,13 @@ export async function registerUser({ email, password, name, username, title, rol
     return store;
   });
 
+  try {
+    const { ensureFreeSubscription } = await import("./billing/persistence.js");
+    await ensureFreeSubscription(created.id);
+  } catch {
+    // Subscription provision is best-effort; entitlement service will repair on next access.
+  }
+
   return { user: created };
 }
 
