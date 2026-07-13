@@ -6,6 +6,16 @@ import { useAuth } from "../../context/AuthContext";
 import { isAdmin } from "../../lib/roles";
 import type { AdminUserSummary } from "../../types";
 
+function formatRegisteredAt(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function AdminUsersPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
@@ -35,7 +45,7 @@ export function AdminUsersPage() {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) =>
-      [u.name, u.email, u.username, u.role, u.title]
+      [u.name, u.email, u.username, u.role, u.title, u.location]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q)),
     );
@@ -93,7 +103,7 @@ export function AdminUsersPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
             <input
               className="input-field pl-9"
-              placeholder="Search name, email, username…"
+              placeholder="Search name, email, username, location…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -114,10 +124,12 @@ export function AdminUsersPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="border-b border-ink-100 bg-ink-50/50">
               <tr>
                 <th className="px-4 py-3 font-semibold text-ink-700 sm:px-6">User</th>
+                <th className="px-4 py-3 font-semibold text-ink-700">Registered</th>
+                <th className="px-4 py-3 font-semibold text-ink-700">Location</th>
                 <th className="px-4 py-3 font-semibold text-ink-700">Role</th>
                 <th className="px-4 py-3 font-semibold text-ink-700">Content</th>
                 <th className="px-4 py-3 font-semibold text-ink-700">Actions</th>
@@ -144,13 +156,18 @@ export function AdminUsersPage() {
                         <p className="truncate text-xs text-ink-500">
                           @{row.username} · {row.email}
                         </p>
-                        {row.created_at ? (
-                          <p className="text-[11px] text-ink-400">
-                            Joined {new Date(row.created_at).toLocaleDateString()}
-                          </p>
-                        ) : null}
                       </div>
                     </div>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-4 text-ink-600">
+                    {row.created_at ? (
+                      <time dateTime={row.created_at}>{formatRegisteredAt(row.created_at)}</time>
+                    ) : (
+                      <span className="text-ink-400">—</span>
+                    )}
+                  </td>
+                  <td className="max-w-[10rem] truncate px-4 py-4 text-ink-600">
+                    {row.location?.trim() || <span className="text-ink-400">—</span>}
                   </td>
                   <td className="px-4 py-4 capitalize text-ink-600">{row.role}</td>
                   <td className="px-4 py-4 text-ink-500">

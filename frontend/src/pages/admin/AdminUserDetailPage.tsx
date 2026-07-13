@@ -124,6 +124,20 @@ export function AdminUserDetailPage() {
             @{form.username} · ID {form.id} · {form.case_study_count ?? 0} case studies ·{" "}
             {form.project_count ?? 0} projects
           </p>
+          <p className="mt-1 text-sm text-ink-500">
+            Registered{" "}
+            {form.created_at
+              ? new Date(form.created_at).toLocaleString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "—"}
+            {" · "}
+            {form.location?.trim() || "No location set"}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {form.username ? (
