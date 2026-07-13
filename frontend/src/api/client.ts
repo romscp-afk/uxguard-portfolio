@@ -16,6 +16,7 @@ import type {
   CaseStudyListItem,
   Comment,
   ContactMessage,
+  ContactMailboxCounts,
   FeedCaseStudyItem,
   FollowStats,
   LikeStats,
@@ -299,8 +300,56 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  getContactMessages: () =>
-    request<{ messages: ContactMessage[]; unread_count: number }>("/contact-messages"),
+  getContactMessages: (params?: { folder?: string; q?: string; thread_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.folder) qs.set("folder", params.folder);
+    if (params?.q) qs.set("q", params.q);
+    if (params?.thread_id) qs.set("thread_id", params.thread_id);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<{
+      messages: ContactMessage[];
+      counts?: ContactMailboxCounts;
+      unread_count?: number;
+      folder?: string;
+      thread_id?: string;
+    }>(`/contact-messages${suffix}`);
+  },
+
+  getContactMessage: (id: number) =>
+    request<{ message: ContactMessage; thread: ContactMessage[] }>(`/contact-messages/${id}`),
+
+  updateContactMessage: (id: number, patch: Partial<ContactMessage>) =>
+    request<{ message: ContactMessage; counts: ContactMailboxCounts }>(`/contact-messages/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+
+  deleteContactMessage: (id: number, permanent = false) =>
+    request<{ deleted: unknown; counts: ContactMailboxCounts }>(
+      `/contact-messages/${id}${permanent ? "?permanent=true" : ""}`,
+      { method: "DELETE" },
+    ),
+
+  replyContactMessage: (
+    id: number,
+    payload: { message: string; subject?: string; draft?: boolean },
+  ) =>
+    request<{ message: ContactMessage; thread: ContactMessage[]; counts: ContactMailboxCounts }>(
+      `/contact-messages/${id}`,
+      { method: "POST", body: JSON.stringify(payload) },
+    ),
+
+  mailboxAction: (payload: Record<string, unknown>) =>
+    request<{
+      message?: ContactMessage;
+      messages?: ContactMessage[];
+      deleted?: unknown;
+      counts?: ContactMailboxCounts;
+      removed?: number;
+    }>("/contact-messages", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   getLikeStats: (caseStudyId: number) =>
     request<LikeStats>(`/case-studies/${caseStudyId}/like`),

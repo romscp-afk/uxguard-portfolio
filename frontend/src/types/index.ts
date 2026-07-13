@@ -268,13 +268,33 @@ export interface FollowStats {
 
 export interface ContactMessage {
   id: number;
+  thread_id: string;
+  parent_id?: number | null;
+  folder: "inbox" | "sent" | "drafts" | "trash" | string;
+  direction: "inbound" | "outbound" | string;
   name: string;
   email: string;
+  from_name?: string;
+  from_email?: string;
+  to_name?: string;
+  to_email?: string;
   inquiry_type: string;
   subject: string;
   message: string;
   created_at: string;
+  updated_at?: string;
   read: boolean;
+  starred?: boolean;
+  deleted_at?: string | null;
+}
+
+export interface ContactMailboxCounts {
+  inbox: number;
+  inbox_unread: number;
+  sent: number;
+  drafts: number;
+  trash: number;
+  starred: number;
 }
 
 export type AssistantContextType = "general" | "case_study" | "project" | "profile" | "portfolio";

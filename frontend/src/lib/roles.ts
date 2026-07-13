@@ -74,7 +74,7 @@ export function dashboardLinksForUser(user?: User | null) {
   ];
 
   if (role === "admin" || String(user?.email || "").toLowerCase() === "uxguardstudio@gmail.com") {
-    all.push({ to: "/admin/contact-inbox", label: "Contact Inbox", section: "contact" });
+    all.push({ to: "/admin/contact-inbox", label: "Mail", section: "contact" });
   }
 
   const priority =
