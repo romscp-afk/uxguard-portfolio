@@ -10,10 +10,13 @@ import {
   LogOut,
   Mail,
   Palette,
+  Sparkles,
   UserCircle,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
+import { AssistantFab, AssistantPanel } from "../assistant/AssistantPanel";
+import { AssistantProvider, useAssistant } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 
@@ -30,6 +33,20 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   achievements: Briefcase,
   analytics: BarChart3,
 };
+
+function SidebarAiButton() {
+  const { setOpen } = useAssistant();
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-300 transition hover:bg-ink-800 hover:text-white"
+    >
+      <Sparkles className="h-4 w-4 text-brand-300" />
+      UXGuard AI
+    </button>
+  );
+}
 
 export function AdminLayout() {
   const { user, loading, logout } = useAuth();
@@ -51,8 +68,9 @@ export function AdminLayout() {
   const roleLabel = normalizeRole(user.role);
 
   return (
-    <div className="flex min-h-screen bg-ink-100">
-      <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-ink-800 bg-ink-950 text-white">
+    <AssistantProvider>
+      <div className="flex min-h-screen bg-ink-100">
+        <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-ink-800 bg-ink-950 text-white">
         <div className="border-b border-ink-800 px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <Logo variant="mark" theme="dark" />
@@ -75,6 +93,7 @@ export function AdminLayout() {
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </Link>
+            <SidebarAiButton />
           </div>
 
           <div>
@@ -165,6 +184,10 @@ export function AdminLayout() {
       <main className="ml-64 flex-1 p-8">
         <Outlet />
       </main>
+
+      <AssistantPanel />
+      <AssistantFab />
     </div>
+    </AssistantProvider>
   );
 }

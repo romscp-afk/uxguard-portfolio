@@ -245,3 +245,38 @@ export interface ContactMessage {
   created_at: string;
   read: boolean;
 }
+
+export type AssistantContextType = "general" | "case_study" | "project" | "profile" | "portfolio";
+
+export interface AssistantChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AssistantPageContext {
+  type: AssistantContextType;
+  pageLabel: string;
+  entityId?: number | string;
+  draft?: Record<string, unknown>;
+  field?: string;
+  onApply?: (updates: Record<string, unknown>) => void;
+}
+
+export interface AssistantChatResponse {
+  message: string;
+  field_updates?: Record<string, unknown> | null;
+  suggestions?: string[];
+  model?: string;
+}
+
+export interface AssistantStatus {
+  enabled: boolean;
+  provider: string | null;
+  model: string | null;
+}
+
+export interface AssistantThreadMessage extends AssistantChatMessage {
+  id: string;
+  field_updates?: Record<string, unknown> | null;
+  suggestions?: string[];
+}

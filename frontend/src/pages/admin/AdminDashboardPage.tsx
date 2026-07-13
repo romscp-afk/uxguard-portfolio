@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
+  Bot,
   FileText,
   FolderKanban,
   Globe,
@@ -10,6 +11,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useAssistant } from "../../context/AssistantContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
 import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
@@ -18,6 +20,7 @@ import type { CaseStudyListItem, Project } from "../../types";
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
+  const { setOpen: openAssistant } = useAssistant();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -49,6 +52,25 @@ export function AdminDashboardPage() {
         <p className="mt-1 text-ink-500">
           Welcome back, {user.name}. {intentLabel} · {role} account
         </p>
+      </div>
+
+      <div className="card mb-8 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
+            <Bot className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-ink-900">UXGuard AI</h2>
+            <p className="mt-1 max-w-xl text-sm text-ink-600">
+              Draft case studies, polish your bio, and structure your portfolio with an AI assistant
+              built for UX research storytelling.
+            </p>
+          </div>
+        </div>
+        <button type="button" onClick={() => openAssistant(true)} className="btn-primary shrink-0">
+          <Sparkles className="h-4 w-4" />
+          Open AI Assistant
+        </button>
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

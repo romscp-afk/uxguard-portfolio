@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Eye, FileText, Plus, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Eye, FileText, Plus, Save, Sparkles, Trash2, Upload } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { useAuth } from "../../context/AuthContext";
+import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
 import { api, ApiError, toStoredAssetUrl } from "../../api/client";
 import {
   getCaseStudyFromCache,
@@ -527,6 +528,88 @@ export function CaseStudyEditorPage() {
     navigate("/admin/case-studies");
   }
 
+  const { setOpen: openAssistant } = useAssistant();
+
+  const applyAssistantUpdates = useCallback(
+    (updates: Record<string, unknown>) => {
+      const stringFields = [
+        "title",
+        "subtitle",
+        "client",
+        "project_type",
+        "role",
+        "duration",
+        "summary",
+        "challenge",
+        "methodology",
+        "impact",
+        "reflections",
+      ] as const;
+
+      for (const key of stringFields) {
+        if (typeof updates[key] === "string") {
+          updateField(key, updates[key] as string);
+        }
+      }
+
+      if (updates.methods !== undefined) {
+        const methods = Array.isArray(updates.methods)
+          ? updates.methods.map(String)
+          : String(updates.methods)
+              .split(",")
+              .map((m) => m.trim())
+              .filter(Boolean);
+        setMethodsInput(methods.join(", "));
+        updateField("methods", methods);
+      }
+
+      if (Array.isArray(updates.metrics)) {
+        updateField("metrics", updates.metrics as MetricItem[]);
+      }
+
+      if (Array.isArray(updates.content_blocks)) {
+        const blocks = (updates.content_blocks as ContentBlock[]).map((block) => ({
+          ...block,
+          id: block.id || uid(),
+        }));
+        updateField("content_blocks", blocks);
+      }
+
+      setMessageType("success");
+      setMessage("AI suggestions applied to your case study. Review and save when ready.");
+    },
+    [updateField],
+  );
+
+  useAssistantPage({
+    type: "case_study",
+    pageLabel: isNew ? "New case study" : form.title || "Case study",
+    entityId: studyId ?? "new",
+    onApply: applyAssistantUpdates,
+  });
+
+  const assistantDraft = useMemo(
+    () => ({
+      title: form.title,
+      subtitle: form.subtitle,
+      client: form.client,
+      project_type: form.project_type,
+      role: form.role,
+      duration: form.duration,
+      summary: form.summary,
+      challenge: form.challenge,
+      methodology: form.methodology,
+      impact: form.impact,
+      reflections: form.reflections,
+      methods: methodsInput,
+      metrics: form.metrics,
+      content_blocks: form.content_blocks,
+    }),
+    [form, methodsInput],
+  );
+
+  useAssistantDraft(assistantDraft);
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -542,6 +625,14 @@ export function CaseStudyEditorPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => openAssistant(true)}
+            className="btn-secondary"
+          >
+            <Sparkles className="h-4 w-4" />
+            AI Assistant
+          </button>
           {!isNew ? (
             <>
               <button type="button" onClick={handlePreview} className="btn-secondary">

@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Check, Copy, ExternalLink, Save } from "lucide-react";
+import { Check, Copy, ExternalLink, Save, Sparkles } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { saveUserToRegistry } from "../../lib/platformRegistry";
+import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
 import { api, ApiError, resolveAssetUrl, toStoredAssetUrl } from "../../api/client";
 import { canEditPlatform } from "../../lib/roles";
@@ -109,6 +110,39 @@ export function ProfileSettingsPage() {
     }
   }
 
+  const { setOpen: openAssistant } = useAssistant();
+  const canEdit = canEditPlatform(user);
+
+  const applyAssistantUpdates = useCallback(
+    (updates: Record<string, unknown>) => {
+      if (typeof updates.name === "string") updateField("name", updates.name);
+      if (typeof updates.title === "string") updateField("title", updates.title);
+      if (typeof updates.bio === "string") updateField("bio", updates.bio);
+      if (typeof updates.location === "string") updateField("location", updates.location);
+      setMessageType("success");
+      setMessage("AI suggestions applied to your profile. Review and save when ready.");
+    },
+    [],
+  );
+
+  useAssistantPage({
+    type: "profile",
+    pageLabel: form.name || user?.name || "Profile",
+    onApply: canEdit ? applyAssistantUpdates : undefined,
+  });
+
+  const assistantDraft = useMemo(
+    () => ({
+      name: form.name,
+      title: form.title,
+      bio: form.bio,
+      location: form.location,
+    }),
+    [form.name, form.title, form.bio, form.location],
+  );
+
+  useAssistantDraft(assistantDraft);
+
   if (!user) {
     return <div className="card h-64 animate-pulse bg-ink-100" />;
   }
@@ -133,6 +167,12 @@ export function ProfileSettingsPage() {
             <ExternalLink className="h-4 w-4" />
             View public profile
           </a>
+        ) : null}
+        {canEdit ? (
+          <button type="button" onClick={() => openAssistant(true)} className="btn-secondary">
+            <Sparkles className="h-4 w-4" />
+            AI Assistant
+          </button>
         ) : null}
       </div>
 

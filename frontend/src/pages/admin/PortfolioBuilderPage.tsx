@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Save, Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, Save, Sparkles, Star } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
 import { canEditPlatform } from "../../lib/roles";
 import type { CaseStudyListItem, PortfolioBuilderConfig } from "../../types";
@@ -29,6 +30,7 @@ const SECTION_TOGGLES: { key: keyof PortfolioBuilderConfig; label: string; phase
 export function PortfolioBuilderPage() {
   const { user } = useAuth();
   const readOnly = !canEditPlatform(user);
+  const { setOpen: openAssistant } = useAssistant();
   const [config, setConfig] = useState<PortfolioBuilderConfig | null>(null);
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +117,26 @@ export function PortfolioBuilderPage() {
     }
   }
 
+  useAssistantPage({
+    type: "portfolio",
+    pageLabel: "Portfolio builder",
+  });
+
+  const assistantDraft = useMemo(
+    () => ({
+      config,
+      case_studies: studies.map((study) => ({
+        id: study.id,
+        title: study.title,
+        status: study.status,
+        featured: study.featured,
+      })),
+    }),
+    [config, studies],
+  );
+
+  useAssistantDraft(assistantDraft);
+
   if (loading) {
     return <div className="card h-64 animate-pulse bg-ink-100" />;
   }
@@ -147,6 +169,10 @@ export function PortfolioBuilderPage() {
             View public portfolio
           </a>
         ) : null}
+        <button type="button" onClick={() => openAssistant(true)} className="btn-secondary">
+          <Sparkles className="h-4 w-4" />
+          AI Assistant
+        </button>
       </div>
 
       {error ? (

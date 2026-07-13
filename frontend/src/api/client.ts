@@ -1,4 +1,8 @@
 import type {
+  AssistantChatMessage,
+  AssistantChatResponse,
+  AssistantContextType,
+  AssistantStatus,
   Attachment,
   CaseStudy,
   CaseStudyListItem,
@@ -304,6 +308,20 @@ export const api = {
     request<PortfolioBuilderConfig>("/portfolio-builder", {
       method: "PATCH",
       body: JSON.stringify(data),
+    }),
+
+  getAssistantStatus: () => request<AssistantStatus>("/assistant/status"),
+
+  assistantChat: (payload: {
+    messages: AssistantChatMessage[];
+    context?: AssistantContextType;
+    field?: string;
+    draft?: Record<string, unknown>;
+    field_updates_requested?: boolean;
+  }) =>
+    request<AssistantChatResponse>("/assistant/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
     }),
 };
 

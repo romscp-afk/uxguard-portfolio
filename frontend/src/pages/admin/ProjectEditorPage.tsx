@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
 import { api, ApiError, toStoredAssetUrl } from "../../api/client";
 import { canEditPlatform } from "../../lib/roles";
@@ -150,6 +151,69 @@ export function ProjectEditorPage() {
     }
   }
 
+  const { setOpen: openAssistant } = useAssistant();
+
+  const applyAssistantUpdates = useCallback(
+    (updates: Record<string, unknown>) => {
+      const stringFields = ["title", "description", "client", "role"] as const;
+      for (const key of stringFields) {
+        if (typeof updates[key] === "string") {
+          updateField(key, updates[key] as string);
+        }
+      }
+      if (typeof updates.status === "string" && STATUSES.includes(updates.status as Project["status"])) {
+        updateField("status", updates.status as Project["status"]);
+      }
+      if (updates.tags !== undefined) {
+        const tags = Array.isArray(updates.tags)
+          ? updates.tags.map(String)
+          : String(updates.tags)
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean);
+        setTagsInput(tags.join(", "));
+        updateField("tags", tags);
+      }
+      if (updates.team !== undefined) {
+        const team = Array.isArray(updates.team)
+          ? updates.team.map(String)
+          : String(updates.team)
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean);
+        setTeamInput(team.join(", "));
+        updateField("team", team);
+      }
+      if (Array.isArray(updates.outcomes)) {
+        updateField("outcomes", updates.outcomes as ProjectOutcome[]);
+      }
+    },
+    [updateField],
+  );
+
+  useAssistantPage({
+    type: "project",
+    pageLabel: isNew ? "New project" : form.title || "Project",
+    entityId: isNew ? "new" : projectId,
+    onApply: readOnly ? undefined : applyAssistantUpdates,
+  });
+
+  const assistantDraft = useMemo(
+    () => ({
+      title: form.title,
+      description: form.description,
+      client: form.client,
+      role: form.role,
+      status: form.status,
+      tags: tagsInput,
+      team: teamInput,
+      outcomes: form.outcomes,
+    }),
+    [form, tagsInput, teamInput],
+  );
+
+  useAssistantDraft(assistantDraft);
+
   if (loading) {
     return <div className="card h-64 animate-pulse bg-ink-100" />;
   }
@@ -163,6 +227,10 @@ export function ProjectEditorPage() {
           Back to projects
         </Link>
         <EditGuard>
+          <button type="button" onClick={() => openAssistant(true)} className="btn-secondary">
+            <Sparkles className="h-4 w-4" />
+            AI Assistant
+          </button>
           {!isNew ? (
             <button
               type="button"
