@@ -21,6 +21,8 @@ type UrlOrUploadFieldProps = {
   variant?: "default" | "cover";
   /** Passed to media upload so profile fields can be attached atomically. */
   uploadPurpose?: "cover" | "media" | "avatar" | "cv";
+  /** Show a Remove control that commits an empty value. */
+  allowRemove?: boolean;
   onValidationError?: (message: string) => void;
   /** Called after a successful upload or validated URL blur (cover edits). */
   onCommit?: (url: string) => void;
@@ -39,6 +41,7 @@ export function UrlOrUploadField({
   showPreview = true,
   variant = "default",
   uploadPurpose,
+  allowRemove = false,
   onValidationError,
   onCommit,
 }: UrlOrUploadFieldProps) {
@@ -49,6 +52,7 @@ export function UrlOrUploadField({
 
   const isCover = variant === "cover";
   const purpose = uploadPurpose || (isCover ? "cover" : "media");
+  const canRemove = allowRemove || isCover;
 
   async function validateCoverUrl(url: string): Promise<boolean> {
     if (!isCover || !url.trim()) return true;
@@ -211,7 +215,7 @@ export function UrlOrUploadField({
             </>
           )}
         </button>
-        {isCover && value ? (
+        {canRemove && value ? (
           <button
             type="button"
             onClick={() => {

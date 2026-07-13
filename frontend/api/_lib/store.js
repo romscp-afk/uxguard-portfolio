@@ -408,7 +408,9 @@ function mergeByNumericId(remoteList = [], localList = []) {
 }
 
 function pickProfileMedia(localValue, remoteValue) {
-  const local = localValue == null || localValue === "" ? null : localValue;
+  // Explicit empty string = intentional clear (must win over remote).
+  if (localValue === "") return null;
+  const local = localValue == null ? null : localValue;
   const remote = remoteValue == null || remoteValue === "" ? null : remoteValue;
   // Prefer the local write when it set a value; otherwise keep remote so races
   // from billing/usage writes do not wipe recently uploaded avatar/cover/CV.
@@ -425,7 +427,12 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = []) {
     seen.add(id);
     const remoteUser = remoteById.get(id);
     if (!remoteUser) {
-      merged.push(localUser);
+      merged.push({
+        ...localUser,
+        avatar_url: localUser.avatar_url === "" ? null : localUser.avatar_url,
+        cover_image_url: localUser.cover_image_url === "" ? null : localUser.cover_image_url,
+        cv_url: localUser.cv_url === "" ? null : localUser.cv_url,
+      });
       continue;
     }
     merged.push({

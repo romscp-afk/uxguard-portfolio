@@ -134,6 +134,8 @@ const PROFILE_FIELDS = new Set([
   "social_links",
 ]);
 
+const MEDIA_PROFILE_FIELDS = new Set(["avatar_url", "cover_image_url", "cv_url"]);
+
 function normalizeProfileValue(key, value) {
   if (key === "social_links") {
     if (!value || typeof value !== "object") return {};
@@ -142,6 +144,12 @@ function normalizeProfileValue(key, value) {
       if (typeof v === "string" && v.trim()) next[k] = v.trim();
     }
     return next;
+  }
+  // Empty string is an intentional clear for media fields (survives Blob merge).
+  if (MEDIA_PROFILE_FIELDS.has(key)) {
+    if (value == null) return "";
+    if (typeof value === "string") return value.trim();
+    return String(value);
   }
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -168,10 +176,26 @@ export async function updateUserProfile(userId, updates) {
       );
       if (taken) throw new Error("Username already taken");
     }
-    store.users[index] = { ...store.users[index], ...sanitized };
-    updated = store.users[index];
+
+    const next = { ...store.users[index], ...sanitized };
+    // Normalize clear sentinels to null for API responses after write merge.
+    for (const field of MEDIA_PROFILE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(sanitized, field) && !sanitized[field]) {
+        next[field] = "";
+      }
+    }
+    store.users[index] = next;
+    updated = next;
     return store;
   });
+
+  // Present nulls instead of "" to clients
+  if (updated) {
+    updated = { ...updated };
+    for (const field of MEDIA_PROFILE_FIELDS) {
+      if (!updated[field]) updated[field] = null;
+    }
+  }
   return updated;
 }
 
@@ -179,6 +203,9 @@ export function toUserOut(user) {
   const { password: _password, ...rest } = user;
   return {
     ...rest,
+    avatar_url: rest.avatar_url || null,
+    cover_image_url: rest.cover_image_url || null,
+    cv_url: rest.cv_url || null,
     role: rest.role === "researcher" ? "professional" : rest.role,
     portfolio_url: `/u/${user.username}`,
     portfolio_config: {

@@ -54,30 +54,53 @@ export function ProfileSettingsPage() {
     url: string,
   ) {
     if (!canEditPlatform(user)) return;
-    const stored = toStoredAssetUrl(url) || url.trim();
-    if (!stored) return;
+    const previous = String(form[field] || "");
+    const stored = url.trim() ? toStoredAssetUrl(url) || url.trim() : "";
 
     updateField(field, stored);
     try {
       const saved = await api.updateMe({ [field]: stored });
+      // Only update the field we changed — avoid clobbering cover/avatar/CV with stale merges.
+      setForm((prev) => ({
+        ...prev,
+        [field]: saved[field] || "",
+      }));
       await refreshUser();
       setForm((prev) => ({
         ...prev,
-        avatar_url: saved.avatar_url || "",
-        cover_image_url: saved.cover_image_url || "",
-        cv_url: saved.cv_url || "",
+        [field]: saved[field] || "",
       }));
+
+      // Best-effort delete of the previous hosted file when clearing or replacing.
+      if (previous && previous !== stored) {
+        const match = previous.match(/\/api\/v1\/media\/file\/(\d+)/);
+        if (match) {
+          void api.deleteMedia(Number(match[1])).catch(() => undefined);
+        }
+      }
+
       setMessageType("success");
-      setMessage(
-        field === "cv_url"
-          ? "CV saved to your profile."
-          : field === "avatar_url"
-            ? "Profile photo saved."
-            : "Cover photo saved.",
-      );
+      if (!stored) {
+        setMessage(
+          field === "cv_url"
+            ? "CV removed from your profile."
+            : field === "avatar_url"
+              ? "Profile photo removed."
+              : "Cover photo removed.",
+        );
+      } else {
+        setMessage(
+          field === "cv_url"
+            ? "CV saved to your profile."
+            : field === "avatar_url"
+              ? "Profile photo saved."
+              : "Cover photo saved.",
+        );
+      }
     } catch (err) {
       setMessageType("error");
-      setMessage(err instanceof ApiError ? err.message : "Upload saved locally but profile update failed.");
+      setMessage(err instanceof ApiError ? err.message : "Could not update profile media.");
+      updateField(field, previous);
     }
   }
 
@@ -282,11 +305,13 @@ export function ProfileSettingsPage() {
             accept="image/*"
             variant="cover"
             uploadPurpose="cover"
+            allowRemove
             helpText="Wide banner image for the top of your public profile (recommended 1600×600). Saved as soon as you upload."
           />
           {form.cover_image_url ? (
             <div className="overflow-hidden rounded-xl border border-ink-100 bg-ink-50">
               <img
+                key={form.cover_image_url}
                 src={resolveAssetUrl(form.cover_image_url)}
                 alt=""
                 className="aspect-[16/6] w-full object-cover"
@@ -302,12 +327,14 @@ export function ProfileSettingsPage() {
             accept="image/*"
             showPreview={false}
             uploadPurpose="avatar"
+            allowRemove
             helpText="Square photos work best. Saved as soon as you upload."
           />
           {form.avatar_url ? (
             <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 p-4">
               <div className="h-24 w-24 overflow-hidden rounded-2xl bg-white ring-2 ring-brand-100">
                 <img
+                  key={form.avatar_url}
                   src={resolveAssetUrl(form.avatar_url)}
                   alt=""
                   className="h-full w-full object-cover object-center"
@@ -379,18 +406,28 @@ export function ProfileSettingsPage() {
             accept="image/*,.pdf,.doc,.docx"
             showPreview={false}
             uploadPurpose="cv"
-            helpText="Upload a PDF/Word file or paste a link — saved to your public profile as soon as you upload."
+            allowRemove
+            helpText="Upload a PDF/Word file or paste a link — saved to your public profile as soon as you upload. Use Remove to delete it."
           />
           {form.cv_url ? (
-            <a
-              href={resolveAssetUrl(form.cv_url)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-500"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View CV in new tab
-            </a>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={resolveAssetUrl(form.cv_url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-500"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View CV in new tab
+              </a>
+              <button
+                type="button"
+                onClick={() => void persistMediaField("cv_url", "")}
+                className="text-sm font-medium text-red-600 hover:text-red-700"
+              >
+                Delete CV
+              </button>
+            </div>
           ) : null}
         </div>
 
