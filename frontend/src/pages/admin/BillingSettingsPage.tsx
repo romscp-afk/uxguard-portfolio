@@ -78,8 +78,12 @@ export function BillingSettingsPage() {
 
         <div className="card space-y-4 p-6">
           <h2 className="font-semibold text-ink-900">Subscription actions</h2>
-          {summary?.plan.code === "free" ? (
+          {summary?.plan.code === "free" && !summary?.is_admin_comp ? (
             <p className="text-sm text-ink-600">No payment method is required for your current plan.</p>
+          ) : summary?.is_admin_comp || summary?.plan.code === "admin" ? (
+            <p className="text-sm text-ink-600">
+              Admin complimentary access — unlimited quotas, no payment required.
+            </p>
           ) : (
             <p className="text-sm text-ink-600">
               Provider: {summary?.subscription.payment_provider || "—"}
@@ -87,14 +91,18 @@ export function BillingSettingsPage() {
           )}
           <EditGuard>
             <div className="flex flex-wrap gap-2">
-              <Link to="/upgrade" className="btn-primary">
-                {summary?.plan.code === "free" ? "Upgrade" : "Change plan"}
-              </Link>
+              {summary?.is_admin_comp || summary?.plan.code === "admin" ? null : (
+                <Link to="/upgrade" className="btn-primary">
+                  {summary?.plan.code === "free" ? "Upgrade" : "Change plan"}
+                </Link>
+              )}
               {summary?.subscription.status === "canceling" ? (
                 <button type="button" className="btn-secondary" disabled={busy} onClick={resume}>
                   Resume subscription
                 </button>
-              ) : summary?.plan.code !== "free" ? (
+              ) : summary?.plan.code !== "free" &&
+                summary?.plan.code !== "admin" &&
+                !summary?.is_admin_comp ? (
                 <button type="button" className="btn-secondary" disabled={busy} onClick={cancel}>
                   Cancel at period end
                 </button>

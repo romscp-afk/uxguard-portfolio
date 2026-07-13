@@ -8,6 +8,7 @@ export const PLAN_CODES = {
   PROFESSIONAL: "professional",
   TEAM: "team",
   ENTERPRISE: "enterprise",
+  ADMIN: "admin",
 };
 
 /** @typedef {{ code: string, name: string, description: string, monthly_price: number|null, annual_price: number|null, currency: string, ai_credits: number|null, storage_limit_bytes: number|null, portfolio_limit: number|null, case_study_limit: number|null, team_member_limit: number|null, custom_domain_enabled: boolean, private_projects_enabled: boolean, advanced_analytics_enabled: boolean, pdf_export_enabled: boolean, team_workspace_enabled: boolean, ai_tools_enabled: boolean, interview_prep_enabled: boolean, is_active: boolean, highlight?: boolean }} PlanDefinition */
@@ -98,6 +99,27 @@ export const PLAN_DEFINITIONS = [
     ai_tools_enabled: true,
     interview_prep_enabled: true,
     is_active: true,
+  },
+  {
+    code: PLAN_CODES.ADMIN,
+    name: "Admin",
+    description: "Internal unlimited access for platform administrators. Not sold publicly.",
+    monthly_price: 0,
+    annual_price: 0,
+    currency: "USD",
+    ai_credits: null,
+    storage_limit_bytes: null,
+    portfolio_limit: null,
+    case_study_limit: null,
+    team_member_limit: null,
+    custom_domain_enabled: true,
+    private_projects_enabled: true,
+    advanced_analytics_enabled: true,
+    pdf_export_enabled: true,
+    team_workspace_enabled: true,
+    ai_tools_enabled: true,
+    interview_prep_enabled: true,
+    is_active: false,
   },
 ];
 

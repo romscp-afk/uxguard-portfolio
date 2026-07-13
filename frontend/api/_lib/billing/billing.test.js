@@ -222,6 +222,40 @@ describe("AI credits follow plan", () => {
   });
 });
 
+describe("admin unlimited", () => {
+  it("grants Admin plan with unlimited case studies", async () => {
+    await updateStore((store) => {
+      store.users.push({
+        id: 77,
+        email: "admin-test@uxguard.io",
+        password: "x",
+        username: "admin-test",
+        name: "Admin Test",
+        role: "admin",
+      });
+      return store;
+    });
+    const { ensureAdminUnlimitedSubscription } = await import("./persistence.js");
+    await ensureAdminUnlimitedSubscription(77);
+    const { getCurrentPlan, checkUsageLimit } = await import("./entitlements.js");
+    const { plan } = await getCurrentPlan(77);
+    assert.equal(plan.code, PLAN_CODES.ADMIN);
+    assert.equal(plan.case_study_limit, null);
+    assert.equal(plan.ai_credits, null);
+    await updateStore((store) => {
+      store.caseStudies = Array.from({ length: 5 }, (_, i) => ({
+        id: 3000 + i,
+        author_id: 77,
+        title: `A ${i}`,
+        status: "draft",
+      }));
+      return store;
+    });
+    const check = await checkUsageLimit(77, "case_study");
+    assert.equal(check.allowed, true);
+  });
+});
+
 describe("cancellation", () => {
   it("keeps paid access until period end (canceling status)", async () => {
     await ensureFreeSubscription(31);

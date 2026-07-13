@@ -1,6 +1,7 @@
 import { getPlanByCode, isUnlimited, formatBytes, PLAN_CODES } from "./plans.js";
 import {
   applyDueDowngrades,
+  ensureAdminUnlimitedSubscription,
   ensureFreeSubscription,
   ensureUsageCycle,
   getActiveSubscription,
@@ -9,6 +10,8 @@ import {
 import { getOrCreateCredits, remainingCredits } from "../ai/persistence.js";
 import { DEFAULT_MONTHLY_ALLOWANCE } from "../ai/config.js";
 import { updateStore, readStore } from "../store.js";
+import { getUserById } from "../demo-data.js";
+import { isAdmin } from "../roles.js";
 
 const FEATURE_MAP = {
   custom_domain: "custom_domain_enabled",
@@ -22,13 +25,39 @@ const FEATURE_MAP = {
 
 export async function getCurrentPlan(userId) {
   await applyDueDowngrades(userId);
+  const user = await getUserById(userId);
+  if (user && isAdmin(user)) {
+    await ensureAdminUnlimitedSubscription(userId);
+    const sub = await getActiveSubscription(userId);
+    const plan = getPlanByCode(PLAN_CODES.ADMIN) || getPlanByCode(PLAN_CODES.ENTERPRISE);
+    return { subscription: sub, plan, is_admin_comp: true };
+  }
+
   let sub = await getActiveSubscription(userId);
   if (!sub) {
     await ensureFreeSubscription(userId);
     sub = await getActiveSubscription(userId);
   }
+  // Never leave a non-admin on the internal admin plan
+  if (sub?.plan_code === PLAN_CODES.ADMIN) {
+    await updateStore((store) => {
+      for (const row of store.subscriptions || []) {
+        if (
+          Number(row.user_id) === Number(userId) &&
+          row.plan_code === PLAN_CODES.ADMIN &&
+          (row.status === "active" || row.status === "canceling")
+        ) {
+          row.status = "ended";
+          row.updated_at = new Date().toISOString();
+        }
+      }
+      return store;
+    });
+    await ensureFreeSubscription(userId);
+    sub = await getActiveSubscription(userId);
+  }
   const plan = getPlanByCode(sub?.plan_code || PLAN_CODES.FREE) || getPlanByCode(PLAN_CODES.FREE);
-  return { subscription: sub, plan };
+  return { subscription: sub, plan, is_admin_comp: false };
 }
 
 export async function syncCaseStudyUsage(userId) {
@@ -75,7 +104,7 @@ export async function syncAiCreditsWithPlan(userId) {
 }
 
 export async function getUsageSummary(userId) {
-  const { subscription, plan } = await getCurrentPlan(userId);
+  const { subscription, plan, is_admin_comp } = await getCurrentPlan(userId);
   await syncCaseStudyUsage(userId);
   const usage = await ensureUsageCycle(userId);
   await syncAiCreditsWithPlan(userId);
@@ -131,6 +160,8 @@ export async function getUsageSummary(userId) {
       ai_tools: plan.ai_tools_enabled,
       interview_prep: plan.interview_prep_enabled,
     },
+    is_admin_comp: Boolean(is_admin_comp),
+    unlimited: isUnlimited(plan.case_study_limit) && isUnlimited(plan.ai_credits),
   };
 }
 

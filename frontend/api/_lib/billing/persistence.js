@@ -44,9 +44,16 @@ export async function ensureFreeSubscription(userId) {
     const activeRows = store.subscriptions.filter(
       (s) => Number(s.user_id) === id && (s.status === "active" || s.status === "canceling"),
     );
-    const paidActive = activeRows.find((s) => s.plan_code !== PLAN_CODES.FREE);
+    const paidActive = activeRows.find((s) =>
+      [PLAN_CODES.PROFESSIONAL, PLAN_CODES.TEAM, PLAN_CODES.ENTERPRISE].includes(s.plan_code),
+    );
     if (paidActive) {
       created = { ...paidActive, alreadyExisted: true };
+      return store;
+    }
+    const adminActive = activeRows.find((s) => s.plan_code === PLAN_CODES.ADMIN);
+    if (adminActive) {
+      created = { ...adminActive, alreadyExisted: true };
       return store;
     }
     const existingFree = activeRows.find((s) => s.plan_code === PLAN_CODES.FREE);
@@ -92,6 +99,68 @@ export async function ensureFreeSubscription(userId) {
 
   await ensureUsageCycle(userId);
   return created;
+}
+
+/** Platform admins receive the internal unlimited Admin plan (not billed). */
+export async function ensureAdminUnlimitedSubscription(userId) {
+  let result = null;
+  const start = nowIso();
+  const end = addMonths(start, 12);
+
+  await updateStore((store) => {
+    ensureBillingCollections(store);
+    const id = Number(userId);
+    const active = store.subscriptions
+      .filter((s) => Number(s.user_id) === id && (s.status === "active" || s.status === "canceling"))
+      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+
+    if (active && active.plan_code === PLAN_CODES.ADMIN) {
+      result = { ...active, alreadyExisted: true };
+      return store;
+    }
+
+    for (const sub of store.subscriptions) {
+      if (Number(sub.user_id) === id && (sub.status === "active" || sub.status === "canceling")) {
+        sub.status = "replaced";
+        sub.updated_at = start;
+      }
+    }
+
+    const sub = {
+      id: randomUUID(),
+      user_id: id,
+      plan_id: PLAN_CODES.ADMIN,
+      plan_code: PLAN_CODES.ADMIN,
+      status: "active",
+      billing_interval: "year",
+      current_period_start: start,
+      current_period_end: end,
+      cancel_at_period_end: false,
+      payment_provider: "system",
+      provider_customer_id: null,
+      provider_subscription_id: null,
+      trial_start: null,
+      trial_end: null,
+      created_at: start,
+      updated_at: start,
+    };
+    store.subscriptions.push(sub);
+    store.subscription_events.push({
+      id: randomUUID(),
+      user_id: id,
+      subscription_id: sub.id,
+      event_type: "admin_unlimited_activated",
+      old_plan_id: active?.plan_code || null,
+      new_plan_id: PLAN_CODES.ADMIN,
+      metadata: { source: "admin_comp" },
+      created_at: start,
+    });
+    result = { ...sub, alreadyExisted: false };
+    return store;
+  });
+
+  await ensureUsageCycle(userId);
+  return result;
 }
 
 export async function ensureUsageCycle(userId) {

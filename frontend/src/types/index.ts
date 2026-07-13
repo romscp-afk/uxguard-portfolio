@@ -450,6 +450,8 @@ export interface BillingUsageSummary {
   };
   features: Record<string, boolean>;
   transactions?: PaymentTransaction[];
+  is_admin_comp?: boolean;
+  unlimited?: boolean;
 }
 
 export interface PaymentTransaction {

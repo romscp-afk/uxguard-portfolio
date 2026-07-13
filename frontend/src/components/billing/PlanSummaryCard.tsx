@@ -42,18 +42,24 @@ function Meter({
 
 export function PlanSummaryCard({ summary }: { summary: BillingUsageSummary }) {
   const { plan, subscription, usage } = summary;
+  const isAdminComp = Boolean(summary.is_admin_comp || plan.code === "admin");
+  const unlimited = Boolean(summary.unlimited || isAdminComp);
 
   return (
     <div className="card p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Current plan</p>
-          <h2 className="mt-1 font-display text-2xl font-bold text-ink-950">{plan.name}</h2>
+          <h2 className="mt-1 font-display text-2xl font-bold text-ink-950">
+            {isAdminComp ? "Admin · Unlimited" : plan.name}
+          </h2>
           <p className="mt-1 text-sm capitalize text-ink-500">
             Status: {subscription.status}
-            {subscription.billing_interval ? ` · ${subscription.billing_interval}ly` : ""}
+            {!isAdminComp && subscription.billing_interval ? ` · ${subscription.billing_interval}ly` : ""}
           </p>
-          {subscription.current_period_end ? (
+          {isAdminComp ? (
+            <p className="mt-1 text-xs text-ink-400">Complimentary platform access — no payment required.</p>
+          ) : subscription.current_period_end ? (
             <p className="mt-1 text-xs text-ink-400">
               {subscription.cancel_at_period_end ? "Access until" : "Renews"}{" "}
               {new Date(subscription.current_period_end).toLocaleDateString()}
@@ -67,29 +73,43 @@ export function PlanSummaryCard({ summary }: { summary: BillingUsageSummary }) {
         <Meter
           label="AI credits"
           used={usage.ai_credits_used}
-          limit={usage.ai_credits_limit}
+          limit={unlimited ? null : usage.ai_credits_limit}
           display={
-            usage.ai_credits_limit == null
+            unlimited
               ? `${usage.ai_credits_used} used · Unlimited`
-              : `${usage.ai_credits_used} of ${usage.ai_credits_limit} used`
+              : usage.ai_credits_limit == null
+                ? `${usage.ai_credits_used} used · Unlimited`
+                : `${usage.ai_credits_used} of ${usage.ai_credits_limit} used`
           }
         />
         <Meter
           label="Case studies"
           used={usage.case_studies_used}
-          limit={usage.case_studies_limit}
+          limit={unlimited ? null : usage.case_studies_limit}
         />
         <Meter
           label="Storage"
           used={usage.storage_used_bytes}
-          limit={usage.storage_limit_bytes}
-          display={`${usage.storage_used_label} of ${usage.storage_limit_label}`}
+          limit={unlimited ? null : usage.storage_limit_bytes}
+          display={
+            unlimited
+              ? `${usage.storage_used_label} · Unlimited`
+              : `${usage.storage_used_label} of ${usage.storage_limit_label}`
+          }
         />
-        <Meter label="Portfolios" used={usage.portfolios_used} limit={usage.portfolios_limit} />
+        <Meter
+          label="Portfolios"
+          used={usage.portfolios_used}
+          limit={unlimited ? null : usage.portfolios_limit}
+        />
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {plan.code === "free" ? (
+        {isAdminComp ? (
+          <Link to="/admin/billing" className="btn-secondary">
+            Billing details
+          </Link>
+        ) : plan.code === "free" ? (
           <Link to="/upgrade" className="btn-primary">
             Upgrade
             <ArrowUpRight className="h-4 w-4" />
@@ -99,9 +119,11 @@ export function PlanSummaryCard({ summary }: { summary: BillingUsageSummary }) {
             Manage subscription
           </Link>
         )}
-        <Link to="/pricing" className="btn-secondary">
-          View plans
-        </Link>
+        {!isAdminComp ? (
+          <Link to="/pricing" className="btn-secondary">
+            View plans
+          </Link>
+        ) : null}
       </div>
     </div>
   );

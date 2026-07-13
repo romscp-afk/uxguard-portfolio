@@ -90,8 +90,14 @@ export async function registerUser({ email, password, name, username, title, rol
   });
 
   try {
-    const { ensureFreeSubscription } = await import("./billing/persistence.js");
-    await ensureFreeSubscription(created.id);
+    const { ensureFreeSubscription, ensureAdminUnlimitedSubscription } = await import(
+      "./billing/persistence.js"
+    );
+    if (created.role === "admin") {
+      await ensureAdminUnlimitedSubscription(created.id);
+    } else {
+      await ensureFreeSubscription(created.id);
+    }
     const { syncAiCreditsWithPlan } = await import("./billing/entitlements.js");
     await syncAiCreditsWithPlan(created.id);
   } catch {
