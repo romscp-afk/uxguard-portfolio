@@ -291,9 +291,10 @@ export const api = {
     inquiryType: string;
     subject: string;
     message: string;
+    uxg_hp?: string;
     website?: string;
   }) =>
-    request<{ message: string }>("/contact", {
+    request<{ message: string; delivered_to?: string; id?: number }>("/contact", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

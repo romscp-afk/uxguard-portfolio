@@ -7,7 +7,8 @@ export async function saveContactMessage({
   subject,
   message,
 }) {
-  return updateStore((store) => {
+  let saved = null;
+  await updateStore((store) => {
     const messages = Array.isArray(store.contact_messages) ? store.contact_messages : [];
     const nextId = messages.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
 
@@ -23,8 +24,10 @@ export async function saveContactMessage({
     };
 
     store.contact_messages = [entry, ...messages].slice(0, 500);
+    saved = entry;
     return store;
   });
+  return saved;
 }
 
 export async function listContactMessages() {

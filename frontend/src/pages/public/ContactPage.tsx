@@ -54,7 +54,7 @@ export function ContactPage() {
         inquiryType,
         subject,
         message,
-        website,
+        uxg_hp: website,
       });
       setSuccess(true);
       setName("");
@@ -111,7 +111,7 @@ export function ContactPage() {
               {success ? (
                 <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                  <p>Thanks for reaching out. Your message was sent and we&apos;ll reply soon.</p>
+                  <p>Thanks for reaching out. Your message was saved to our Contact Inbox—we&apos;ll reply soon.</p>
                 </div>
               ) : null}
 
@@ -207,7 +207,7 @@ export function ContactPage() {
 
               <input
                 type="text"
-                name="website"
+                name="uxg_hp"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 className="hidden"

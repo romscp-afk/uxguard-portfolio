@@ -73,7 +73,7 @@ export function dashboardLinksForUser(user?: User | null) {
     { to: "#", label: "Analytics", section: "analytics", comingSoon: true },
   ];
 
-  if (role === "admin") {
+  if (role === "admin" || String(user?.email || "").toLowerCase() === "uxguardstudio@gmail.com") {
     all.push({ to: "/admin/contact-inbox", label: "Contact Inbox", section: "contact" });
   }
 

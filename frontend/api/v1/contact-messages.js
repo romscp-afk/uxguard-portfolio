@@ -1,8 +1,9 @@
 import { listContactMessages } from "../_lib/contact-store.js";
 import { requireAuthUser } from "../_lib/auth.js";
+import { isAdmin } from "../_lib/roles.js";
 import { withApi } from "../_lib/withApi.js";
 
-const CONTACT_TO = process.env.CONTACT_TO || "uxguardstudio@gmail.com";
+const CONTACT_TO = String(process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase();
 
 export default withApi(async (req, res) => {
   if (req.method !== "GET") {
@@ -13,8 +14,11 @@ export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
 
-  if (user.role !== "admin" && user.email !== CONTACT_TO) {
-    res.status(403).json({ detail: "Admin access required." });
+  const email = String(user.email || "").toLowerCase();
+  if (!isAdmin(user) && email !== CONTACT_TO) {
+    res.status(403).json({
+      detail: "Admin access required. Sign in with an admin account to view the Contact Inbox.",
+    });
     return;
   }
 

@@ -58,6 +58,13 @@ export function ContactInboxPage() {
         <div className="card p-12 text-center">
           <Mail className="mx-auto h-10 w-10 text-ink-300" />
           <p className="mt-4 text-sm text-ink-500">No contact messages yet.</p>
+          <p className="mt-2 text-xs text-ink-400">
+            Submit a message from the public{" "}
+            <a href="/contact" className="text-brand-600 hover:underline">
+              Contact
+            </a>{" "}
+            page, then refresh this inbox.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

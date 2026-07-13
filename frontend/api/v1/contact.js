@@ -1,13 +1,61 @@
 import { saveContactMessage } from "../_lib/contact-store.js";
+import { createNotification } from "../_lib/community.js";
+import { isPersistentStoreEnabled, readStore } from "../_lib/store.js";
 import { withApi } from "../_lib/withApi.js";
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
+async function readBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  if (Buffer.isBuffer(req.body)) {
+    try {
+      return JSON.parse(req.body.toString("utf8"));
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+async function notifyAdmins(entry) {
+  try {
+    const store = await readStore();
+    const admins = (store.users || []).filter(
+      (u) =>
+        u.role === "admin" ||
+        String(u.email || "").toLowerCase() ===
+          String(process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase(),
+    );
+    await Promise.all(
+      admins.map((admin) =>
+        createNotification({
+          userId: admin.id,
+          type: "contact_message",
+          title: "New contact form message",
+          message: `${entry.name}: ${entry.subject}`,
+          link: "/admin/contact-inbox",
+        }),
+      ),
+    );
+  } catch {
+    // Inbox save already succeeded; notifications are best-effort.
+  }
+}
+
 /**
  * Public contact form — stores messages in the admin Contact Inbox only.
- * Outbound email is disabled for now (enable later with CONTACT_SEND_EMAIL=true + Resend).
+ * Outbound email is disabled for now.
  */
 export default withApi(async (req, res) => {
   if (req.method !== "POST") {
@@ -15,9 +63,20 @@ export default withApi(async (req, res) => {
     return;
   }
 
-  const { name, email, inquiryType, subject, message, website } = req.body || {};
+  const body = await readBody(req);
+  const {
+    name,
+    email,
+    inquiryType,
+    subject,
+    message,
+    uxg_hp: honeypot,
+  } = body || {};
 
-  if (website) {
+  // Prefer dedicated honeypot; do not use "website" (browsers autofill it).
+  const honeypotValue = String(honeypot || "").trim();
+  if (honeypotValue) {
+    // Silent OK for bots — do not persist
     res.status(200).json({ message: "Message sent." });
     return;
   }
@@ -43,8 +102,16 @@ export default withApi(async (req, res) => {
     return;
   }
 
+  if (!isPersistentStoreEnabled()) {
+    res.status(503).json({
+      detail:
+        "Contact inbox storage is not configured. Add BLOB_READ_WRITE_TOKEN to the deployment environment.",
+    });
+    return;
+  }
+
   try {
-    await saveContactMessage({
+    const entry = await saveContactMessage({
       name: trimmedName,
       email: trimmedEmail,
       inquiryType: trimmedType,
@@ -52,9 +119,12 @@ export default withApi(async (req, res) => {
       message: trimmedMessage,
     });
 
+    await notifyAdmins(entry);
+
     res.status(200).json({
-      message: "Message received. We'll get back to you soon.",
+      message: "Message received. It is now in the admin Contact Inbox.",
       delivered_to: "inbox",
+      id: entry.id,
     });
   } catch (err) {
     res.status(503).json({
