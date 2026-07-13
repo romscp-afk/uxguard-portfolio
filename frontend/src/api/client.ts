@@ -3,6 +3,12 @@ import type {
   AssistantChatResponse,
   AssistantContextType,
   AssistantStatus,
+  AiAssistantType,
+  AiCreditsSummary,
+  AiConversation,
+  AiGenerateResponse,
+  AiMessage,
+  SavedAiOutput,
   Attachment,
   CaseStudy,
   CaseStudyListItem,
@@ -24,6 +30,7 @@ import type {
 
 const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_BASE = `${API_ROOT}/api/v1`;
+const AI_API_BASE = `${API_ROOT}/api/ai`;
 /** Bump when media serving strategy changes so CDN/browser drop bad cached redirects. */
 const MEDIA_CACHE_BUST = "4";
 
@@ -65,11 +72,17 @@ export function toStoredAssetUrl(url: string | null | undefined): string | null 
 }
 
 class ApiError extends Error {
+  code?: string;
+  remainingCredits?: number;
+
   constructor(
     public status: number,
     message: string,
+    extras?: { code?: string; remainingCredits?: number },
   ) {
     super(message);
+    this.code = extras?.code;
+    this.remainingCredits = extras?.remainingCredits;
   }
 }
 
@@ -77,7 +90,7 @@ function getToken(): string | null {
   return localStorage.getItem("uxguard_token");
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function requestAt<T>(base: string, path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -91,15 +104,26 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${base}${path}`, { ...options, headers });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.detail || res.statusText);
+    throw new ApiError(res.status, body.detail || res.statusText, {
+      code: body.code,
+      remainingCredits: body.remainingCredits,
+    });
   }
 
   if (res.status === 204) return undefined as T;
   return res.json();
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return requestAt<T>(API_BASE, path, options);
+}
+
+async function aiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return requestAt<T>(AI_API_BASE, path, options);
 }
 
 export const api = {
@@ -323,6 +347,61 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  getAiCredits: () => aiRequest<AiCreditsSummary>("/credits"),
+
+  aiGenerate: (payload: {
+    assistantType: AiAssistantType;
+    action: string;
+    conversationId?: string | null;
+    inputs?: Record<string, unknown>;
+    tone?: string;
+    length?: string;
+    priorContent?: Record<string, unknown> | string | null;
+    versionOf?: string | null;
+  }) =>
+    aiRequest<AiGenerateResponse>("/generate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  listAiConversations: (params?: { q?: string; recent?: boolean; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set("q", params.q);
+    if (params?.recent) qs.set("recent", "true");
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const query = qs.toString();
+    return aiRequest<{ conversations: AiConversation[] }>(
+      `/conversations${query ? `?${query}` : ""}`,
+    );
+  },
+
+  getAiConversation: (id: string) =>
+    aiRequest<{ conversation: AiConversation; messages: AiMessage[] }>(`/conversations/${id}`),
+
+  renameAiConversation: (id: string, title: string) =>
+    aiRequest<AiConversation>(`/conversations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    }),
+
+  deleteAiConversation: (id: string) =>
+    aiRequest<void>(`/conversations/${id}`, { method: "DELETE" }),
+
+  listSavedAiOutputs: () => aiRequest<{ outputs: SavedAiOutput[] }>("/saved"),
+
+  saveAiOutput: (payload: {
+    conversation_id?: string | null;
+    title: string;
+    output_type: string;
+    content: Record<string, unknown> | string;
+  }) =>
+    aiRequest<SavedAiOutput>("/saved", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteSavedAiOutput: (id: string) => aiRequest<void>(`/saved/${id}`, { method: "DELETE" }),
 };
 
 export { ApiError };

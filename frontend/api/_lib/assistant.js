@@ -1,6 +1,6 @@
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.AI_API_KEY || "";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const AI_API_BASE = (process.env.AI_API_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
-const AI_MODEL = process.env.AI_MODEL || "gpt-4o-mini";
+const AI_MODEL = process.env.OPENAI_MODEL || process.env.AI_MODEL || "gpt-4o-mini";
 
 const CONTEXT_GUIDES = {
   general: `You help UX researchers and designers build portfolios on UXGuard. Guide them on structure, storytelling, evidence-driven case studies, and professional presentation.`,

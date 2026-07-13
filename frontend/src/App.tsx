@@ -24,6 +24,10 @@ import { ProjectsListPage } from "./pages/admin/ProjectsListPage";
 import { ProjectEditorPage } from "./pages/admin/ProjectEditorPage";
 import { PortfolioBuilderPage } from "./pages/admin/PortfolioBuilderPage";
 import { TemplatesPage } from "./pages/admin/TemplatesPage";
+import { AiHubPage } from "./pages/admin/ai/AiHubPage";
+import { AiWorkspacePage } from "./pages/admin/ai/AiWorkspacePage";
+import { AiHistoryPage } from "./pages/admin/ai/AiHistoryPage";
+import { AiSavedPage } from "./pages/admin/ai/AiSavedPage";
 
 export default function App() {
   return (
@@ -51,6 +55,10 @@ export default function App() {
             <Route path="projects/:id" element={<ProjectEditorPage />} />
             <Route path="portfolio-builder" element={<PortfolioBuilderPage />} />
             <Route path="templates" element={<TemplatesPage />} />
+            <Route path="ai" element={<AiHubPage />} />
+            <Route path="ai/history" element={<AiHistoryPage />} />
+            <Route path="ai/saved" element={<AiSavedPage />} />
+            <Route path="ai/:assistantType" element={<AiWorkspacePage />} />
             <Route path="case-studies" element={<CaseStudiesListPage />} />
             <Route path="case-studies/new" element={<CaseStudyEditorPage />} />
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />

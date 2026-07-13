@@ -68,10 +68,15 @@ export function AdminDashboardPage() {
             </p>
           </div>
         </div>
-        <button type="button" onClick={() => openAssistant(true)} className="btn-primary shrink-0">
-          <Sparkles className="h-4 w-4" />
-          Open AI Assistant
-        </button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link to="/admin/ai" className="btn-primary">
+            <Sparkles className="h-4 w-4" />
+            Open UXGuard AI
+          </Link>
+          <button type="button" onClick={() => openAssistant(true)} className="btn-secondary">
+            Quick editor AI
+          </button>
+        </div>
       </div>
 
       <div className="card mb-8 flex flex-col gap-4 border-ink-200 bg-gradient-to-r from-ink-950 to-ink-800 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
@@ -118,6 +123,7 @@ export function AdminDashboardPage() {
             const icons: Record<string, typeof UserCircle> = {
               profile: UserCircle,
               projects: FolderKanban,
+              ai: Sparkles,
               templates: LayoutTemplate,
               portfolio: Palette,
               "case-studies": FileText,

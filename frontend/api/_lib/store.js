@@ -195,6 +195,11 @@ function normalizeLoadedStore(data) {
     likes: data.likes || [],
     contact_messages: data.contact_messages || [],
     projects: data.projects || [],
+    ai_conversations: data.ai_conversations || [],
+    ai_messages: data.ai_messages || [],
+    ai_usage: data.ai_usage || [],
+    user_ai_credits: data.user_ai_credits || [],
+    saved_ai_outputs: data.saved_ai_outputs || [],
     mediaAssets: (data.mediaAssets || []).map((asset) => ({
       ...asset,
       url: normalizeMediaAssetUrl(asset.url, asset.id),
@@ -247,6 +252,11 @@ function seedStore() {
         updated_at: "2026-07-04T19:26:59.000Z",
       },
     ],
+    ai_conversations: [],
+    ai_messages: [],
+    ai_usage: [],
+    user_ai_credits: [],
+    saved_ai_outputs: [],
   };
 }
 

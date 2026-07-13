@@ -311,3 +311,62 @@ export interface AssistantThreadMessage extends AssistantChatMessage {
   field_updates?: Record<string, unknown> | null;
   suggestions?: string[];
 }
+
+/** Phase 1 UXGuard AI tools */
+export type AiAssistantType =
+  | "case-study"
+  | "research"
+  | "documentation"
+  | "portfolio-review";
+
+export interface AiCreditsSummary {
+  monthly_allowance: number;
+  purchased_credits: number;
+  used_credits: number;
+  remaining_credits: number;
+  reset_date: string;
+  model: string | null;
+  enabled: boolean;
+}
+
+export interface AiConversation {
+  id: string;
+  user_id: number;
+  title: string;
+  assistant_type: AiAssistantType | string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AiMessage {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant" | string;
+  content: Record<string, unknown> | string;
+  input_tokens?: number;
+  output_tokens?: number;
+  credits_used?: number;
+  version_of?: string | null;
+  created_at: string;
+}
+
+export interface AiGenerateResponse {
+  success: boolean;
+  conversationId: string;
+  messageId: string;
+  content: Record<string, unknown>;
+  creditsUsed: number;
+  remainingCredits: number;
+  model?: string;
+}
+
+export interface SavedAiOutput {
+  id: string;
+  user_id: number;
+  conversation_id?: string | null;
+  title: string;
+  output_type: string;
+  content: Record<string, unknown> | string;
+  created_at: string;
+  updated_at: string;
+}

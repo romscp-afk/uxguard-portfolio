@@ -17,13 +17,14 @@ import {
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
 import { AssistantFab, AssistantPanel } from "../assistant/AssistantPanel";
-import { AssistantProvider, useAssistant } from "../../context/AssistantContext";
+import { AssistantProvider } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
 import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   profile: UserCircle,
   projects: FolderKanban,
+  ai: Sparkles,
   templates: LayoutTemplate,
   portfolio: Palette,
   "case-studies": FileText,
@@ -35,20 +36,6 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   achievements: Briefcase,
   analytics: BarChart3,
 };
-
-function SidebarAiButton() {
-  const { setOpen } = useAssistant();
-  return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-300 transition hover:bg-ink-800 hover:text-white"
-    >
-      <Sparkles className="h-4 w-4 text-brand-300" />
-      UXGuard AI
-    </button>
-  );
-}
 
 export function AdminLayout() {
   const { user, loading, logout } = useAuth();
@@ -95,7 +82,6 @@ export function AdminLayout() {
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </Link>
-            <SidebarAiButton />
           </div>
 
           <div>
