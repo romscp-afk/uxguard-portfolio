@@ -1,7 +1,7 @@
-import { requireAuthUser } from "../../_lib/auth.js";
-import { adminListUsers } from "../../_lib/admin-users.js";
-import { isAdmin } from "../../_lib/roles.js";
-import { withApi } from "../../_lib/withApi.js";
+import { requireAuthUser } from "../../../_lib/auth.js";
+import { adminListUsers } from "../../../_lib/admin-users.js";
+import { isAdmin } from "../../../_lib/roles.js";
+import { withApi } from "../../../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);

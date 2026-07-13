@@ -6,8 +6,12 @@ import { withApi } from "../../../_lib/withApi.js";
 function parseId(req) {
   const raw = req.query?.id ?? req.query?.param;
   const value = Array.isArray(raw) ? raw[0] : raw;
-  const id = Number(value);
-  return Number.isFinite(id) && id > 0 ? id : NaN;
+  if (value != null && /^\d+$/.test(String(value))) {
+    return Number(value);
+  }
+  const path = String(req.url || "").split("?")[0];
+  const match = path.match(/\/admin\/users\/(\d+)\/?$/);
+  return match ? Number(match[1]) : NaN;
 }
 
 export default withApi(async (req, res) => {

@@ -98,7 +98,8 @@ async function requestAt<T>(base: string, path: string, options: RequestInit = {
   const headers = new Headers(options.headers || {});
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
-  if (!isFormData && !headers.has("Content-Type")) {
+  // Avoid Content-Type on body-less DELETE (some proxies mishandle it).
+  if (!isFormData && options.body != null && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 

@@ -22,8 +22,8 @@ export async function getUserById(id) {
   return rest;
 }
 
-export async function getUserByUsername(username) {
-  const store = await readStore();
+export async function getUserByUsername(username, options = {}) {
+  const store = await readStore(options);
   const user = store.users.find((u) => u.username === username) || null;
   if (!user) return null;
   const cleaned = sanitizeUserMediaFields(user, store);
@@ -31,8 +31,8 @@ export async function getUserByUsername(username) {
   return rest;
 }
 
-export async function getUserByEmail(email) {
-  const store = await readStore();
+export async function getUserByEmail(email, options = {}) {
+  const store = await readStore(options);
   const needle = String(email || "").trim().toLowerCase();
   const user = store.users.find((u) => String(u.email || "").toLowerCase() === needle) || null;
   if (!user) return null;
@@ -69,12 +69,12 @@ export async function registerUser({ email, password, name, username, title, rol
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters", status: 400 };
   }
-  if (await getUserByEmail(email)) {
+  if (await getUserByEmail(email, { forceRefresh: true })) {
     return { error: "Email already registered", status: 400 };
   }
 
   const finalUsername = username ? slugify(username) : await uniqueUsername(name);
-  if (username && (await getUserByUsername(finalUsername))) {
+  if (username && (await getUserByUsername(finalUsername, { forceRefresh: true }))) {
     return { error: "Username already taken", status: 400 };
   }
 
@@ -103,7 +103,7 @@ export async function registerUser({ email, password, name, username, title, rol
     };
     store.users.push(created);
     return store;
-  });
+  }, { forceRefresh: true });
 
   try {
     const { ensureFreeSubscription, ensureAdminUnlimitedSubscription } = await import(

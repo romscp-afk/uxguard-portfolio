@@ -396,15 +396,22 @@ export async function readStore(options = {}) {
   return structuredClone(slot.current);
 }
 
-function mergeByNumericId(remoteList = [], localList = []) {
+function asIdSet(ids) {
+  return new Set((ids || []).map(Number).filter((id) => Number.isFinite(id)));
+}
+
+function mergeByNumericId(remoteList = [], localList = [], deletedIds = []) {
+  const deleted = asIdSet(deletedIds);
   const byId = new Map();
   for (const item of remoteList) {
     const id = Number(item?.id);
-    if (Number.isFinite(id)) byId.set(id, item);
+    if (!Number.isFinite(id) || deleted.has(id)) continue;
+    byId.set(id, item);
   }
   for (const item of localList) {
     const id = Number(item?.id);
-    if (Number.isFinite(id)) byId.set(id, item);
+    if (!Number.isFinite(id) || deleted.has(id)) continue;
+    byId.set(id, item);
   }
   return [...byId.values()];
 }
@@ -419,13 +426,19 @@ function pickProfileMedia(localValue, remoteValue) {
   return local ?? remote ?? null;
 }
 
-function mergeUsersPreservingMedia(remoteUsers = [], localUsers = []) {
-  const remoteById = new Map(remoteUsers.map((u) => [Number(u.id), u]));
+function mergeUsersPreservingMedia(remoteUsers = [], localUsers = [], deletedIds = []) {
+  const deleted = asIdSet(deletedIds);
+  const remoteById = new Map(
+    remoteUsers
+      .filter((u) => Number.isFinite(Number(u?.id)) && !deleted.has(Number(u.id)))
+      .map((u) => [Number(u.id), u]),
+  );
   const seen = new Set();
   const merged = [];
 
   for (const localUser of localUsers) {
     const id = Number(localUser.id);
+    if (!Number.isFinite(id) || deleted.has(id)) continue;
     seen.add(id);
     const remoteUser = remoteById.get(id);
     if (!remoteUser) {
@@ -448,7 +461,8 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = []) {
 
   for (const remoteUser of remoteUsers) {
     const id = Number(remoteUser.id);
-    if (!seen.has(id)) merged.push(remoteUser);
+    if (!Number.isFinite(id) || deleted.has(id) || seen.has(id)) continue;
+    merged.push(remoteUser);
   }
 
   return merged;
@@ -458,15 +472,47 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = []) {
  * Before overwriting Blob, merge collections that concurrent isolates often race on.
  * Prevents billing/usage writes from dropping newly uploaded media assets or profile media URLs.
  */
+function takeDeletionMarkers(store) {
+  const markers = store?.__uxguardDeleted && typeof store.__uxguardDeleted === "object"
+    ? store.__uxguardDeleted
+    : {};
+  if (store && "__uxguardDeleted" in store) {
+    delete store.__uxguardDeleted;
+  }
+  return {
+    users: markers.users || [],
+    caseStudies: markers.caseStudies || [],
+    projects: markers.projects || [],
+    mediaAssets: markers.mediaAssets || [],
+  };
+}
+
 async function mergeWithRemoteBeforeWrite(localStore) {
+  const deleted = takeDeletionMarkers(localStore);
   try {
     const remote = await loadFromBlob();
     return {
       ...localStore,
-      mediaAssets: mergeByNumericId(remote.mediaAssets || [], localStore.mediaAssets || []),
-      users: mergeUsersPreservingMedia(remote.users || [], localStore.users || []),
-      caseStudies: mergeByNumericId(remote.caseStudies || [], localStore.caseStudies || []),
-      projects: mergeByNumericId(remote.projects || [], localStore.projects || []),
+      mediaAssets: mergeByNumericId(
+        remote.mediaAssets || [],
+        localStore.mediaAssets || [],
+        deleted.mediaAssets,
+      ),
+      users: mergeUsersPreservingMedia(
+        remote.users || [],
+        localStore.users || [],
+        deleted.users,
+      ),
+      caseStudies: mergeByNumericId(
+        remote.caseStudies || [],
+        localStore.caseStudies || [],
+        deleted.caseStudies,
+      ),
+      projects: mergeByNumericId(
+        remote.projects || [],
+        localStore.projects || [],
+        deleted.projects,
+      ),
     };
   } catch (error) {
     if (isMissingBlobError(error)) return localStore;
@@ -480,6 +526,8 @@ export async function writeStore(store) {
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     toWrite = await mergeWithRemoteBeforeWrite(store);
+  } else {
+    takeDeletionMarkers(toWrite);
   }
 
   memoryStore = toWrite;
@@ -499,8 +547,8 @@ export async function writeStore(store) {
   });
 }
 
-export async function updateStore(updater) {
-  const current = await readStore();
+export async function updateStore(updater, options = {}) {
+  const current = await readStore(options);
   const draft = structuredClone(current);
   const next = updater(draft);
   const resolved = next && typeof next === "object" ? next : draft;

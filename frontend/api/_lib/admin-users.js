@@ -203,6 +203,16 @@ export async function adminDeleteUser(userId, actorId) {
       }
     }
 
+    const removedCaseStudyIds = (store.caseStudies || [])
+      .filter((cs) => Number(cs.author_id) === uid)
+      .map((cs) => Number(cs.id));
+    const removedProjectIds = (store.projects || [])
+      .filter((p) => Number(p.author_id) === uid)
+      .map((p) => Number(p.id));
+    const removedMediaIds = (store.mediaAssets || [])
+      .filter((a) => Number(a.uploaded_by_id) === uid)
+      .map((a) => Number(a.id));
+
     store.users = store.users.filter((u) => Number(u.id) !== uid);
     store.caseStudies = (store.caseStudies || []).filter((cs) => Number(cs.author_id) !== uid);
     store.projects = (store.projects || []).filter((p) => Number(p.author_id) !== uid);
@@ -231,8 +241,16 @@ export async function adminDeleteUser(userId, actorId) {
       (e) => Number(e.user_id) !== uid,
     );
 
+    // Prevent Blob race-merge from resurrecting intentionally removed rows.
+    store.__uxguardDeleted = {
+      users: [uid],
+      caseStudies: removedCaseStudyIds,
+      projects: removedProjectIds,
+      mediaAssets: removedMediaIds,
+    };
+
     return store;
-  });
+  }, { forceRefresh: true });
 
   return { ok: true, id: uid };
 }
