@@ -4,9 +4,11 @@ import {
   ArrowRight,
   Bot,
   CreditCard,
+  Eye,
   FileText,
   FolderKanban,
   Globe,
+  Heart,
   LayoutTemplate,
   Sparkles,
 } from "lucide-react";
@@ -16,7 +18,7 @@ import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
 import { normalizeRole } from "../../lib/roles";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { api } from "../../api/client";
-import type { BillingUsageSummary, CaseStudyListItem, Project } from "../../types";
+import type { AnalyticsSummary, BillingUsageSummary, CaseStudyListItem, Project } from "../../types";
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
@@ -24,12 +26,14 @@ export function AdminDashboardPage() {
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [billing, setBilling] = useState<BillingUsageSummary | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
 
   useEffect(() => {
     if (!user) return;
     loadMergedCaseStudies(user.id).then((result) => setStudies(result.studies));
     api.listProjects().then(setProjects).catch(() => setProjects([]));
     api.getBillingSubscription().then(setBilling).catch(() => setBilling(null));
+    api.getAnalyticsSummary().then(setAnalytics).catch(() => setAnalytics(null));
   }, [user]);
 
   if (!user) return null;
@@ -128,6 +132,41 @@ export function AdminDashboardPage() {
             <p className="text-xs text-ink-500 sm:text-sm">{label}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4">
+        <Link
+          to="/admin/analytics"
+          className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
+        >
+          <div>
+            <div className="flex items-center gap-2 text-brand-600">
+              <Eye className="h-5 w-5" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Views</span>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
+              {analytics?.totals.views ?? "—"}
+            </p>
+            <p className="text-xs text-ink-500 sm:text-sm">Open analytics</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-ink-400" />
+        </Link>
+        <Link
+          to="/admin/analytics"
+          className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
+        >
+          <div>
+            <div className="flex items-center gap-2 text-rose-600">
+              <Heart className="h-5 w-5" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Likes</span>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
+              {analytics?.totals.likes ?? "—"}
+            </p>
+            <p className="text-xs text-ink-500 sm:text-sm">Open analytics</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-ink-400" />
+        </Link>
       </div>
 
       <div className="card overflow-hidden">

@@ -322,6 +322,9 @@ export async function adminDeleteUser(userId, actorId) {
     );
     store.comments = (store.comments || []).filter((c) => Number(c.author_id) !== uid);
     store.likes = (store.likes || []).filter((l) => Number(l.user_id) !== uid);
+    store.case_study_views = (store.case_study_views || []).filter(
+      (v) => Number(v.author_id) !== uid && !removedCaseStudyIds.includes(Number(v.case_study_id)),
+    );
     store.notifications = (store.notifications || []).filter((n) => Number(n.user_id) !== uid);
     store.subscriptions = (store.subscriptions || []).filter((s) => Number(s.user_id) !== uid);
     store.user_usage = (store.user_usage || []).filter((u) => Number(u.user_id) !== uid);

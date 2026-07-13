@@ -58,6 +58,7 @@ const PLATFORM_LINKS: NavLink[] = [
   { to: "/admin/profile", label: "Professional Profile", section: "profile" },
   { to: "/admin/projects", label: "Projects", section: "projects" },
   { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
+  { to: "/admin/analytics", label: "Analytics", section: "analytics" },
   { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
   { to: "/admin/templates", label: "Templates", section: "templates" },
   { to: "/admin/media", label: "Media Library", section: "media" },
@@ -69,7 +70,6 @@ const PHASE2_LINKS: NavLink[] = [
   { to: "#", label: "Resume Builder", section: "resume", comingSoon: true },
   { to: "#", label: "Career Timeline", section: "timeline", comingSoon: true },
   { to: "#", label: "Achievements", section: "achievements", comingSoon: true },
-  { to: "#", label: "Analytics", section: "analytics", comingSoon: true },
 ];
 
 export function dashboardLinksForUser(user?: User | null) {

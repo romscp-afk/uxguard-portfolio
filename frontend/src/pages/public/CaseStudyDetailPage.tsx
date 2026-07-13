@@ -11,6 +11,7 @@ import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout
 import { DocumentMeta } from "../../components/seo/DocumentMeta";
 import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
+import { getOrCreateViewerKey, sessionViewGuardKey } from "../../lib/viewerKey";
 import type { CaseStudy, UserProfile } from "../../types";
 
 export function CaseStudyDetailPage() {
@@ -80,6 +81,28 @@ export function CaseStudyDetailPage() {
       cancelled = true;
     };
   }, [username, slug]);
+
+  useEffect(() => {
+    if (!study?.id || study.status !== "published") return;
+
+    const guardKey = sessionViewGuardKey(study.id);
+    try {
+      if (sessionStorage.getItem(guardKey)) return;
+      sessionStorage.setItem(guardKey, "1");
+    } catch {
+      // sessionStorage may be unavailable; still attempt server-side dedupe
+    }
+
+    const path = `/u/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`;
+    void api
+      .recordCaseStudyView(study.id, {
+        viewer_key: getOrCreateViewerKey(),
+        path,
+      })
+      .catch(() => {
+        // Analytics must never block reading the case study.
+      });
+  }, [study?.id, study?.status, username, slug]);
 
   if (loading) {
     return (

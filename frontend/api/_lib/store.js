@@ -231,6 +231,7 @@ function normalizeLoadedStore(data) {
     comments: data.comments || [],
     notifications: data.notifications || [],
     likes: data.likes || [],
+    case_study_views: data.case_study_views || [],
     contact_messages: data.contact_messages || [],
     projects: data.projects || [],
     ai_conversations: data.ai_conversations || [],
@@ -269,6 +270,7 @@ function seedStore() {
     comments: [],
     notifications: [],
     likes: [],
+    case_study_views: [],
     contact_messages: [],
     projects: [
       {

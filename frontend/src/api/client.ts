@@ -18,6 +18,7 @@ import type {
   ContactMessage,
   ContactMailboxCounts,
   AdminUserSummary,
+  AnalyticsSummary,
   FeedCaseStudyItem,
   FollowStats,
   LikeStats,
@@ -253,6 +254,19 @@ export const api = {
   },
 
   adminListCaseStudies: () => request<CaseStudyListItem[]>("/case-studies/admin/all"),
+
+  getAnalyticsSummary: () =>
+    request<AnalyticsSummary>(`/analytics/summary?_=${Date.now()}`),
+
+  recordCaseStudyView: (caseStudyId: number, extras?: { viewer_key?: string; path?: string }) =>
+    request<{ recorded: boolean; case_study_id?: number }>("/analytics/views", {
+      method: "POST",
+      body: JSON.stringify({
+        case_study_id: caseStudyId,
+        viewer_key: extras?.viewer_key,
+        path: extras?.path,
+      }),
+    }),
 
   getCaseStudy: (slug: string) => request<CaseStudy>(`/case-studies/${slug}`),
 

@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Edit, Eye, Plus } from "lucide-react";
+import { api } from "../../api/client";
 import { EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAuth } from "../../context/AuthContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
-import type { CaseStudyListItem } from "../../types";
+import type { AnalyticsCaseStudyRow, CaseStudyListItem } from "../../types";
 
 export function CaseStudiesListPage() {
   const { user } = useAuth();
   const location = useLocation();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
+  const [engagement, setEngagement] = useState<Map<number, AnalyticsCaseStudyRow>>(new Map());
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
@@ -18,9 +20,15 @@ export function CaseStudiesListPage() {
     if (!user) return;
     setSyncing(true);
     try {
-      const result = await loadMergedCaseStudies(user.id, { claimAll });
+      const [result, summary] = await Promise.all([
+        loadMergedCaseStudies(user.id, { claimAll }),
+        api.getAnalyticsSummary().catch(() => null),
+      ]);
       setStudies(result.studies);
       setSyncError(result.syncError);
+      if (summary?.case_studies) {
+        setEngagement(new Map(summary.case_studies.map((row) => [row.id, row])));
+      }
     } finally {
       setSyncing(false);
     }
@@ -30,8 +38,10 @@ export function CaseStudiesListPage() {
     void refresh(false);
   }, [user, location.pathname]);
 
-  const filtered =
-    filter === "all" ? studies : studies.filter((s) => s.status === filter);
+  const filtered = useMemo(
+    () => (filter === "all" ? studies : studies.filter((s) => s.status === filter)),
+    [studies, filter],
+  );
 
   return (
     <div>
@@ -58,7 +68,8 @@ export function CaseStudiesListPage() {
       </div>
       {syncError ? (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Offline copies could not fully sync: {syncError}. Open each study and Save/Publish again if it is still missing from the community feed.
+          Offline copies could not fully sync: {syncError}. Open each study and Save/Publish again if
+          it is still missing from the community feed.
         </div>
       ) : null}
 
@@ -86,56 +97,63 @@ export function CaseStudiesListPage() {
               <th className="px-6 py-3 font-semibold text-ink-700">Title</th>
               <th className="px-6 py-3 font-semibold text-ink-700">Client</th>
               <th className="px-6 py-3 font-semibold text-ink-700">Status</th>
+              <th className="px-6 py-3 font-semibold text-ink-700">Views</th>
+              <th className="px-6 py-3 font-semibold text-ink-700">Likes</th>
               <th className="px-6 py-3 font-semibold text-ink-700">Updated</th>
               <th className="px-6 py-3 font-semibold text-ink-700">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-100">
-            {filtered.map((study) => (
-              <tr key={study.id} className="hover:bg-ink-50/30">
-                <td className="px-6 py-4">
-                  <p className="font-medium text-ink-900">{study.title}</p>
-                  {study.featured ? (
-                    <span className="text-xs text-brand-600">Featured</span>
-                  ) : null}
-                </td>
-                <td className="px-6 py-4 text-ink-500">{study.client || "—"}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      study.status === "published"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {study.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-ink-400">
-                  {new Date(study.updated_at).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to={`/admin/case-studies/${study.id}`}
-                      className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      Edit
-                    </Link>
-                    {study.status === "published" ? (
-                      <Link
-                        to={`/case-studies/${study.slug}`}
-                        target="_blank"
-                        className="text-ink-400 hover:text-ink-600"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
+            {filtered.map((study) => {
+              const stats = engagement.get(study.id);
+              return (
+                <tr key={study.id} className="hover:bg-ink-50/30">
+                  <td className="px-6 py-4">
+                    <p className="font-medium text-ink-900">{study.title}</p>
+                    {study.featured ? (
+                      <span className="text-xs text-brand-600">Featured</span>
                     ) : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-4 text-ink-500">{study.client || "—"}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        study.status === "published"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {study.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-ink-600">{stats?.views ?? "—"}</td>
+                  <td className="px-6 py-4 text-ink-600">{stats?.likes ?? "—"}</td>
+                  <td className="px-6 py-4 text-ink-400">
+                    {new Date(study.updated_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <Link
+                        to={`/admin/case-studies/${study.id}`}
+                        className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                        Edit
+                      </Link>
+                      {study.status === "published" ? (
+                        <Link
+                          to={`/case-studies/${study.slug}`}
+                          target="_blank"
+                          className="text-ink-400 hover:text-ink-600"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 ? (

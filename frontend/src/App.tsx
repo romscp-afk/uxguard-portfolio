@@ -26,6 +26,7 @@ import { ProjectsListPage } from "./pages/admin/ProjectsListPage";
 import { ProjectEditorPage } from "./pages/admin/ProjectEditorPage";
 import { PortfolioBuilderPage } from "./pages/admin/PortfolioBuilderPage";
 import { TemplatesPage } from "./pages/admin/TemplatesPage";
+import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { AiHubPage } from "./pages/admin/ai/AiHubPage";
 import { AiWorkspacePage } from "./pages/admin/ai/AiWorkspacePage";
 import { AiHistoryPage } from "./pages/admin/ai/AiHistoryPage";
@@ -72,6 +73,7 @@ export default function App() {
             <Route path="case-studies" element={<CaseStudiesListPage />} />
             <Route path="case-studies/new" element={<CaseStudyEditorPage />} />
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="media" element={<MediaLibraryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />

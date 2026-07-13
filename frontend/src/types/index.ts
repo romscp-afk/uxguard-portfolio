@@ -476,3 +476,32 @@ export interface PaymentTransaction {
   invoice_url?: string | null;
   receipt_url?: string | null;
 }
+
+export interface AnalyticsDayPoint {
+  date: string;
+  views: number;
+}
+
+export interface AnalyticsCaseStudyRow {
+  id: number;
+  title: string;
+  slug: string;
+  status: string;
+  views: number;
+  likes: number;
+  comments: number;
+  last_viewed_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AnalyticsSummary {
+  totals: {
+    views: number;
+    likes: number;
+    comments: number;
+    published_case_studies: number;
+    case_studies: number;
+  };
+  case_studies: AnalyticsCaseStudyRow[];
+  views_last_30_days: AnalyticsDayPoint[];
+}
