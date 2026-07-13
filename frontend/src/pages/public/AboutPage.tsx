@@ -10,9 +10,11 @@ import {
   Compass,
   Layers,
   Heart,
+  Bot,
+  LayoutTemplate,
+  CreditCard,
 } from "lucide-react";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
-import { CONTACT_MAILTO } from "../../lib/contact";
 
 const BELIEFS = [
   "Knowledge should never be lost.",
@@ -25,24 +27,67 @@ const BELIEFS = [
   "Communities grow stronger when knowledge is shared.",
 ] as const;
 
-const TODAY_FEATURES = [
-  "Portfolio Management System",
-  "Professional Profiles",
-  "Project Management",
-  "Portfolio Builder",
-  "Resume Builder",
-  "Career Timeline",
-  "Achievement Tracking",
-  "Portfolio Analytics",
+/** Features available at public launch */
+const LIVE_NOW = [
+  {
+    title: "Public portfolio & profile",
+    desc: "Shareable /u/username page for recruiters and hiring managers.",
+  },
+  {
+    title: "Case study studio",
+    desc: "Draft, structure, and publish evidence-driven UX stories.",
+  },
+  {
+    title: "Projects & portfolio builder",
+    desc: "Organize work, themes, and featured case studies in one place.",
+  },
+  {
+    title: "UXGuard AI",
+    desc: "Case Study Builder, Research Assistant, Documentation, and Portfolio Reviewer.",
+  },
+  {
+    title: "Research-native templates",
+    desc: "Starter kits and scaffolds built for UX evidence storytelling.",
+  },
+  {
+    title: "Discover & community",
+    desc: "Browse published work, follow professionals, and stay in the loop.",
+  },
+  {
+    title: "Free plan to start",
+    desc: "No card required — create your profile and portfolio immediately after signup.",
+  },
+  {
+    title: "Plans that grow with you",
+    desc: "Upgrade to Professional or Team when you need more case studies and AI credits.",
+  },
 ] as const;
 
 const COMING_SOON = [
-  { name: "UXGuard Case Studies", desc: "Professional Case Study Builder" },
-  { name: "UXGuard Research", desc: "Research Repository & Knowledge Hub" },
-  { name: "UXGuard AI", desc: "AI-powered Professional Writing & Research Assistant" },
-  { name: "UXGuard Experts", desc: "Professional UX, Product & Research Services" },
-  { name: "UXGuard Marketplace", desc: "Hire trusted UX & Product professionals" },
-  { name: "UXGuard Academy", desc: "Courses, Templates, Certifications & Mentoring" },
+  { name: "Resume Builder", desc: "Export recruiter-ready resumes from your portfolio data." },
+  { name: "Career Timeline", desc: "Map roles, milestones, and growth over time." },
+  { name: "Achievements & analytics", desc: "Track impact metrics and portfolio performance." },
+  { name: "UXGuard Experts", desc: "Professional UX, product, and research services." },
+  { name: "Marketplace", desc: "Hire trusted UX and product professionals." },
+  { name: "Academy", desc: "Courses, certifications, and mentoring." },
+] as const;
+
+const LAUNCH_PLANS = [
+  {
+    name: "Free",
+    price: "$0",
+    detail: "1 portfolio · 2 case studies · 10 AI credits / month · no payment method",
+  },
+  {
+    name: "Professional",
+    price: "$15/mo",
+    detail: "Unlimited case studies · 200 AI credits · advanced tools · or $165/yr",
+  },
+  {
+    name: "Team",
+    price: "$39/mo",
+    detail: "Shared workspace · 600 AI credits · up to 5 members · or $429/yr",
+  },
 ] as const;
 
 const PROFESSIONAL_SERVICES = [
@@ -50,15 +95,13 @@ const PROFESSIONAL_SERVICES = [
   "Product Discovery",
   "UX Audits",
   "Accessibility Reviews",
-  "UX Case Study Creation",
+  "Case Study Creation",
   "Portfolio Development",
   "Product Strategy",
   "Journey Mapping",
-  "User Personas",
   "Research Reports",
   "Design Reviews",
   "Career Mentoring",
-  "LinkedIn Optimization",
   "Resume Review",
 ] as const;
 
@@ -118,12 +161,12 @@ const LOST_ITEMS = [
 ] as const;
 
 const PROMISES = [
-  "Build with purpose.",
-  "Document their journey.",
+  "Start free — no card required.",
+  "Document the journey behind your work.",
   "Showcase measurable impact.",
-  "Learn continuously.",
-  "Share knowledge openly.",
-  "Connect with opportunities.",
+  "Use AI built for UX storytelling.",
+  "Upgrade only when you need more room to grow.",
+  "Share knowledge openly with the community.",
   "Leave a lasting professional legacy.",
 ] as const;
 
@@ -146,22 +189,22 @@ export function AboutPage() {
     <div className="min-h-screen surface-page">
       <PublicHeader />
 
-      {/* Hero — brand story banner */}
       <section className="relative overflow-hidden border-b border-brand-700 bg-gradient-to-br from-brand-600 via-brand-700 to-ink-950 text-white">
         <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-100">
             <Sparkles className="h-3.5 w-3.5" />
-            About UXGuard Studio
+            About UXGuard Studio · Launch
           </p>
           <h1 className="mx-auto max-w-4xl font-display text-4xl font-bold leading-[1.1] sm:text-5xl lg:text-6xl">
             Building
             <span className="block text-brand-200">Professional Legacies.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-50/90">
-            Every project tells a story—research, design, strategy, and outcomes shaped by learning,
-            collaboration, and problem-solving. UXGuard Studio exists to preserve that journey.
+            UXGuard Studio is the career and portfolio workspace for UX professionals — publish evidence-driven
+            case studies, use AI built for research storytelling, and grow from Free to Professional when you are
+            ready.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             {BRAND_PILLARS.map((pillar) => (
@@ -178,20 +221,25 @@ export function AboutPage() {
               to="/admin/register"
               className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50"
             >
-              Start Your Journey
+              Start free
               <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/pricing"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
+            >
+              View pricing
             </Link>
             <Link
               to="/discover"
               className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
             >
-              Explore the Community
+              Explore the community
             </Link>
           </div>
         </div>
       </section>
 
-      {/* What gets lost */}
       <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">The problem we solve</p>
@@ -213,12 +261,11 @@ export function AboutPage() {
           </div>
           <p className="mt-8 rounded-xl bg-ink-950 px-6 py-5 text-center text-sm font-medium leading-relaxed text-white sm:text-base">
             We believe professional experience deserves better. Your portfolio should become your{" "}
-            <span className="text-brand-300">professional legacy</span>—not just a collection of projects.
+            <span className="text-brand-300">professional legacy</span> — not just a gallery of screenshots.
           </p>
         </div>
       </section>
 
-      {/* Who we are — bento grid */}
       <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="01">Who We Are</SectionLabel>
@@ -229,31 +276,35 @@ export function AboutPage() {
                 A Professional Experience Platform for people who create digital products and experiences.
               </p>
               <p className="mt-4 leading-relaxed text-brand-100">
-                UX Researchers, Product Designers, Product Managers, Business Analysts, Service Designers,
-                Developers, and Digital Professionals—tools, knowledge, and support to showcase expertise with
-                confidence.
+                Built for UX researchers, product designers, product managers, and digital professionals who want
+                to document how they think — and show the impact of their work.
               </p>
             </div>
             <div className="card p-8 lg:col-span-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Today</p>
-              <p className="mt-3 font-display text-xl font-bold text-ink-950">Portfolio Management System</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">At launch</p>
+              <p className="mt-3 font-display text-xl font-bold text-ink-950">Portfolio + AI workspace</p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">
-                Organize projects, build modern portfolios, create compelling case studies, and demonstrate
-                measurable impact.
+                Create your profile, publish case studies, apply research-native templates, and draft with UXGuard
+                AI — starting on the Free plan with no payment method required.
               </p>
             </div>
-            <div className="card border-dashed border-brand-300 bg-brand-50/40 p-8 lg:col-span-12">
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">Tomorrow</p>
-              <p className="mt-3 max-w-4xl text-lg leading-relaxed text-ink-700">
-                A complete ecosystem empowering professionals and organizations through research, collaboration,
-                learning, expert services, and intelligent technology.
-              </p>
+            <div className="grid gap-4 sm:grid-cols-3 lg:col-span-12">
+              {[
+                { icon: Bot, label: "UXGuard AI", detail: "Four guided assistants for case studies, research, docs, and reviews" },
+                { icon: LayoutTemplate, label: "Templates", detail: "Evidence Arc scaffolds and recruiter-ready themes" },
+                { icon: CreditCard, label: "Simple plans", detail: "Free → Professional → Team as your career grows" },
+              ].map(({ icon: Icon, label, detail }) => (
+                <div key={label} className="card p-5">
+                  <Icon className="h-5 w-5 text-brand-600" />
+                  <p className="mt-3 font-semibold text-ink-900">{label}</p>
+                  <p className="mt-1 text-sm text-ink-500">{detail}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Mission & Vision — offset cards */}
       <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="02">Mission &amp; Vision</SectionLabel>
@@ -262,37 +313,35 @@ export function AboutPage() {
               <Target className="h-8 w-8 text-brand-600" />
               <h3 className="mt-4 font-display text-2xl font-bold text-ink-950">Our Mission</h3>
               <p className="mt-4 leading-relaxed text-ink-600">
-                To empower professionals and organizations by transforming experience into evidence, knowledge
-                into opportunity, and meaningful work into lasting professional success.
+                To empower professionals by transforming experience into evidence, knowledge into opportunity, and
+                meaningful work into lasting career success.
               </p>
               <p className="mt-4 leading-relaxed text-ink-600">
-                Every professional deserves a trusted platform to preserve achievements, communicate value, and
-                unlock new opportunities throughout their career.
+                Every UX professional deserves a trusted place to preserve achievements, communicate value, and
+                unlock new opportunities — starting free, upgrading only when they need more.
               </p>
             </div>
             <div className="card bg-ink-950 p-8 text-white lg:rotate-1 lg:translate-y-6">
               <Compass className="h-8 w-8 text-brand-400" />
               <h3 className="mt-4 font-display text-2xl font-bold">Our Vision</h3>
               <p className="mt-4 leading-relaxed text-ink-300">
-                To become the world&apos;s leading Professional Experience Platform—connecting professionals,
-                organizations, knowledge, and opportunities through trusted, evidence-driven experiences.
+                To become the leading Professional Experience Platform — connecting professionals, organizations,
+                knowledge, and opportunities through trusted, evidence-driven experiences.
               </p>
               <p className="mt-4 leading-relaxed text-ink-300">
-                Excellence measured by meaningful impact, continuous learning, and solving real-world problems—not
-                titles alone.
+                Excellence measured by meaningful impact and continuous learning — not titles alone.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why we exist — journey timeline */}
       <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="03">Why We Exist</SectionLabel>
           <p className="-mt-4 mb-10 max-w-2xl text-lg text-ink-600">
-            Portfolios often show outcomes. We capture the <strong className="font-semibold text-ink-800">journey</strong>{" "}
-            behind every successful product.
+            Portfolios often show outcomes. We capture the{" "}
+            <strong className="font-semibold text-ink-800">journey</strong> behind every successful product.
           </p>
           <div className="flex flex-wrap gap-2">
             {JOURNEY_STEPS.map((step, i) => (
@@ -324,7 +373,6 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Beliefs — mosaic */}
       <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="04">What We Believe</SectionLabel>
@@ -343,30 +391,33 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* What we do — roadmap */}
       <section className="border-b border-ink-100 bg-ink-950 text-white">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="05">
-            <span className="text-white">What We Do</span>
+            <span className="text-white">What&apos;s Live at Launch</span>
           </SectionLabel>
           <p className="-mt-4 mb-10 max-w-2xl text-ink-300">
-            Intelligent tools and professional services to build careers on evidence—not assumptions.
+            Everything below is available today. Start on Free, then upgrade when you need more case studies and AI
+            capacity.
           </p>
           <div className="grid gap-6 lg:grid-cols-5">
-            <div className="rounded-2xl border border-brand-500/30 bg-brand-600/20 p-6 lg:col-span-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-brand-300">Live now</p>
-              <ul className="mt-5 space-y-2.5">
-                {TODAY_FEATURES.map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-white">
-                    <Check className="h-3.5 w-3.5 shrink-0 text-brand-300" />
-                    {item}
+            <div className="rounded-2xl border border-brand-500/30 bg-brand-600/20 p-6 lg:col-span-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-brand-300">Available now</p>
+              <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                {LIVE_NOW.map((item) => (
+                  <li key={item.title} className="rounded-xl bg-ink-950/40 p-4">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-brand-300" />
+                      {item.title}
+                    </p>
+                    <p className="mt-1.5 pl-5 text-xs leading-relaxed text-ink-300">{item.desc}</p>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="rounded-2xl border border-ink-700 bg-ink-900/80 p-6 lg:col-span-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-ink-400">Coming soon</p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-ink-700 bg-ink-900/80 p-6 lg:col-span-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-ink-400">Coming next</p>
+              <div className="mt-5 space-y-3">
                 {COMING_SOON.map(({ name, desc }) => (
                   <div key={name} className="rounded-xl bg-ink-800/60 p-4">
                     <p className="font-semibold text-brand-200">{name}</p>
@@ -376,27 +427,41 @@ export function AboutPage() {
               </div>
             </div>
           </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {LAUNCH_PLANS.map((plan) => (
+              <div key={plan.name} className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">{plan.name}</p>
+                <p className="mt-2 font-display text-2xl font-bold text-white">{plan.price}</p>
+                <p className="mt-2 text-xs leading-relaxed text-ink-400">{plan.detail}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6">
+            <Link to="/pricing" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-300 hover:text-brand-200">
+              See full plan comparison
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Professional services */}
       <section className="border-b border-ink-100 surface-section">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="06">Professional Services</SectionLabel>
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-1">
               <p className="text-lg leading-relaxed text-ink-600">
-                Not everyone has time to build a world-class portfolio. Not every organization has a dedicated UX
-                or product strategy team.
+                Need help shaping a case study, portfolio, or research narrative? We also support professionals and
+                teams with hands-on services.
               </p>
               <p className="mt-4 text-sm leading-relaxed text-ink-500">
-                We help individuals and organizations save time—with case studies, portfolios, and research done
-                for you when you need it.
+                Reach out through our contact form — messages go to the UXGuard Studio team inbox.
               </p>
-              <a href={CONTACT_MAILTO} className="btn-primary mt-6 inline-flex">
-                Talk to us
+              <Link to="/contact" className="btn-primary mt-6 inline-flex">
+                Contact us
                 <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
             <div className="flex flex-wrap gap-2 lg:col-span-2 lg:content-start">
               {PROFESSIONAL_SERVICES.map((service) => (
@@ -412,7 +477,6 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Values */}
       <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="07">Our Core Values</SectionLabel>
@@ -428,7 +492,6 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Founder — magazine layout */}
       <section className="relative overflow-hidden border-b border-ink-100 surface-section">
         <div className="absolute inset-0 surface-hero-glow" />
         <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
@@ -463,44 +526,40 @@ export function AboutPage() {
             <div className="space-y-8 lg:col-span-8">
               <blockquote className="border-l-4 border-brand-500 pl-6">
                 <p className="font-display text-2xl font-bold leading-snug text-ink-900 sm:text-3xl">
-                  &ldquo;Every product begins with an idea—but too much valuable work is lost, unnoticed, and
-                  untold.&rdquo;
+                  &ldquo;Great UX work deserves to be seen — and preserved as evidence, not lost in slides.&rdquo;
                 </p>
               </blockquote>
 
               <div className="columns-1 gap-8 space-y-4 text-base leading-relaxed text-ink-600 sm:columns-2">
                 <p>
                   Every successful product is shaped by research, collaboration, experimentation, and countless
-                  decisions. Yet behind every great solution are professionals whose knowledge is scattered across
-                  documents, presentations, prototypes, reports, and disconnected tools.
+                  decisions. Yet that knowledge is often scattered across documents, decks, prototypes, and
+                  disconnected tools.
                 </p>
                 <p className="font-medium text-ink-800">I believe that needs to change.</p>
                 <p>
-                  UXGuard Studio was founded to redefine how professionals build, preserve, and showcase their
-                  professional legacy—transforming experience into evidence and evidence into opportunity.
+                  UXGuard Studio was founded to help professionals build and showcase their professional legacy —
+                  transforming experience into evidence, and evidence into opportunity.
                 </p>
                 <p>
-                  Today we begin with our Portfolio Management System. Tomorrow, an ecosystem for careers, case
-                  studies, research, expert services, and evidence-driven collaboration.
-                </p>
-                <p>
-                  For businesses: a trusted partner in understanding users and improving digital experiences. For
-                  individuals: a place to learn, grow, demonstrate impact, and unlock new opportunities.
+                  Today we launch with portfolios, case studies, research-native templates, and UXGuard AI —
+                  available on a Free plan so anyone can start without a payment method. Paid plans unlock more
+                  capacity when you need it.
                 </p>
                 <p className="font-medium text-ink-800">
                   Great work deserves to be seen. Great research deserves to be preserved. Great professionals
                   deserve to be recognized.
                 </p>
                 <p>
-                  This is a commitment to a stronger, more connected community—where knowledge is shared, impact
-                  is measurable, and careers are built on trust and evidence.
+                  This is an invitation to a stronger community — where knowledge is shared, impact is measurable,
+                  and careers are built on trust and evidence.
                 </p>
               </div>
 
               <div className="rounded-2xl bg-ink-950 p-8 text-white">
                 <p className="font-display text-xl font-bold">Welcome to UXGuard Studio.</p>
                 <p className="mt-2 text-brand-200">
-                  Together, let&apos;s build professional legacies that last.
+                  Start free. Build your legacy. Upgrade when you are ready.
                 </p>
                 <p className="mt-6 text-sm text-ink-400">— Romal Perera, Founder</p>
               </div>
@@ -509,16 +568,14 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Looking ahead + promise */}
       <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="grid gap-10 lg:grid-cols-2">
             <div>
               <SectionLabel n="09">Looking Ahead</SectionLabel>
               <p className="-mt-4 text-lg leading-relaxed text-ink-600">
-                Our journey has just begun. We are building a global ecosystem where professionals learn,
-                collaborate, showcase work, access expert services, and shape the future of UX, Product, and
-                Digital Innovation.
+                Launch is the beginning. Next we deepen career tools — resume builder, timeline, analytics — and
+                grow services, learning, and collaboration for UX teams worldwide.
               </p>
             </div>
             <div>
@@ -536,7 +593,6 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Brand CTA */}
       <section className="bg-ink-950 text-white">
         <div className="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand-400">Our Brand Promise</p>
@@ -552,15 +608,23 @@ export function AboutPage() {
           </div>
           <h2 className="mt-12 font-display text-3xl font-bold sm:text-4xl">Building Professional Legacies.</h2>
           <p className="mx-auto mt-4 max-w-xl text-ink-400">
-            Join UXGuard Studio—your Professional Experience Platform.
+            Join UXGuard Studio free — no card required. Upgrade when your portfolio outgrows Free.
           </p>
-          <Link
-            to="/admin/register"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 font-semibold text-white transition hover:bg-brand-400"
-          >
-            Join UXGuard Studio
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/admin/register"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 font-semibold text-white transition hover:bg-brand-400"
+            >
+              Start free
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/pricing"
+              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-white transition hover:border-brand-400 hover:bg-ink-900"
+            >
+              Compare plans
+            </Link>
+          </div>
         </div>
       </section>
 
