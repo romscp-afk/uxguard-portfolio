@@ -40,37 +40,54 @@ export async function syncCaseStudyUsage(userId) {
   return count;
 }
 
-export async function getUsageSummary(userId) {
-  const { subscription, plan } = await getCurrentPlan(userId);
-  await syncCaseStudyUsage(userId);
+/** Force AI credit allowance to match the user's active plan (source of truth). */
+export async function syncAiCreditsWithPlan(userId) {
+  const { plan } = await getCurrentPlan(userId);
   const usage = await ensureUsageCycle(userId);
+  const planCredits = isUnlimited(plan.ai_credits)
+    ? null
+    : Number(plan.ai_credits ?? DEFAULT_MONTHLY_ALLOWANCE);
+  // Metering needs a finite number; unlimited plans store a high sentinel for remaining checks.
+  const storedAllowance = planCredits == null ? 1_000_000 : planCredits;
 
-  // Align AI monthly allowance with plan
-  const planCredits = isUnlimited(plan.ai_credits) ? 999999 : Number(plan.ai_credits || 0);
   await updateStore((store) => {
     store.user_ai_credits = store.user_ai_credits || [];
     let row = store.user_ai_credits.find((c) => Number(c.user_id) === Number(userId));
+    const resetDate =
+      String(usage.cycle_end || "").slice(0, 7) || new Date().toISOString().slice(0, 7);
     if (!row) {
       row = {
         user_id: Number(userId),
-        monthly_allowance: planCredits,
+        monthly_allowance: storedAllowance,
         purchased_credits: 0,
-        used_credits: usage.ai_credits_used || 0,
-        reset_date: String(usage.cycle_end || "").slice(0, 7),
+        used_credits: Number(usage.ai_credits_used || 0),
+        reset_date: resetDate,
       };
       store.user_ai_credits.push(row);
     } else {
-      row.monthly_allowance = planCredits;
+      row.monthly_allowance = storedAllowance;
       row.used_credits = Math.max(Number(row.used_credits || 0), Number(usage.ai_credits_used || 0));
     }
     return store;
   });
 
+  return { plan, allowance: planCredits, storedAllowance };
+}
+
+export async function getUsageSummary(userId) {
+  const { subscription, plan } = await getCurrentPlan(userId);
+  await syncCaseStudyUsage(userId);
+  const usage = await ensureUsageCycle(userId);
+  await syncAiCreditsWithPlan(userId);
+
   const credits = await getOrCreateCredits(userId);
-  // Keep credit used in sync with usage row for display
   const aiUsed = Number(credits.used_credits || 0);
-  const aiAllowance = Number(credits.monthly_allowance || planCredits);
-  const aiRemaining = remainingCredits(credits);
+  const planCredits = isUnlimited(plan.ai_credits) ? null : Number(plan.ai_credits || 0);
+  const aiAllowance = planCredits;
+  const aiRemaining = planCredits == null ? null : remainingCredits({
+    ...credits,
+    monthly_allowance: planCredits,
+  });
 
   return {
     plan: {
@@ -100,8 +117,8 @@ export async function getUsageSummary(userId) {
       storage_used_label: formatBytes(usage.storage_used_bytes || 0),
       storage_limit_label: formatBytes(plan.storage_limit_bytes),
       ai_credits_used: aiUsed,
-      ai_credits_limit: isUnlimited(plan.ai_credits) ? null : aiAllowance,
-      ai_credits_remaining: isUnlimited(plan.ai_credits) ? null : aiRemaining,
+      ai_credits_limit: aiAllowance,
+      ai_credits_remaining: aiRemaining,
       cycle_start: usage.cycle_start,
       cycle_end: usage.cycle_end,
     },
@@ -236,25 +253,16 @@ export async function assertCanCreateCaseStudy(userId) {
 }
 
 export async function assertAiCredits(userId, amount) {
-  const { plan } = await getCurrentPlan(userId);
+  const { plan, allowance } = await syncAiCreditsWithPlan(userId);
   if (!plan.ai_tools_enabled) {
     const error = new Error("AI tools are not included in your plan.");
     error.status = 403;
     error.code = "feature_locked";
     throw error;
   }
-  const credits = await getOrCreateCredits(userId);
-  // Sync allowance from plan
-  const planCredits = isUnlimited(plan.ai_credits) ? 999999 : Number(plan.ai_credits || DEFAULT_MONTHLY_ALLOWANCE);
-  if (Number(credits.monthly_allowance) !== planCredits) {
-    await updateStore((store) => {
-      const row = (store.user_ai_credits || []).find((c) => Number(c.user_id) === Number(userId));
-      if (row) row.monthly_allowance = planCredits;
-      return store;
-    });
-  }
   const refreshed = await getOrCreateCredits(userId);
-  if (remainingCredits(refreshed) < amount) {
+  const planCredits = allowance == null ? 1_000_000 : allowance;
+  if (remainingCredits({ ...refreshed, monthly_allowance: planCredits }) < amount) {
     const usage = await ensureUsageCycle(userId);
     const error = new Error(
       `You have used all ${planCredits} AI credits for this month. Your credits will reset on ${new Date(usage.cycle_end).toLocaleDateString()}, or you can upgrade for additional monthly credits.`,
@@ -262,7 +270,7 @@ export async function assertAiCredits(userId, amount) {
     error.status = 402;
     error.code = "insufficient_credits";
     error.upgrade_required = true;
-    error.remainingCredits = remainingCredits(refreshed);
+    error.remainingCredits = remainingCredits({ ...refreshed, monthly_allowance: planCredits });
     error.reset_date = usage.cycle_end;
     throw error;
   }

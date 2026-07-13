@@ -19,8 +19,10 @@ import {
   getOrCreateCredits,
   updateConversation,
 } from "./persistence.js";
-import { assertAiCredits } from "../billing/entitlements.js";
+import { assertAiCredits, syncAiCreditsWithPlan } from "../billing/entitlements.js";
 import { setAiCreditsUsed } from "../billing/persistence.js";
+import { isUnlimited } from "../billing/plans.js";
+import { DEFAULT_MONTHLY_ALLOWANCE } from "./config.js";
 
 const INJECTION_PATTERNS = [
   /ignore (all|any|previous|prior) instructions/i,
@@ -203,13 +205,24 @@ export async function generateAiResponse({ user, body }) {
 }
 
 export async function getCreditsSummary(userId) {
+  const { plan, allowance } = await syncAiCreditsWithPlan(userId);
   const credits = await getOrCreateCredits(userId);
+  const monthly = allowance == null ? null : Number(allowance);
+  const used = Number(credits.used_credits || 0);
+  const purchased = Number(credits.purchased_credits || 0);
+  const remaining =
+    monthly == null
+      ? null
+      : Math.max(0, monthly + purchased - used);
+
   return {
-    monthly_allowance: credits.monthly_allowance,
-    purchased_credits: credits.purchased_credits,
-    used_credits: credits.used_credits,
-    remaining_credits: remainingCredits(credits),
+    monthly_allowance: monthly ?? Number(credits.monthly_allowance || DEFAULT_MONTHLY_ALLOWANCE),
+    purchased_credits: purchased,
+    used_credits: used,
+    remaining_credits: remaining ?? remainingCredits(credits),
     reset_date: credits.reset_date,
+    plan_code: plan.code,
+    unlimited: isUnlimited(plan.ai_credits),
     model: isAiConfigured() ? getOpenAiModel() : null,
     enabled: isAiConfigured(),
   };

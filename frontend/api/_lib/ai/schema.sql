@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS user_ai_credits (
   user_id BIGINT PRIMARY KEY,
-  monthly_allowance INTEGER NOT NULL DEFAULT 100,
+  monthly_allowance INTEGER NOT NULL DEFAULT 10,
   purchased_credits INTEGER NOT NULL DEFAULT 0,
   used_credits INTEGER NOT NULL DEFAULT 0,
   reset_date TEXT NOT NULL

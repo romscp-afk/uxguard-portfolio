@@ -90,7 +90,9 @@ export function AiHubPage() {
             <p className="text-sm font-semibold text-ink-900">Remaining AI credits</p>
             <p className="mt-1 text-sm text-ink-600">
               {credits
-                ? `${credits.remaining_credits} of ${credits.monthly_allowance + credits.purchased_credits} remaining · resets ${credits.reset_date}`
+                ? credits.unlimited
+                  ? `${credits.used_credits} used · Unlimited · resets ${credits.reset_date}`
+                  : `${credits.remaining_credits} of ${credits.monthly_allowance + credits.purchased_credits} remaining · resets ${credits.reset_date}`
                 : "Loading credit balance…"}
             </p>
             {!credits?.enabled ? (

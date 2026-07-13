@@ -325,6 +325,8 @@ export interface AiCreditsSummary {
   used_credits: number;
   remaining_credits: number;
   reset_date: string;
+  plan_code?: string;
+  unlimited?: boolean;
   model: string | null;
   enabled: boolean;
 }

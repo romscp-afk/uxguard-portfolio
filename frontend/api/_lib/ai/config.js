@@ -34,7 +34,8 @@ export const AI_CREDIT_COSTS = {
   "regenerate": 2,
 };
 
-export const DEFAULT_MONTHLY_ALLOWANCE = Number(process.env.AI_MONTHLY_CREDITS || 10);
+/** Free-plan fallback only. Live allowances come from billing/plans.js via syncAiCreditsWithPlan. */
+export const DEFAULT_MONTHLY_ALLOWANCE = 10;
 export const MAX_INPUT_CHARS = 24000;
 export const MAX_REQUESTS_PER_HOUR = Number(process.env.AI_RATE_LIMIT_PER_HOUR || 30);
 

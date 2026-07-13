@@ -92,6 +92,8 @@ export async function registerUser({ email, password, name, username, title, rol
   try {
     const { ensureFreeSubscription } = await import("./billing/persistence.js");
     await ensureFreeSubscription(created.id);
+    const { syncAiCreditsWithPlan } = await import("./billing/entitlements.js");
+    await syncAiCreditsWithPlan(created.id);
   } catch {
     // Subscription provision is best-effort; entitlement service will repair on next access.
   }

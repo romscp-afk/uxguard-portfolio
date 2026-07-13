@@ -56,6 +56,26 @@ export function remainingCredits(row) {
   return Math.max(0, allowance - Number(row.used_credits || 0));
 }
 
+/**
+ * Overwrite monthly_allowance for a user. Used by billing plan sync.
+ */
+export async function setMonthlyAllowance(userId, allowance) {
+  let credits = null;
+  await updateStore((store) => {
+    ensureAiCollections(store);
+    const id = Number(userId);
+    let row = store.user_ai_credits.find((c) => Number(c.user_id) === id);
+    if (!row) {
+      row = defaultCredits(id);
+      store.user_ai_credits.push(row);
+    }
+    row.monthly_allowance = Number(allowance);
+    credits = { ...row };
+    return store;
+  });
+  return credits;
+}
+
 export async function consumeCredits(userId, amount, meta = {}) {
   let result = null;
   await updateStore((store) => {

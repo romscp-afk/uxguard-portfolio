@@ -283,6 +283,13 @@ export async function activatePaidPlan({
     return store;
   });
 
+  try {
+    const { syncAiCreditsWithPlan } = await import("./entitlements.js");
+    await syncAiCreditsWithPlan(userId);
+  } catch {
+    /* allowance sync is best-effort; next credits read will repair */
+  }
+
   return result;
 }
 

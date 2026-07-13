@@ -180,6 +180,48 @@ describe("mock payments", () => {
   });
 });
 
+describe("AI credits follow plan", () => {
+  it("syncs Free plan users to 10 monthly credits even if ledger had 100", async () => {
+    await ensureFreeSubscription(55);
+    await updateStore((store) => {
+      store.user_ai_credits = store.user_ai_credits || [];
+      const existing = store.user_ai_credits.find((c) => Number(c.user_id) === 55);
+      if (existing) {
+        existing.monthly_allowance = 100;
+      } else {
+        store.user_ai_credits.push({
+          user_id: 55,
+          monthly_allowance: 100,
+          purchased_credits: 0,
+          used_credits: 0,
+          reset_date: "2026-07",
+        });
+      }
+      return store;
+    });
+    const { syncAiCreditsWithPlan } = await import("./entitlements.js");
+    const synced = await syncAiCreditsWithPlan(55);
+    assert.equal(synced.allowance, 10);
+    const store = await (await import("../store.js")).readStore();
+    const row = store.user_ai_credits.find((c) => Number(c.user_id) === 55);
+    assert.equal(row.monthly_allowance, 10);
+  });
+
+  it("syncs Professional plan users to 200 monthly credits", async () => {
+    await ensureFreeSubscription(56);
+    await activatePaidPlan({
+      userId: 56,
+      planCode: PLAN_CODES.PROFESSIONAL,
+      billingInterval: "month",
+      paymentProvider: "mock",
+      transaction: { status: "succeeded" },
+    });
+    const { syncAiCreditsWithPlan } = await import("./entitlements.js");
+    const synced = await syncAiCreditsWithPlan(56);
+    assert.equal(synced.allowance, 200);
+  });
+});
+
 describe("cancellation", () => {
   it("keeps paid access until period end (canceling status)", async () => {
     await ensureFreeSubscription(31);
