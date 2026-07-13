@@ -16,6 +16,7 @@ import {
   Palette,
   Sparkles,
   UserCircle,
+  Users,
   X,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
@@ -36,6 +37,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   media: Image,
   notifications: Bell,
   contact: Mail,
+  users: Users,
   resume: Briefcase,
   timeline: Briefcase,
   achievements: Briefcase,

@@ -75,8 +75,9 @@ const PHASE2_LINKS: NavLink[] = [
 export function dashboardLinksForUser(user?: User | null) {
   const primary = [...PLATFORM_LINKS];
 
-  // Mail is super-admin only (Romal / admin role)
+  // Admin-only tools
   if (isAdmin(user)) {
+    primary.push({ to: "/admin/users", label: "Users", section: "users" });
     primary.push({ to: "/admin/contact-inbox", label: "Mail", section: "contact" });
   }
 

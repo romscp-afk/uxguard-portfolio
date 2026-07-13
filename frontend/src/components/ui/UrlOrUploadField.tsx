@@ -19,6 +19,8 @@ type UrlOrUploadFieldProps = {
   helpText?: string;
   showPreview?: boolean;
   variant?: "default" | "cover";
+  /** Passed to media upload so profile fields can be attached atomically. */
+  uploadPurpose?: "cover" | "media" | "avatar" | "cv";
   onValidationError?: (message: string) => void;
   /** Called after a successful upload or validated URL blur (cover edits). */
   onCommit?: (url: string) => void;
@@ -36,6 +38,7 @@ export function UrlOrUploadField({
   helpText,
   showPreview = true,
   variant = "default",
+  uploadPurpose,
   onValidationError,
   onCommit,
 }: UrlOrUploadFieldProps) {
@@ -45,6 +48,7 @@ export function UrlOrUploadField({
   const [dragOver, setDragOver] = useState(false);
 
   const isCover = variant === "cover";
+  const purpose = uploadPurpose || (isCover ? "cover" : "media");
 
   async function validateCoverUrl(url: string): Promise<boolean> {
     if (!isCover || !url.trim()) return true;
@@ -80,7 +84,7 @@ export function UrlOrUploadField({
         }
       }
 
-      const asset = await api.uploadMedia(file, { purpose: isCover ? "cover" : "media" });
+      const asset = await api.uploadMedia(file, { purpose });
       onChange(asset.url);
       setUploadError("");
       onCommit?.(asset.url);

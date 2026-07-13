@@ -281,6 +281,7 @@ export function ProfileSettingsPage() {
             onCommit={(url) => void persistMediaField("cover_image_url", url)}
             accept="image/*"
             variant="cover"
+            uploadPurpose="cover"
             helpText="Wide banner image for the top of your public profile (recommended 1600×600). Saved as soon as you upload."
           />
           {form.cover_image_url ? (
@@ -300,6 +301,7 @@ export function ProfileSettingsPage() {
             onCommit={(url) => void persistMediaField("avatar_url", url)}
             accept="image/*"
             showPreview={false}
+            uploadPurpose="avatar"
             helpText="Square photos work best. Saved as soon as you upload."
           />
           {form.avatar_url ? (
@@ -376,6 +378,7 @@ export function ProfileSettingsPage() {
             onCommit={(url) => void persistMediaField("cv_url", url)}
             accept="image/*,.pdf,.doc,.docx"
             showPreview={false}
+            uploadPurpose="cv"
             helpText="Upload a PDF/Word file or paste a link — saved to your public profile as soon as you upload."
           />
           {form.cv_url ? (

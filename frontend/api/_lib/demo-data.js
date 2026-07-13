@@ -2,6 +2,7 @@ import { portfolioSettings, readStore, updateStore } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
 import { likeCountsByCaseStudy } from "./like-utils.js";
 import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
+import { sanitizeUserMediaFields } from "./media.js";
 
 export { portfolioSettings };
 
@@ -14,18 +15,30 @@ function normalizeProjectId(value) {
 export async function getUserById(id) {
   const store = await readStore();
   const target = Number(id);
-  return store.users.find((u) => Number(u.id) === target) || null;
+  const user = store.users.find((u) => Number(u.id) === target) || null;
+  if (!user) return null;
+  const cleaned = sanitizeUserMediaFields(user, store);
+  const { __mediaSanitized: _flag, ...rest } = cleaned;
+  return rest;
 }
 
 export async function getUserByUsername(username) {
   const store = await readStore();
-  return store.users.find((u) => u.username === username) || null;
+  const user = store.users.find((u) => u.username === username) || null;
+  if (!user) return null;
+  const cleaned = sanitizeUserMediaFields(user, store);
+  const { __mediaSanitized: _flag, ...rest } = cleaned;
+  return rest;
 }
 
 export async function getUserByEmail(email) {
   const store = await readStore();
   const needle = String(email || "").trim().toLowerCase();
-  return store.users.find((u) => String(u.email || "").toLowerCase() === needle) || null;
+  const user = store.users.find((u) => String(u.email || "").toLowerCase() === needle) || null;
+  if (!user) return null;
+  const cleaned = sanitizeUserMediaFields(user, store);
+  const { __mediaSanitized: _flag, ...rest } = cleaned;
+  return rest;
 }
 
 function slugify(text) {
@@ -233,8 +246,10 @@ export async function getFeedItems(limit) {
 
 export async function getUserProfile(username) {
   const store = await readStore();
-  const user = store.users.find((u) => u.username === username);
-  if (!user) return null;
+  const raw = store.users.find((u) => u.username === username);
+  if (!raw) return null;
+  const cleaned = sanitizeUserMediaFields(raw, store);
+  const { __mediaSanitized: _flag, ...user } = cleaned;
 
   const config = getUserPortfolioConfig(user);
   const studies = applyPortfolioOrdering(

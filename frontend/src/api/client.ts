@@ -17,6 +17,7 @@ import type {
   Comment,
   ContactMessage,
   ContactMailboxCounts,
+  AdminUserSummary,
   FeedCaseStudyItem,
   FollowStats,
   LikeStats,
@@ -177,6 +178,19 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  adminListUsers: () => request<AdminUserSummary[]>("/admin/users"),
+
+  adminGetUser: (id: number) => request<AdminUserSummary>(`/admin/users/${id}`),
+
+  adminUpdateUser: (id: number, data: Record<string, unknown>) =>
+    request<AdminUserSummary>(`/admin/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  adminDeleteUser: (id: number) =>
+    request<{ ok: boolean; id: number }>(`/admin/users/${id}`, { method: "DELETE" }),
+
   getFeed: (limit?: number) =>
     request<FeedCaseStudyItem[]>(
       `/feed/case-studies${limit ? `?limit=${limit}` : ""}`,
@@ -282,7 +296,10 @@ export const api = {
 
   listMedia: () => request<MediaAsset[]>("/media"),
 
-  uploadMedia: (file: File, options?: { altText?: string; purpose?: "cover" | "media" }) => {
+  uploadMedia: (
+    file: File,
+    options?: { altText?: string; purpose?: "cover" | "media" | "avatar" | "cv" },
+  ) => {
     const form = new FormData();
     form.append("file", file);
     if (options?.altText) form.append("alt_text", options.altText);

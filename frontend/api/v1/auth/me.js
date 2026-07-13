@@ -23,7 +23,15 @@ export default withApi(async (req, res) => {
     } catch {
       /* ignore provisioning errors on profile load */
     }
-    res.status(200).json(toUserOut(user));
+    try {
+      const { repairBrokenUserMedia } = await import("../../_lib/media.js");
+      await repairBrokenUserMedia(user.id);
+    } catch {
+      /* ignore repair errors */
+    }
+    // Re-read after billing/repair so we return the latest persisted profile media fields.
+    const fresh = (await getAuthUser(req)) || user;
+    res.status(200).json(toUserOut(fresh));
     return;
   }
 

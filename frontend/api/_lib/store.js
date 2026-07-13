@@ -394,17 +394,95 @@ export async function readStore() {
   return structuredClone(slot.current);
 }
 
+function mergeByNumericId(remoteList = [], localList = []) {
+  const byId = new Map();
+  for (const item of remoteList) {
+    const id = Number(item?.id);
+    if (Number.isFinite(id)) byId.set(id, item);
+  }
+  for (const item of localList) {
+    const id = Number(item?.id);
+    if (Number.isFinite(id)) byId.set(id, item);
+  }
+  return [...byId.values()];
+}
+
+function pickProfileMedia(localValue, remoteValue) {
+  const local = localValue == null || localValue === "" ? null : localValue;
+  const remote = remoteValue == null || remoteValue === "" ? null : remoteValue;
+  // Prefer the local write when it set a value; otherwise keep remote so races
+  // from billing/usage writes do not wipe recently uploaded avatar/cover/CV.
+  return local ?? remote ?? null;
+}
+
+function mergeUsersPreservingMedia(remoteUsers = [], localUsers = []) {
+  const remoteById = new Map(remoteUsers.map((u) => [Number(u.id), u]));
+  const seen = new Set();
+  const merged = [];
+
+  for (const localUser of localUsers) {
+    const id = Number(localUser.id);
+    seen.add(id);
+    const remoteUser = remoteById.get(id);
+    if (!remoteUser) {
+      merged.push(localUser);
+      continue;
+    }
+    merged.push({
+      ...remoteUser,
+      ...localUser,
+      avatar_url: pickProfileMedia(localUser.avatar_url, remoteUser.avatar_url),
+      cover_image_url: pickProfileMedia(localUser.cover_image_url, remoteUser.cover_image_url),
+      cv_url: pickProfileMedia(localUser.cv_url, remoteUser.cv_url),
+    });
+  }
+
+  for (const remoteUser of remoteUsers) {
+    const id = Number(remoteUser.id);
+    if (!seen.has(id)) merged.push(remoteUser);
+  }
+
+  return merged;
+}
+
+/**
+ * Before overwriting Blob, merge collections that concurrent isolates often race on.
+ * Prevents billing/usage writes from dropping newly uploaded media assets or profile media URLs.
+ */
+async function mergeWithRemoteBeforeWrite(localStore) {
+  try {
+    const remote = await loadFromBlob();
+    return {
+      ...localStore,
+      mediaAssets: mergeByNumericId(remote.mediaAssets || [], localStore.mediaAssets || []),
+      users: mergeUsersPreservingMedia(remote.users || [], localStore.users || []),
+      caseStudies: mergeByNumericId(remote.caseStudies || [], localStore.caseStudies || []),
+      projects: mergeByNumericId(remote.projects || [], localStore.projects || []),
+    };
+  } catch (error) {
+    if (isMissingBlobError(error)) return localStore;
+    // If remote cannot be read, still write local — better than blocking saves.
+    return localStore;
+  }
+}
+
 export async function writeStore(store) {
-  memoryStore = store;
+  let toWrite = store;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    toWrite = await mergeWithRemoteBeforeWrite(store);
+  }
+
+  memoryStore = toWrite;
   const slot = getMemoryStore();
-  slot.current = store;
+  slot.current = toWrite;
   slot.writtenAt = Date.now();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return;
   }
 
-  await put(STORE_PATH, JSON.stringify(store), {
+  await put(STORE_PATH, JSON.stringify(toWrite), {
     access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,

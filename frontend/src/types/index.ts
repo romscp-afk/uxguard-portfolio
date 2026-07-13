@@ -205,6 +205,13 @@ export interface User {
   portfolio_url?: string;
 }
 
+/** Admin directory row / detail payload */
+export interface AdminUserSummary extends User {
+  case_study_count: number;
+  project_count: number;
+  media_count: number;
+}
+
 export type OnboardingIntent = "build_portfolio" | "track_career" | "publish_case_studies";
 
 export interface RegisterPayload {

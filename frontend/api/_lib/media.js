@@ -64,6 +64,9 @@ export async function getMediaAssetById(assetId) {
 /**
  * Store is private-only on this deployment — always upload with private access
  * and serve through /api/v1/media/file/:id.
+ *
+ * Profile purposes (avatar | cover | cv) also attach the URL onto the user row
+ * in the same store write so billing races cannot orphan the upload.
  */
 export async function uploadMediaAsset(userId, file, altText, purpose = "media") {
   if (!ALLOWED_TYPES.has(file.mimeType)) {
@@ -71,8 +74,10 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
   }
 
   const isCover = purpose === "cover";
-  if (isCover && !file.mimeType.startsWith("image/")) {
-    throw new Error("Cover image must be JPG, PNG, or WebP.");
+  const isAvatar = purpose === "avatar";
+  const isCv = purpose === "cv";
+  if ((isCover || isAvatar) && !file.mimeType.startsWith("image/")) {
+    throw new Error(isCover ? "Cover image must be JPG, PNG, or WebP." : "Profile photo must be an image.");
   }
 
   const maxBytes = isCover ? COVER_MAX_BYTES : MAX_BYTES;
@@ -92,6 +97,7 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
   });
 
   let created = null;
+  const uid = Number(userId);
 
   await updateStore((store) => {
     if (!store.mediaAssets) store.mediaAssets = [];
@@ -105,14 +111,76 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
       pathname,
       url: mediaPublicUrl(id),
       alt_text: altText || null,
-      uploaded_by_id: Number(userId),
+      uploaded_by_id: uid,
       created_at: new Date().toISOString(),
     };
     store.mediaAssets.push(created);
+
+    if (isAvatar || isCover || isCv) {
+      const field = isAvatar ? "avatar_url" : isCover ? "cover_image_url" : "cv_url";
+      const index = (store.users || []).findIndex((u) => Number(u.id) === uid);
+      if (index !== -1) {
+        store.users[index] = {
+          ...store.users[index],
+          [field]: mediaPublicUrl(id),
+        };
+      }
+    }
+
     return store;
   });
 
   return created;
+}
+
+/** Drop profile media URLs that point at missing assets (lost to prior store races). */
+export function sanitizeUserMediaFields(user, store) {
+  if (!user) return user;
+  const assets = store?.mediaAssets || [];
+  const hasAsset = (url) => {
+    const match = String(url || "").match(/\/api\/v1\/media\/file\/(\d+)/);
+    if (!match) return true; // external URLs stay
+    return assets.some((asset) => Number(asset.id) === Number(match[1]));
+  };
+
+  const next = { ...user };
+  let changed = false;
+  for (const field of ["avatar_url", "cover_image_url", "cv_url"]) {
+    if (next[field] && !hasAsset(next[field])) {
+      next[field] = null;
+      changed = true;
+    }
+  }
+  next.__mediaSanitized = changed;
+  return next;
+}
+
+/** Persist cleared broken media refs so public profiles stop linking to 404s. */
+export async function repairBrokenUserMedia(userId) {
+  let repaired = null;
+  await updateStore((store) => {
+    const uid = Number(userId);
+    const index = (store.users || []).findIndex((u) => Number(u.id) === uid);
+    if (index === -1) {
+      store.__uxguardSkipWrite = true;
+      return store;
+    }
+    const cleaned = sanitizeUserMediaFields(store.users[index], store);
+    if (!cleaned.__mediaSanitized) {
+      store.__uxguardSkipWrite = true;
+      repaired = cleaned;
+      return store;
+    }
+    const { __mediaSanitized: _flag, ...user } = cleaned;
+    store.users[index] = user;
+    repaired = user;
+    return store;
+  });
+  if (repaired) {
+    const { __mediaSanitized: _flag, ...user } = repaired;
+    return user;
+  }
+  return null;
 }
 
 export async function deleteMediaAsset(userId, assetId) {
