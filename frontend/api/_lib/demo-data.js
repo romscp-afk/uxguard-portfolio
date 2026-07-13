@@ -50,8 +50,14 @@ export async function getUserById(id) {
 
 export async function getUserByUsername(username, options = {}) {
   const store = await readStore(options);
-  const user = store.users.find((u) => u.username === username) || null;
-  if (!user) return null;
+  const needle = String(username || "").trim().toLowerCase();
+  const matches = (store.users || []).filter(
+    (u) => String(u.username || "").toLowerCase() === needle,
+  );
+  if (!matches.length) return null;
+  // Stable canonical row when duplicates exist from historical races.
+  matches.sort((a, b) => Number(a.id) - Number(b.id));
+  const user = matches[0];
   const cleaned = sanitizeUserMediaFields(user, store);
   const { __mediaSanitized: _flag, ...rest } = cleaned;
   return rest;
@@ -341,17 +347,24 @@ export async function getFeedItems(limit) {
 }
 
 export async function getUserProfile(username) {
-  const store = await readStore();
-  const raw = store.users.find((u) => u.username === username);
-  if (!raw) return null;
+  const store = await readStore({ forceRefresh: true });
+  const needle = String(username || "").trim().toLowerCase();
+  const matches = (store.users || []).filter(
+    (u) => String(u.username || "").toLowerCase() === needle,
+  );
+  if (!matches.length) return null;
+  matches.sort((a, b) => Number(a.id) - Number(b.id));
+  const raw = matches[0];
   const cleaned = sanitizeUserMediaFields(raw, store);
   const { __mediaSanitized: _flag, ...user } = cleaned;
+
+  const subjectIds = new Set(matches.map((u) => Number(u.id)).filter((id) => Number.isFinite(id)));
 
   const config = getUserPortfolioConfig(user);
   const studies = applyPortfolioOrdering(
     store.caseStudies.filter(
       (cs) =>
-        Number(cs.author_id) === Number(user.id) &&
+        subjectIds.has(Number(cs.author_id)) &&
         String(cs.status || "").toLowerCase() === "published",
     ),
     config,
@@ -360,7 +373,7 @@ export async function getUserProfile(username) {
   const projects = (store.projects || [])
     .filter(
       (project) =>
-        Number(project.author_id) === Number(user.id) &&
+        subjectIds.has(Number(project.author_id)) &&
         String(project.status || "active") !== "archived",
     )
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));

@@ -26,38 +26,50 @@ export function FollowButton({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setFollowing(initialFollowing);
-    setFollowers(followerCount);
-  }, [initialFollowing, followerCount, username]);
-
-  useEffect(() => {
-    if (!user || user.username === username) return;
     let cancelled = false;
+
+    // Always load live counts (works logged-out too) so the badge is never stuck/stale.
     api
       .getFollowStats(username)
       .then((stats) => {
         if (cancelled) return;
-        setFollowing(Boolean(stats.is_following));
-        setFollowers(Number(stats.follower_count) || 0);
+        const count = Number(stats.follower_count) || 0;
+        setFollowers(count);
+        if (user && user.username !== username) {
+          setFollowing(Boolean(stats.is_following));
+        }
+        onStatsChange?.({
+          is_following: Boolean(stats.is_following),
+          follower_count: count,
+        });
       })
       .catch(() => {
-        // Keep props as fallback when stats cannot refresh.
+        if (cancelled) return;
+        setFollowing(initialFollowing);
+        setFollowers(Number(followerCount) || 0);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [user, username]);
+  }, [user?.id, username]);
 
   const countClass =
     variant === "dark"
-      ? "rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/80 backdrop-blur"
-      : "text-sm text-ink-500";
-  const errorClass = variant === "dark" ? "mt-2 text-xs text-rose-200" : "mt-2 text-xs text-red-600";
+      ? "inline-flex items-center rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-900 shadow-sm"
+      : "inline-flex items-center rounded-full bg-ink-100 px-3 py-1.5 text-sm font-semibold text-ink-800";
+  const errorClass = variant === "dark" ? "mt-2 text-xs text-rose-100" : "mt-2 text-xs text-red-600";
+
+  const countLabel = (
+    <span className={countClass}>
+      {followers} follower{followers === 1 ? "" : "s"}
+    </span>
+  );
 
   if (!user) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <span className={countClass}>{followers} followers</span>
+        {countLabel}
         <Link to="/admin/login" className="btn-primary py-2 text-sm">
           Sign in to follow
         </Link>
@@ -66,7 +78,7 @@ export function FollowButton({
   }
 
   if (user.username === username) {
-    return <span className={countClass}>{followers} followers</span>;
+    return <div className="flex flex-wrap items-center gap-3">{countLabel}</div>;
   }
 
   async function toggleFollow() {
@@ -74,9 +86,10 @@ export function FollowButton({
     setError("");
     try {
       const stats = following ? await api.unfollowUser(username) : await api.followUser(username);
-      setFollowing(stats.is_following);
-      setFollowers(stats.follower_count);
-      onStatsChange?.({ is_following: stats.is_following, follower_count: stats.follower_count });
+      const count = Number(stats.follower_count) || 0;
+      setFollowing(Boolean(stats.is_following));
+      setFollowers(count);
+      onStatsChange?.({ is_following: Boolean(stats.is_following), follower_count: count });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update follow status");
     } finally {
@@ -96,10 +109,10 @@ export function FollowButton({
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className={countClass}>{followers} followers</span>
+        {countLabel}
         <button
           type="button"
-          onClick={toggleFollow}
+          onClick={() => void toggleFollow()}
           disabled={loading}
           className={following ? followingBtn : followBtn}
         >

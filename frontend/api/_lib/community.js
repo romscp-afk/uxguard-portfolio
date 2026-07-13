@@ -30,15 +30,37 @@ export async function getFollowStats(userId, viewerId = null) {
   const store = normalizeStore(await readStore({ forceRefresh: true }));
   const uid = Number(userId);
   const vid = viewerId == null ? null : Number(viewerId);
-  const followerCount = store.follows.filter((f) => sameId(f.following_id, uid)).length;
+
+  // Count across duplicate usernames (legacy race could create multiple rows).
+  const subject = (store.users || []).find((u) => sameId(u.id, uid));
+  const subjectIds = new Set(
+    subject
+      ? (store.users || [])
+          .filter(
+            (u) =>
+              String(u.username || "").toLowerCase() ===
+              String(subject.username || "").toLowerCase(),
+          )
+          .map((u) => Number(u.id))
+          .filter((id) => Number.isFinite(id))
+      : [uid].filter((id) => Number.isFinite(id)),
+  );
+
+  const followerCount = store.follows.filter((f) =>
+    subjectIds.has(Number(f.following_id)),
+  ).length;
   const followingCount = store.follows.filter((f) => sameId(f.follower_id, uid)).length;
   const isFollowing =
     vid != null && Number.isFinite(vid)
       ? store.follows.some(
-          (f) => sameId(f.follower_id, vid) && sameId(f.following_id, uid),
+          (f) => sameId(f.follower_id, vid) && subjectIds.has(Number(f.following_id)),
         )
       : false;
-  return { follower_count: followerCount, following_count: followingCount, is_following: isFollowing };
+  return {
+    follower_count: followerCount,
+    following_count: followingCount,
+    is_following: isFollowing,
+  };
 }
 
 export async function followUser(followerId, username) {
