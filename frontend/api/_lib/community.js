@@ -27,12 +27,16 @@ function searchableText(...parts) {
 }
 
 export async function getFollowStats(userId, viewerId = null) {
-  const store = normalizeStore(await readStore());
-  const followerCount = store.follows.filter((f) => f.following_id === userId).length;
-  const followingCount = store.follows.filter((f) => f.follower_id === userId).length;
+  const store = normalizeStore(await readStore({ forceRefresh: true }));
+  const uid = Number(userId);
+  const vid = viewerId == null ? null : Number(viewerId);
+  const followerCount = store.follows.filter((f) => sameId(f.following_id, uid)).length;
+  const followingCount = store.follows.filter((f) => sameId(f.follower_id, uid)).length;
   const isFollowing =
-    viewerId != null
-      ? store.follows.some((f) => f.follower_id === viewerId && f.following_id === userId)
+    vid != null && Number.isFinite(vid)
+      ? store.follows.some(
+          (f) => sameId(f.follower_id, vid) && sameId(f.following_id, uid),
+        )
       : false;
   return { follower_count: followerCount, following_count: followingCount, is_following: isFollowing };
 }
@@ -40,78 +44,98 @@ export async function getFollowStats(userId, viewerId = null) {
 export async function followUser(followerId, username) {
   const target = await getUserByUsername(username);
   if (!target) return { error: "User not found", status: 404 };
-  if (target.id === followerId) return { error: "You cannot follow yourself", status: 400 };
+  const fid = Number(followerId);
+  const tid = Number(target.id);
+  if (!Number.isFinite(fid) || !Number.isFinite(tid)) {
+    return { error: "Invalid user", status: 400 };
+  }
+  if (sameId(tid, fid)) return { error: "You cannot follow yourself", status: 400 };
 
   let newlyFollowed = false;
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     const exists = normalized.follows.some(
-      (f) => f.follower_id === followerId && f.following_id === target.id,
+      (f) => sameId(f.follower_id, fid) && sameId(f.following_id, tid),
     );
     if (!exists) {
       normalized.follows.push({
-        follower_id: followerId,
-        following_id: target.id,
+        follower_id: fid,
+        following_id: tid,
         created_at: new Date().toISOString(),
       });
       newlyFollowed = true;
     }
     return normalized;
-  });
+  }, { forceRefresh: true });
 
   if (newlyFollowed) {
-    const follower = (await readStore()).users.find((u) => u.id === followerId);
-    if (follower) {
-      await createNotification({
-        userId: target.id,
-        type: "follow",
-        title: "New follower",
-        message: `${follower.name || "Someone"} started following you`,
-        link: `/u/${follower.username}`,
-      });
+    try {
+      const follower = (await readStore({ forceRefresh: true })).users.find((u) =>
+        sameId(u.id, fid),
+      );
+      if (follower) {
+        await createNotification({
+          userId: tid,
+          type: "follow",
+          title: "New follower",
+          message: `${follower.name || "Someone"} started following you`,
+          link: `/u/${follower.username}`,
+        });
+      }
+    } catch {
+      // Follow already saved; notification is best-effort.
     }
   }
 
-  return { ok: true, user_id: target.id, username: target.username };
+  return { ok: true, user_id: tid, username: target.username };
 }
 
 export async function unfollowUser(followerId, username) {
   const target = await getUserByUsername(username);
   if (!target) return { error: "User not found", status: 404 };
+  const fid = Number(followerId);
+  const tid = Number(target.id);
 
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     normalized.follows = normalized.follows.filter(
-      (f) => !(f.follower_id === followerId && f.following_id === target.id),
+      (f) => !(sameId(f.follower_id, fid) && sameId(f.following_id, tid)),
     );
+    // Prevent Blob race-merge from resurrecting the follow edge.
+    normalized.__uxguardDeleted = {
+      ...(normalized.__uxguardDeleted || {}),
+      follows: [`${fid}:${tid}`],
+    };
     return normalized;
-  });
+  }, { forceRefresh: true });
 
   return { ok: true };
 }
 
 export async function listFollowing(userId) {
-  const store = normalizeStore(await readStore());
-  const followingIds = store.follows
-    .filter((f) => f.follower_id === userId)
-    .map((f) => f.following_id);
+  const store = normalizeStore(await readStore({ forceRefresh: true }));
+  const uid = Number(userId);
+  const followingIds = new Set(
+    store.follows.filter((f) => sameId(f.follower_id, uid)).map((f) => Number(f.following_id)),
+  );
   return store.users
-    .filter((u) => followingIds.includes(u.id))
+    .filter((u) => followingIds.has(Number(u.id)))
     .map((u) => authorSummary(u));
 }
 
 export async function getFollowingFeed(userId) {
-  const store = normalizeStore(await readStore());
+  const store = normalizeStore(await readStore({ forceRefresh: true }));
+  const uid = Number(userId);
   const followingIds = new Set(
-    store.follows.filter((f) => f.follower_id === userId).map((f) => f.following_id),
+    store.follows.filter((f) => sameId(f.follower_id, uid)).map((f) => Number(f.following_id)),
   );
   const likeCounts = likeCountsByCaseStudy(store);
 
   return store.caseStudies
-    .filter((cs) => cs.status === "published" && followingIds.has(cs.author_id))
+    .filter((cs) => cs.status === "published" && followingIds.has(Number(cs.author_id)))
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
     .map((cs) => {
-      const author = store.users.find((u) => u.id === cs.author_id);
+      const author = store.users.find((u) => sameId(u.id, cs.author_id));
       return {
         ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
         published_at: cs.published_at,

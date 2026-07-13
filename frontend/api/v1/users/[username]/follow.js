@@ -7,8 +7,21 @@ import { getUserByUsername } from "../../../_lib/demo-data.js";
 import { getAuthUser, requireAuthUser } from "../../../_lib/auth.js";
 import { withApi } from "../../../_lib/withApi.js";
 
+function parseUsername(req) {
+  const raw = req.query?.username;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value) return decodeURIComponent(String(value));
+  const path = String(req.url || "").split("?")[0];
+  const match = path.match(/\/users\/([^/]+)\/follow\/?$/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
 export default withApi(async (req, res) => {
-  const username = String(req.query.username || "");
+  const username = parseUsername(req);
+  if (!username) {
+    res.status(400).json({ detail: "Username is required" });
+    return;
+  }
 
   if (req.method === "GET") {
     const target = await getUserByUsername(username);
@@ -26,25 +39,37 @@ export default withApi(async (req, res) => {
   if (!user) return;
 
   if (req.method === "POST") {
-    const result = await followUser(user.id, username);
-    if (result.error) {
-      res.status(result.status).json({ detail: result.error });
-      return;
+    try {
+      const result = await followUser(user.id, username);
+      if (result.error) {
+        res.status(result.status).json({ detail: result.error });
+        return;
+      }
+      const stats = await getFollowStats(result.user_id, user.id);
+      res.status(200).json({ ...result, ...stats });
+    } catch (err) {
+      console.error("[follow POST]", err);
+      res.status(500).json({ detail: err?.message || "Could not follow user." });
     }
-    const stats = await getFollowStats(result.user_id, user.id);
-    res.status(200).json({ ...result, ...stats });
     return;
   }
 
   if (req.method === "DELETE") {
-    const result = await unfollowUser(user.id, username);
-    if (result.error) {
-      res.status(result.status).json({ detail: result.error });
-      return;
+    try {
+      const result = await unfollowUser(user.id, username);
+      if (result.error) {
+        res.status(result.status).json({ detail: result.error });
+        return;
+      }
+      const target = await getUserByUsername(username);
+      const stats = target
+        ? await getFollowStats(target.id, user.id)
+        : { follower_count: 0, following_count: 0, is_following: false };
+      res.status(200).json(stats);
+    } catch (err) {
+      console.error("[follow DELETE]", err);
+      res.status(500).json({ detail: err?.message || "Could not unfollow user." });
     }
-    const target = await getUserByUsername(username);
-    const stats = target ? await getFollowStats(target.id, user.id) : { follower_count: 0, following_count: 0, is_following: false };
-    res.status(200).json(stats);
     return;
   }
 

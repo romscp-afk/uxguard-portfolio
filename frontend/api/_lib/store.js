@@ -553,6 +553,30 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = [], deletedIds
   return merged;
 }
 
+function followEdgeKey(followerId, followingId) {
+  return `${Number(followerId)}:${Number(followingId)}`;
+}
+
+function mergeFollows(remoteList = [], localList = [], deletedKeys = []) {
+  const deleted = new Set((deletedKeys || []).map(String));
+  const byKey = new Map();
+
+  for (const item of [...remoteList, ...localList]) {
+    const followerId = Number(item?.follower_id);
+    const followingId = Number(item?.following_id);
+    if (!Number.isFinite(followerId) || !Number.isFinite(followingId)) continue;
+    const key = followEdgeKey(followerId, followingId);
+    if (deleted.has(key)) continue;
+    byKey.set(key, {
+      ...item,
+      follower_id: followerId,
+      following_id: followingId,
+    });
+  }
+
+  return [...byKey.values()];
+}
+
 function takeDeletionMarkers(store) {
   const markers = store?.__uxguardDeleted && typeof store.__uxguardDeleted === "object"
     ? store.__uxguardDeleted
@@ -565,6 +589,7 @@ function takeDeletionMarkers(store) {
     caseStudies: markers.caseStudies || [],
     projects: markers.projects || [],
     mediaAssets: markers.mediaAssets || [],
+    follows: markers.follows || [],
   };
 }
 
@@ -591,6 +616,7 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       localStore.projects || [],
       deleted.projects,
     ),
+    follows: mergeFollows(remote.follows || [], localStore.follows || [], deleted.follows),
   };
 }
 

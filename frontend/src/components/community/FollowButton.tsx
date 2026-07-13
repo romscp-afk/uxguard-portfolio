@@ -30,6 +30,24 @@ export function FollowButton({
     setFollowers(followerCount);
   }, [initialFollowing, followerCount, username]);
 
+  useEffect(() => {
+    if (!user || user.username === username) return;
+    let cancelled = false;
+    api
+      .getFollowStats(username)
+      .then((stats) => {
+        if (cancelled) return;
+        setFollowing(Boolean(stats.is_following));
+        setFollowers(Number(stats.follower_count) || 0);
+      })
+      .catch(() => {
+        // Keep props as fallback when stats cannot refresh.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, username]);
+
   const countClass =
     variant === "dark"
       ? "rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/80 backdrop-blur"
