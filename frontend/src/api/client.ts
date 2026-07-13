@@ -94,24 +94,34 @@ function getToken(): string | null {
 }
 
 async function requestAt<T>(base: string, path: string, options: RequestInit = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string>),
-  };
+  const headers = new Headers(options.headers || {});
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
-  if (!(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   const token = getToken();
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.set("Authorization", `Bearer ${token}`);
+  } else if (
+    !path.includes("/auth/login") &&
+    !path.includes("/auth/register") &&
+    !path.includes("/auth/forgot-password") &&
+    !path.includes("/auth/reset-password") &&
+    (path.includes("/media/upload") || path === "/auth/me" || options.method === "PATCH")
+  ) {
+    throw new ApiError(401, "Not authenticated. Please sign in again.");
   }
 
   const res = await fetch(`${base}${path}`, { ...options, headers });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.detail || res.statusText, {
+    const detail =
+      body.detail ||
+      (res.status === 401 ? "Not authenticated. Please sign in again." : res.statusText);
+    throw new ApiError(res.status, detail, {
       code: body.code,
       remainingCredits: body.remainingCredits,
     });

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Connect, Plugin } from "vite";
+import { loadEnv } from "vite";
 
 type Params = Record<string, string>;
 
@@ -68,15 +69,24 @@ function resolveApiFile(apiRoot: string, routePath: string): { file: string; par
     }
 
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return null;
-    const dynamic = fs.readdirSync(dir).find((name) => name.startsWith("[") && name.endsWith("]"));
+    const names = fs.readdirSync(dir);
+    // Match Vercel-style [param] directories and [param].js files
+    const dynamic = names.find(
+      (name) =>
+        (name.startsWith("[") && name.endsWith("]") && fs.statSync(path.join(dir, name)).isDirectory()) ||
+        /^\[.+\]\.js$/.test(name),
+    );
     if (!dynamic) return null;
 
-    const key = dynamic.slice(1, -1);
+    const key = dynamic.replace(/^\[/, "").replace(/\](?:\.js)?$/, "");
     params[key] = decodeURIComponent(part);
 
-    const dynDir = path.join(dir, dynamic);
-    if (fs.existsSync(dynDir) && fs.statSync(dynDir).isDirectory()) {
-      return walk(dynDir, index + 1);
+    const dynPath = path.join(dir, dynamic);
+    if (fs.existsSync(dynPath) && fs.statSync(dynPath).isDirectory()) {
+      return walk(dynPath, index + 1);
+    }
+    if (index === parts.length - 1 && dynamic.endsWith(".js") && fs.statSync(dynPath).isFile()) {
+      return dynPath;
     }
     if (index === parts.length - 1) {
       const dynFile = path.join(dir, `${dynamic}.js`);
@@ -97,6 +107,11 @@ export function localApiPlugin(apiRoot = path.resolve(process.cwd(), "api")): Pl
   return {
     name: "uxguard-local-api",
     configureServer(server) {
+      const env = loadEnv(server.config.mode, process.cwd(), "");
+      for (const [key, value] of Object.entries(env)) {
+        if (process.env[key] == null) process.env[key] = value;
+      }
+
       server.middlewares.use(async (req, res, next) => {
         try {
           const rawUrl = req.url || "/";
@@ -125,7 +140,16 @@ export function localApiPlugin(apiRoot = path.resolve(process.cwd(), "api")): Pl
           };
           anyReq.query = query;
 
-          if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+          const contentType = String(req.headers["content-type"] || "");
+          const isMultipart = contentType.includes("multipart/form-data");
+
+          // Never pre-consume multipart bodies — upload handlers read the raw stream.
+          if (
+            req.method !== "GET" &&
+            req.method !== "HEAD" &&
+            req.method !== "OPTIONS" &&
+            !isMultipart
+          ) {
             anyReq.body = await readJsonBody(req);
           }
 

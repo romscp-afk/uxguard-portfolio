@@ -49,6 +49,38 @@ export function ProfileSettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function persistMediaField(
+    field: "avatar_url" | "cover_image_url" | "cv_url",
+    url: string,
+  ) {
+    if (!canEditPlatform(user)) return;
+    const stored = toStoredAssetUrl(url) || url.trim();
+    if (!stored) return;
+
+    updateField(field, stored);
+    try {
+      const saved = await api.updateMe({ [field]: stored });
+      await refreshUser();
+      setForm((prev) => ({
+        ...prev,
+        avatar_url: saved.avatar_url || "",
+        cover_image_url: saved.cover_image_url || "",
+        cv_url: saved.cv_url || "",
+      }));
+      setMessageType("success");
+      setMessage(
+        field === "cv_url"
+          ? "CV saved to your profile."
+          : field === "avatar_url"
+            ? "Profile photo saved."
+            : "Cover photo saved.",
+      );
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err instanceof ApiError ? err.message : "Upload saved locally but profile update failed.");
+    }
+  }
+
   async function copyPortfolioLink() {
     if (!portfolioUrl) return;
     await navigator.clipboard.writeText(portfolioUrl);
@@ -246,8 +278,10 @@ export function ProfileSettingsPage() {
             label="Cover photo"
             value={form.cover_image_url || ""}
             onChange={(url) => updateField("cover_image_url", url)}
+            onCommit={(url) => void persistMediaField("cover_image_url", url)}
             accept="image/*"
-            helpText="Wide banner image for the top of your public profile (recommended 1600×600)"
+            variant="cover"
+            helpText="Wide banner image for the top of your public profile (recommended 1600×600). Saved as soon as you upload."
           />
           {form.cover_image_url ? (
             <div className="overflow-hidden rounded-xl border border-ink-100 bg-ink-50">
@@ -263,9 +297,10 @@ export function ProfileSettingsPage() {
             label="Profile Photo"
             value={form.avatar_url || ""}
             onChange={(url) => updateField("avatar_url", url)}
+            onCommit={(url) => void persistMediaField("avatar_url", url)}
             accept="image/*"
             showPreview={false}
-            helpText="Square photos work best. The full image is shown in a circular crop on your public profile."
+            helpText="Square photos work best. Saved as soon as you upload."
           />
           {form.avatar_url ? (
             <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 p-4">
@@ -338,9 +373,10 @@ export function ProfileSettingsPage() {
             label="CV / Resume"
             value={form.cv_url || ""}
             onChange={(url) => updateField("cv_url", url)}
+            onCommit={(url) => void persistMediaField("cv_url", url)}
             accept="image/*,.pdf,.doc,.docx"
             showPreview={false}
-            helpText="Upload a PDF/Word file or paste a link — it appears on your public profile after you save."
+            helpText="Upload a PDF/Word file or paste a link — saved to your public profile as soon as you upload."
           />
           {form.cv_url ? (
             <a
@@ -350,7 +386,7 @@ export function ProfileSettingsPage() {
               className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-500"
             >
               <ExternalLink className="h-4 w-4" />
-              Preview linked CV
+              View CV in new tab
             </a>
           ) : null}
         </div>

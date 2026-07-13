@@ -1,6 +1,6 @@
 import { DragEvent, useRef, useState } from "react";
 import { ImagePlus, Loader2, Upload } from "lucide-react";
-import { api, resolveAssetUrl } from "../../api/client";
+import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import {
   COVER_HELP_TEXT,
   validateCoverImageFile,
@@ -85,7 +85,12 @@ export function UrlOrUploadField({
       setUploadError("");
       onCommit?.(asset.url);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Upload failed";
+      const message =
+        err instanceof ApiError && err.status === 401
+          ? "Session expired. Sign out and sign back in, then upload again."
+          : err instanceof Error
+            ? err.message
+            : "Upload failed";
       setUploadError(message);
       onValidationError?.(message);
     } finally {
@@ -171,7 +176,9 @@ export function UrlOrUploadField({
             setUploadError("");
           }}
           onBlur={() => {
-            if (isCover && value.trim()) void commitUrl(value);
+            if (!value.trim()) return;
+            if (isCover) void commitUrl(value);
+            else onCommit?.(value.trim());
           }}
           placeholder={placeholder}
         />

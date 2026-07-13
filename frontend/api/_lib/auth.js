@@ -17,6 +17,7 @@ const RECOVERABLE_EMAILS = new Set([
 /** Contact aliases only — demo and admin are separate accounts */
 const EMAIL_ALIASES = {
   "alex@uxguard.io": ["demo@uxguard.io"],
+  "demo@uxguard.io": ["alex@uxguard.io"],
 };
 
 const ACCOUNT_PROFILES = {
@@ -84,9 +85,16 @@ export function verifyToken(token) {
 }
 
 export function requireAuth(req) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return null;
-  return verifyToken(auth.slice(7));
+  const raw =
+    req?.headers?.authorization ||
+    req?.headers?.Authorization ||
+    req?.headers?.["Authorization"] ||
+    "";
+  const auth = Array.isArray(raw) ? raw[0] : String(raw || "");
+  if (!auth.toLowerCase().startsWith("bearer ")) return null;
+  const token = auth.slice(7).trim();
+  if (!token) return null;
+  return verifyToken(token);
 }
 
 function isRecoverableAccount(user) {

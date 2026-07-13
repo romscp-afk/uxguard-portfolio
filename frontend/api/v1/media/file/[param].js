@@ -54,6 +54,13 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
     res.setHeader("X-Content-Type-Options", "nosniff");
 
+    const filename = String(result.asset?.original_name || result.asset?.filename || "file").replace(
+      /[^\w.\-() ]+/g,
+      "_",
+    );
+    // Open PDFs/images in the browser tab instead of forcing download
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+
     if (req.method === "HEAD") {
       res.end();
       return;

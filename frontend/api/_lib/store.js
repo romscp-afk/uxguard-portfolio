@@ -213,6 +213,15 @@ export const portfolioSettings = {
 
 let memoryStore = null;
 
+function getMemoryStore() {
+  // Share across Vite SSR module instances in the same Node process
+  const g = globalThis;
+  if (!g.__uxguardPlatformStore) {
+    g.__uxguardPlatformStore = { current: memoryStore };
+  }
+  return g.__uxguardPlatformStore;
+}
+
 function normalizeLoadedStore(data) {
   const store = {
     ...data,
@@ -339,34 +348,49 @@ async function loadFromBlob() {
 }
 
 export async function readStore() {
+  const slot = getMemoryStore();
+
   if (process.env.BLOB_READ_WRITE_TOKEN) {
+    // Prefer process memory after a local write so profile saves aren't lost to
+    // blob read-after-write races or separate SSR module instances.
+    if (slot.current) {
+      memoryStore = slot.current;
+      return structuredClone(slot.current);
+    }
+
     try {
       const data = await loadFromBlob();
       memoryStore = normalizeLoadedStore(data);
+      slot.current = memoryStore;
       return structuredClone(memoryStore);
     } catch (error) {
       if (isMissingBlobError(error)) {
         memoryStore = seedStore();
+        slot.current = memoryStore;
         await writeStore(memoryStore);
         return structuredClone(memoryStore);
       }
 
-      if (memoryStore) {
-        return structuredClone(memoryStore);
+      if (slot.current) {
+        memoryStore = slot.current;
+        return structuredClone(slot.current);
       }
 
       throw error;
     }
   }
 
-  if (!memoryStore) {
+  if (!slot.current) {
     memoryStore = seedStore();
+    slot.current = memoryStore;
   }
-  return structuredClone(memoryStore);
+  memoryStore = slot.current;
+  return structuredClone(slot.current);
 }
 
 export async function writeStore(store) {
   memoryStore = store;
+  getMemoryStore().current = store;
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return;
@@ -382,9 +406,20 @@ export async function writeStore(store) {
 
 export async function updateStore(updater) {
   const current = await readStore();
-  const next = updater(structuredClone(current));
-  await writeStore(next);
-  return next;
+  const draft = structuredClone(current);
+  const next = updater(draft);
+  const resolved = next && typeof next === "object" ? next : draft;
+
+  // Skip no-op writes (e.g. ensureFreeSubscription when already provisioned)
+  if (resolved.__uxguardSkipWrite) {
+    delete resolved.__uxguardSkipWrite;
+    memoryStore = resolved;
+    getMemoryStore().current = resolved;
+    return resolved;
+  }
+
+  await writeStore(resolved);
+  return resolved;
 }
 
 export function isPersistentStoreEnabled() {
@@ -397,4 +432,5 @@ export function resetMemoryStoreForTests() {
     throw new Error("resetMemoryStoreForTests is only available under UXGUARD_TEST=1");
   }
   memoryStore = seedStore();
+  getMemoryStore().current = memoryStore;
 }

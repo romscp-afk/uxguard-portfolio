@@ -145,12 +145,13 @@ export async function updateUserProfile(userId, updates) {
   }
 
   await updateStore((store) => {
-    const index = store.users.findIndex((u) => u.id === userId);
+    const uid = Number(userId);
+    const index = store.users.findIndex((u) => Number(u.id) === uid);
     if (index === -1) throw new Error("User not found");
     if (sanitized.username) {
       sanitized.username = slugify(sanitized.username);
       const taken = store.users.find(
-        (u) => u.username === sanitized.username && u.id !== userId,
+        (u) => u.username === sanitized.username && Number(u.id) !== uid,
       );
       if (taken) throw new Error("Username already taken");
     }
@@ -554,8 +555,9 @@ export async function deleteCaseStudyAttachment(attachmentId, authorId) {
 
 export async function adminListCaseStudies(authorId) {
   const store = await readStore();
+  const uid = Number(authorId);
   return store.caseStudies
-    .filter((cs) => cs.author_id === authorId)
+    .filter((cs) => Number(cs.author_id) === uid)
     .sort((a, b) => a.sort_order - b.sort_order || new Date(b.updated_at) - new Date(a.updated_at));
 }
 

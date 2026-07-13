@@ -49,16 +49,19 @@ export async function ensureFreeSubscription(userId) {
     );
     if (paidActive) {
       created = { ...paidActive, alreadyExisted: true };
+      store.__uxguardSkipWrite = true;
       return store;
     }
     const adminActive = activeRows.find((s) => s.plan_code === PLAN_CODES.ADMIN);
     if (adminActive) {
       created = { ...adminActive, alreadyExisted: true };
+      store.__uxguardSkipWrite = true;
       return store;
     }
     const existingFree = activeRows.find((s) => s.plan_code === PLAN_CODES.FREE);
     if (existingFree) {
       created = { ...existingFree, alreadyExisted: true };
+      store.__uxguardSkipWrite = true;
       return store;
     }
 
@@ -116,6 +119,7 @@ export async function ensureAdminUnlimitedSubscription(userId) {
 
     if (active && active.plan_code === PLAN_CODES.ADMIN) {
       result = { ...active, alreadyExisted: true };
+      store.__uxguardSkipWrite = true;
       return store;
     }
 
@@ -209,11 +213,19 @@ export async function ensureUsageCycle(userId) {
       };
       store.user_usage.push(row);
     } else {
-      // Keep cycle dates aligned with subscription when possible
+      let touched = false;
       if (subscription) {
-        row.cycle_start = subscription.current_period_start;
-        row.cycle_end = subscription.current_period_end;
+        if (
+          row.cycle_start !== subscription.current_period_start ||
+          row.cycle_end !== subscription.current_period_end
+        ) {
+          row.cycle_start = subscription.current_period_start;
+          row.cycle_end = subscription.current_period_end;
+          row.updated_at = nowIso();
+          touched = true;
+        }
       }
+      if (!touched) store.__uxguardSkipWrite = true;
     }
 
     usage = { ...row, plan_code: plan.code, plan };

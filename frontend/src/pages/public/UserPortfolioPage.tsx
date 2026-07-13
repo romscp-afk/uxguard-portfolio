@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import {
   BookOpen,
   ExternalLink,
+  FileText,
   FolderKanban,
   Heart,
   Mail,
@@ -188,6 +189,18 @@ export function UserPortfolioPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                {profile.cv_url ? (
+                  <a
+                    href={resolveAssetUrl(profile.cv_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition hover:bg-brand-50"
+                  >
+                    <FileText className="h-4 w-4 text-brand-600" />
+                    View CV
+                    <ExternalLink className="h-3.5 w-3.5 text-ink-400" />
+                  </a>
+                ) : null}
                 <FollowButton
                   username={profile.username}
                   initialFollowing={profile.is_following}
@@ -247,8 +260,9 @@ export function UserPortfolioPage() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 font-medium text-brand-700 hover:bg-brand-100"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                      CV / Resume
+                      <FileText className="h-4 w-4" />
+                      View CV
+                      <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   ) : null}
                 </div>

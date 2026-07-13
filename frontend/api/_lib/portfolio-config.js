@@ -10,7 +10,7 @@ export function getUserPortfolioConfig(user) {
 
 export async function getPortfolioConfigForUser(userId) {
   const store = await readStore();
-  const user = store.users.find((item) => item.id === userId);
+  const user = store.users.find((item) => Number(item.id) === Number(userId));
   if (!user) return null;
   return getUserPortfolioConfig(user);
 }
@@ -19,7 +19,7 @@ export async function updatePortfolioConfigForUser(userId, updates) {
   let updated = null;
 
   await updateStore((store) => {
-    const index = store.users.findIndex((item) => item.id === userId);
+    const index = store.users.findIndex((item) => Number(item.id) === Number(userId));
     if (index === -1) throw new Error("User not found");
 
     const current = getUserPortfolioConfig(store.users[index]);

@@ -51,12 +51,16 @@ export function PortfolioBuilderPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.getPortfolioBuilder(), api.adminListCaseStudies()])
+    setLoading(true);
+    Promise.all([
+      api.getPortfolioBuilder(),
+      api.adminListCaseStudies().catch(() => [] as CaseStudyListItem[]),
+    ])
       .then(([builderConfig, caseStudies]) => {
         if (cancelled) return;
-        const config = builderConfig || DEFAULT_CONFIG;
-        setConfig(config);
-        const order = config.case_study_order || [];
+        const nextConfig = builderConfig || DEFAULT_CONFIG;
+        setConfig(nextConfig);
+        const order = nextConfig.case_study_order || [];
         const sorted = [...caseStudies].sort((a, b) => {
           const aIndex = order.indexOf(a.id);
           const bIndex = order.indexOf(b.id);
