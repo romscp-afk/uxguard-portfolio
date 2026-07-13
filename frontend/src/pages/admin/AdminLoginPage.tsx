@@ -10,8 +10,8 @@ export function AdminLoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: string })?.from || "/admin";
 
-  const [email, setEmail] = useState("admin@uxguard.io");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -56,6 +56,8 @@ export function AdminLoginPage() {
               className="input-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="username"
               required
             />
           </div>
@@ -78,6 +80,8 @@ export function AdminLoginPage() {
               className="input-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -91,10 +95,6 @@ export function AdminLoginPage() {
             <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
               Start your journey
             </Link>
-          </p>
-
-          <p className="mt-4 text-center text-xs text-ink-400">
-            Try admin@uxguard.io or demo@uxguard.io / demo1234
           </p>
         </form>
 
