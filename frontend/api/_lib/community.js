@@ -205,11 +205,12 @@ export async function deleteComment(commentId, userId) {
 
 export async function createNotification({ userId, type, title, message, link }) {
   let notification = null;
+  const uid = Number(userId);
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     notification = {
       id: nextId(normalized.notifications),
-      user_id: userId,
+      user_id: uid,
       type,
       title,
       message,
@@ -225,29 +226,58 @@ export async function createNotification({ userId, type, title, message, link })
 
 export async function listNotifications(userId, { limit = 50 } = {}) {
   const store = normalizeStore(await readStore());
+  const uid = Number(userId);
   return store.notifications
-    .filter((n) => n.user_id === userId)
+    .filter((n) => Number(n.user_id) === uid)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, limit);
 }
 
 export async function getUnreadNotificationCount(userId) {
   const store = normalizeStore(await readStore());
-  return store.notifications.filter((n) => n.user_id === userId && !n.read_at).length;
+  const uid = Number(userId);
+  return store.notifications.filter((n) => Number(n.user_id) === uid && !n.read_at).length;
 }
 
 export async function markNotificationsRead(userId, ids = null) {
   const now = new Date().toISOString();
+  const uid = Number(userId);
+  const idSet =
+    Array.isArray(ids) && ids.length > 0 ? new Set(ids.map((id) => Number(id))) : null;
+
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     normalized.notifications = normalized.notifications.map((n) => {
-      if (n.user_id !== userId) return n;
-      if (ids && !ids.includes(n.id)) return n;
+      if (Number(n.user_id) !== uid) return n;
+      if (idSet && !idSet.has(Number(n.id))) return n;
       if (!n.read_at) return { ...n, read_at: now };
       return n;
     });
     return normalized;
   });
+}
+
+export async function notifyPlatformAdmins({ type, title, message, link }) {
+  const store = normalizeStore(await readStore());
+  const { isAdmin } = await import("./roles.js");
+  const contactTo = String(process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase();
+  const admins = (store.users || []).filter(
+    (u) => isAdmin(u) || String(u.email || "").toLowerCase() === contactTo,
+  );
+
+  const results = [];
+  for (const admin of admins) {
+    results.push(
+      await createNotification({
+        userId: admin.id,
+        type,
+        title,
+        message,
+        link,
+      }),
+    );
+  }
+  return results;
 }
 
 export async function notifyNewPublication(caseStudy, author) {
@@ -256,7 +286,7 @@ export async function notifyNewPublication(caseStudy, author) {
   const appBase = (process.env.APP_BASE_URL || "https://uxguard-portfolio.vercel.app").replace(/\/$/, "");
   const absoluteUrl = `${appBase}${studyUrl}`;
 
-  const recipients = store.users.filter((u) => u.id !== author.id);
+  const recipients = store.users.filter((u) => Number(u.id) !== Number(author.id));
 
   for (const recipient of recipients) {
     await createNotification({

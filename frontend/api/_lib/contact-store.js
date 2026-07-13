@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readStore, updateStore } from "./store.js";
+import { notifyPlatformAdmins } from "./community.js";
 
 const FOLDERS = new Set(["inbox", "sent", "drafts", "trash", "starred"]);
 
@@ -85,6 +86,18 @@ export async function saveContactMessage({
     saved = normalizeMessage(entry);
     return store;
   });
+
+  try {
+    await notifyPlatformAdmins({
+      type: "contact_message",
+      title: "New email in Contact Inbox",
+      message: `${saved.name} · ${saved.subject}`,
+      link: "/admin/contact-inbox",
+    });
+  } catch {
+    // Inbox save already succeeded; notifications are best-effort.
+  }
+
   return saved;
 }
 

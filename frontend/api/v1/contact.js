@@ -1,6 +1,5 @@
 import { saveContactMessage } from "../_lib/contact-store.js";
-import { createNotification } from "../_lib/community.js";
-import { isPersistentStoreEnabled, readStore } from "../_lib/store.js";
+import { isPersistentStoreEnabled } from "../_lib/store.js";
 import { withApi } from "../_lib/withApi.js";
 
 function isValidEmail(value) {
@@ -28,34 +27,9 @@ async function readBody(req) {
   return {};
 }
 
-async function notifyAdmins(entry) {
-  try {
-    const store = await readStore();
-    const admins = (store.users || []).filter(
-      (u) =>
-        u.role === "admin" ||
-        String(u.email || "").toLowerCase() ===
-          String(process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase(),
-    );
-    await Promise.all(
-      admins.map((admin) =>
-        createNotification({
-          userId: admin.id,
-          type: "contact_message",
-          title: "New contact form message",
-          message: `${entry.name}: ${entry.subject}`,
-          link: "/admin/contact-inbox",
-        }),
-      ),
-    );
-  } catch {
-    // Inbox save already succeeded; notifications are best-effort.
-  }
-}
-
 /**
- * Public contact form — stores messages in the admin Contact Inbox only.
- * Outbound email is disabled for now.
+ * Public contact form — stores messages in the admin Contact Inbox.
+ * Admin notifications are created inside saveContactMessage.
  */
 export default withApi(async (req, res) => {
   if (req.method !== "POST") {
@@ -73,10 +47,8 @@ export default withApi(async (req, res) => {
     uxg_hp: honeypot,
   } = body || {};
 
-  // Prefer dedicated honeypot; do not use "website" (browsers autofill it).
   const honeypotValue = String(honeypot || "").trim();
   if (honeypotValue) {
-    // Silent OK for bots — do not persist
     res.status(200).json({ message: "Message sent." });
     return;
   }
@@ -118,8 +90,6 @@ export default withApi(async (req, res) => {
       subject: trimmedSubject,
       message: trimmedMessage,
     });
-
-    await notifyAdmins(entry);
 
     res.status(200).json({
       message: "Message received. It is now in the admin Contact Inbox.",
