@@ -8,14 +8,12 @@ import {
   FolderKanban,
   Globe,
   LayoutTemplate,
-  Palette,
   Sparkles,
-  UserCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useAssistant } from "../../context/AssistantContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
-import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
+import { normalizeRole } from "../../lib/roles";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { api } from "../../api/client";
 import type { BillingUsageSummary, CaseStudyListItem, Project } from "../../types";
@@ -29,7 +27,7 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    loadMergedCaseStudies(user.id).then(setStudies);
+    loadMergedCaseStudies(user.id).then((result) => setStudies(result.studies));
     api.listProjects().then(setProjects).catch(() => setProjects([]));
     api.getBillingSubscription().then(setBilling).catch(() => setBilling(null));
   }, [user]);
@@ -38,7 +36,6 @@ export function AdminDashboardPage() {
 
   const published = studies.filter((s) => s.status === "published").length;
   const drafts = studies.filter((s) => s.status === "draft").length;
-  const { primary } = dashboardLinksForUser(user);
   const role = normalizeRole(user.role);
 
   const intentLabel =
@@ -131,38 +128,6 @@ export function AdminDashboardPage() {
             <p className="text-xs text-ink-500 sm:text-sm">{label}</p>
           </div>
         ))}
-      </div>
-
-      <div className="mb-6 sm:mb-8">
-        <h2 className="font-semibold text-ink-900">Your platform sections</h2>
-        <p className="mt-1 text-sm text-ink-500">Quick access to the tools for your account.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {primary.map(({ to, label, section }) => {
-            const icons: Record<string, typeof UserCircle> = {
-              profile: UserCircle,
-              projects: FolderKanban,
-              ai: Sparkles,
-              templates: LayoutTemplate,
-              portfolio: Palette,
-              "case-studies": FileText,
-              billing: CreditCard,
-            };
-            const Icon = icons[section] || FileText;
-            return (
-              <Link
-                key={to}
-                to={to}
-                className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-5"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <Icon className="h-5 w-5 shrink-0 text-brand-600" />
-                  <span className="truncate font-medium text-ink-900">{label}</span>
-                </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-ink-400" />
-              </Link>
-            );
-          })}
-        </div>
       </div>
 
       <div className="card overflow-hidden">

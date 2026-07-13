@@ -10,11 +10,24 @@ export function CaseStudiesListPage() {
   const { user } = useAuth();
   const location = useLocation();
   const [studies, setStudies] = useState<CaseStudyListItem[]>([]);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
 
-  useEffect(() => {
+  async function refresh(claimAll = false) {
     if (!user) return;
-    loadMergedCaseStudies(user.id).then(setStudies);
+    setSyncing(true);
+    try {
+      const result = await loadMergedCaseStudies(user.id, { claimAll });
+      setStudies(result.studies);
+      setSyncError(result.syncError);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  useEffect(() => {
+    void refresh(false);
   }, [user, location.pathname]);
 
   const filtered =
@@ -23,16 +36,31 @@ export function CaseStudiesListPage() {
   return (
     <div>
       <ReadOnlyNotice />
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Case Studies</h1>
           <p className="mt-1 text-ink-500">Create and manage UX research case studies</p>
         </div>
-        <EditLink to="/admin/case-studies/new">
-          <Plus className="h-4 w-4" />
-          New Case Study
-        </EditLink>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void refresh(true)}
+            disabled={syncing || !user}
+            className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50"
+          >
+            {syncing ? "Syncing…" : "Sync to feed"}
+          </button>
+          <EditLink to="/admin/case-studies/new">
+            <Plus className="h-4 w-4" />
+            New Case Study
+          </EditLink>
+        </div>
       </div>
+      {syncError ? (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Offline copies could not fully sync: {syncError}. Open each study and Save/Publish again if it is still missing from the community feed.
+        </div>
+      ) : null}
 
       <div className="mb-6 flex gap-2">
         {(["all", "published", "draft"] as const).map((f) => (

@@ -215,10 +215,7 @@ export async function getFeedItems(limit) {
     .filter((cs) => cs && String(cs.status || "").toLowerCase() === "published")
     .sort((a, b) => new Date(b.published_at || b.updated_at || 0) - new Date(a.published_at || a.updated_at || 0))
     .map((cs) => {
-      const author =
-        users.find((u) => Number(u.id) === Number(cs.author_id)) ||
-        users.find((u) => String(u.username || "") === "romal-perera") ||
-        users[0];
+      const author = users.find((u) => Number(u.id) === Number(cs.author_id));
       if (!author) return null;
       return {
         ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
@@ -288,7 +285,9 @@ export async function getUserCaseStudy(username, slug) {
 export async function listCaseStudies({ status, featured, authorId } = {}) {
   const store = await readStore();
   let list = [...store.caseStudies];
-  if (authorId) list = list.filter((cs) => cs.author_id === authorId);
+  if (authorId != null && authorId !== "") {
+    list = list.filter((cs) => Number(cs.author_id) === Number(authorId));
+  }
   if (status) list = list.filter((cs) => cs.status === status);
   else list = list.filter((cs) => cs.status === "published");
   if (featured !== undefined) list = list.filter((cs) => cs.featured === featured);
@@ -303,12 +302,16 @@ export async function getCaseStudyBySlug(slug) {
 
 export async function getCaseStudyById(id) {
   const store = await readStore();
-  return store.caseStudies.find((cs) => cs.id === id) || null;
+  return store.caseStudies.find((cs) => Number(cs.id) === Number(id)) || null;
 }
 
 export async function getCaseStudyByIdForAuthor(id, authorId) {
   const store = await readStore();
-  return store.caseStudies.find((cs) => cs.id === id && cs.author_id === authorId) || null;
+  return (
+    store.caseStudies.find(
+      (cs) => Number(cs.id) === Number(id) && Number(cs.author_id) === Number(authorId),
+    ) || null
+  );
 }
 
 function slugifyTitle(text) {
@@ -355,7 +358,7 @@ export async function createCaseStudy(authorId, payload) {
       featured: payload.featured || false,
       sort_order: payload.sort_order ?? 0,
       project_id: normalizeProjectId(payload.project_id),
-      author_id: authorId,
+      author_id: Number(authorId),
       created_at: now,
       updated_at: now,
       published_at: payload.status === "published" ? now : null,
@@ -373,13 +376,17 @@ export async function updateCaseStudy(id, authorId, payload) {
   let updated = null;
 
   await updateStore((store) => {
-    let index = store.caseStudies.findIndex((cs) => cs.id === id && cs.author_id === authorId);
+    const uid = Number(authorId);
+    const studyId = Number(id);
+    let index = store.caseStudies.findIndex(
+      (cs) => Number(cs.id) === studyId && Number(cs.author_id) === uid,
+    );
 
     if (index === -1) {
-      let finalId = id;
-      const conflicting = store.caseStudies.find((cs) => cs.id === id);
-      if (conflicting && conflicting.author_id !== authorId) {
-        finalId = store.caseStudies.reduce((max, cs) => Math.max(max, cs.id), 0) + 1;
+      let finalId = studyId;
+      const conflicting = store.caseStudies.find((cs) => Number(cs.id) === studyId);
+      if (conflicting && Number(conflicting.author_id) !== uid) {
+        finalId = store.caseStudies.reduce((max, cs) => Math.max(max, Number(cs.id) || 0), 0) + 1;
       }
 
       const nextStatus = payload.status || "draft";
@@ -405,7 +412,7 @@ export async function updateCaseStudy(id, authorId, payload) {
         featured: payload.featured || false,
         sort_order: payload.sort_order ?? 0,
         project_id: normalizeProjectId(payload.project_id),
-        author_id: authorId,
+        author_id: uid,
         created_at: payload.created_at || now,
         updated_at: now,
         published_at: nextStatus === "published" ? now : null,
@@ -421,7 +428,7 @@ export async function updateCaseStudy(id, authorId, payload) {
       ...current,
       ...payload,
       id: current.id,
-      author_id: authorId,
+      author_id: uid,
       updated_at: now,
       published_at:
         nextStatus === "published"
@@ -446,20 +453,24 @@ export async function updateCaseStudy(id, authorId, payload) {
 
 export async function syncCaseStudies(authorId, studies) {
   const now = new Date().toISOString();
+  const uid = Number(authorId);
 
   await updateStore((store) => {
     for (const incoming of studies || []) {
-      if (!incoming || incoming.author_id !== authorId) continue;
+      if (!incoming) continue;
 
       let index = store.caseStudies.findIndex(
-        (cs) => cs.id === incoming.id && cs.author_id === authorId,
+        (cs) => Number(cs.id) === Number(incoming.id) && Number(cs.author_id) === uid,
       );
 
       if (index === -1) {
-        let finalId = incoming.id;
-        const conflicting = store.caseStudies.find((cs) => cs.id === incoming.id);
-        if (conflicting && conflicting.author_id !== authorId) {
-          finalId = store.caseStudies.reduce((max, cs) => Math.max(max, cs.id), 0) + 1;
+        let finalId = Number(incoming.id);
+        if (!Number.isFinite(finalId) || finalId <= 0) {
+          finalId = store.caseStudies.reduce((max, cs) => Math.max(max, Number(cs.id) || 0), 0) + 1;
+        }
+        const conflicting = store.caseStudies.find((cs) => Number(cs.id) === finalId);
+        if (conflicting && Number(conflicting.author_id) !== uid) {
+          finalId = store.caseStudies.reduce((max, cs) => Math.max(max, Number(cs.id) || 0), 0) + 1;
         }
 
         const status = incoming.status || "draft";
@@ -482,14 +493,13 @@ export async function syncCaseStudies(authorId, studies) {
           metrics: incoming.metrics || [],
           content_blocks: incoming.content_blocks || [],
           status,
-          featured: incoming.featured || false,
+          featured: Boolean(incoming.featured),
           sort_order: incoming.sort_order ?? 0,
           project_id: normalizeProjectId(incoming.project_id),
-          author_id: authorId,
+          author_id: uid,
           created_at: incoming.created_at || now,
           updated_at: incoming.updated_at || now,
-          published_at:
-            status === "published" ? incoming.published_at || now : null,
+          published_at: status === "published" ? incoming.published_at || now : null,
           attachments: incoming.attachments || [],
         });
         continue;
@@ -501,7 +511,8 @@ export async function syncCaseStudies(authorId, studies) {
         ...current,
         ...incoming,
         id: current.id,
-        author_id: authorId,
+        author_id: uid,
+        status: nextStatus,
         updated_at: incoming.updated_at || now,
         published_at:
           nextStatus === "published"
@@ -516,10 +527,16 @@ export async function syncCaseStudies(authorId, studies) {
 }
 
 export async function deleteCaseStudy(id, authorId) {
+  const uid = Number(authorId);
+  const studyId = Number(id);
   await updateStore((store) => {
-    const cs = store.caseStudies.find((item) => item.id === id && item.author_id === authorId);
+    const cs = store.caseStudies.find(
+      (item) => Number(item.id) === studyId && Number(item.author_id) === uid,
+    );
     if (!cs) throw new Error("Case study not found");
-    store.caseStudies = store.caseStudies.filter((item) => item.id !== id || item.author_id !== authorId);
+    store.caseStudies = store.caseStudies.filter(
+      (item) => !(Number(item.id) === studyId && Number(item.author_id) === uid),
+    );
     return store;
   });
 }
@@ -527,7 +544,9 @@ export async function deleteCaseStudy(id, authorId) {
 export async function addCaseStudyAttachment(caseId, authorId, attachment) {
   let created = null;
   await updateStore((store) => {
-    const index = store.caseStudies.findIndex((cs) => cs.id === caseId && cs.author_id === authorId);
+    const index = store.caseStudies.findIndex(
+      (cs) => Number(cs.id) === Number(caseId) && Number(cs.author_id) === Number(authorId),
+    );
     if (index === -1) throw new Error("Case study not found");
 
     const current = store.caseStudies[index];
@@ -550,7 +569,7 @@ export async function addCaseStudyAttachment(caseId, authorId, attachment) {
 export async function deleteCaseStudyAttachment(attachmentId, authorId) {
   await updateStore((store) => {
     for (const cs of store.caseStudies) {
-      if (cs.author_id !== authorId) continue;
+      if (Number(cs.author_id) !== Number(authorId)) continue;
       const index = (cs.attachments || []).findIndex((item) => item.id === attachmentId);
       if (index === -1) continue;
       cs.attachments = cs.attachments.filter((item) => item.id !== attachmentId);

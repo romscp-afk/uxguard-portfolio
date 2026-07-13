@@ -29,8 +29,9 @@ export function removeCaseStudyFromCache(id: number) {
 }
 
 export function listCachedCaseStudies(authorId: number): CaseStudyListItem[] {
+  const uid = Number(authorId);
   return Object.values(loadCache())
-    .filter((study) => study.author_id === authorId)
+    .filter((study) => Number(study.author_id) === uid)
     .map((study) => ({
       id: study.id,
       slug: study.slug,
@@ -52,11 +53,12 @@ export function mergeCaseStudyLists(
   cached: CaseStudyListItem[],
 ): CaseStudyListItem[] {
   const byId = new Map<number, CaseStudyListItem>();
-  for (const item of remote) byId.set(item.id, item);
+  for (const item of remote) byId.set(Number(item.id), item);
   for (const item of cached) {
-    const existing = byId.get(item.id);
+    const id = Number(item.id);
+    const existing = byId.get(id);
     if (!existing || new Date(item.updated_at) > new Date(existing.updated_at)) {
-      byId.set(item.id, item);
+      byId.set(id, item);
     }
   }
   return [...byId.values()].sort(
@@ -64,19 +66,57 @@ export function mergeCaseStudyLists(
   );
 }
 
-export async function loadMergedCaseStudies(userId: number): Promise<CaseStudyListItem[]> {
+export async function syncCachedCaseStudies(
+  userId: number,
+  options?: { claimAll?: boolean },
+): Promise<void> {
+  const uid = Number(userId);
+  const cache = loadCache();
+  const owned = Object.values(cache).filter((study) => {
+    if (options?.claimAll) return true;
+    const aid = Number(study.author_id);
+    return !Number.isFinite(aid) || aid === uid;
+  });
+  if (owned.length === 0) return;
+
+  const payload = owned.map((study) => ({
+    ...study,
+    author_id: uid,
+    status: study.status || "draft",
+  }));
+
+  await api.syncCaseStudies(payload);
+
+  const next = { ...cache };
+  for (const study of payload) {
+    next[String(study.id)] = study as CaseStudy;
+  }
+  localStorage.setItem(KEY, JSON.stringify(next));
+}
+
+export async function loadMergedCaseStudies(
+  userId: number,
+  options?: { claimAll?: boolean },
+): Promise<{
+  studies: CaseStudyListItem[];
+  syncError: string | null;
+}> {
+  let syncError: string | null = null;
   try {
-    await syncCachedCaseStudies(userId);
-  } catch {
-    // Continue with cached merge if sync fails.
+    await syncCachedCaseStudies(userId, options);
+  } catch (err) {
+    syncError = err instanceof Error ? err.message : "Could not sync offline case studies";
   }
 
   try {
     const remote = await api.adminListCaseStudies();
     const cached = listCachedCaseStudies(userId);
-    return mergeCaseStudyLists(remote, cached);
+    return { studies: mergeCaseStudyLists(remote, cached), syncError };
   } catch {
-    return listCachedCaseStudies(userId);
+    return {
+      studies: listCachedCaseStudies(userId),
+      syncError: syncError || "Could not load from server",
+    };
   }
 }
 
@@ -88,10 +128,4 @@ export function mergePublishedIntoProfile(profile: UserProfile, authorId: number
   const published = listPublishedCachedCaseStudies(authorId);
   const merged = mergeCaseStudyLists(profile.case_studies, published);
   return { ...profile, case_studies: merged, case_study_count: merged.length };
-}
-
-export async function syncCachedCaseStudies(userId: number): Promise<void> {
-  const cached = Object.values(loadCache()).filter((study) => study.author_id === userId);
-  if (cached.length === 0) return;
-  await api.syncCaseStudies(cached);
 }
