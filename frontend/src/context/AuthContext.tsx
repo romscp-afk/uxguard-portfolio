@@ -53,9 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const me = await api.me();
-    setUser(me);
-    saveUserToRegistry(me);
+    try {
+      const me = await api.me();
+      setUser(me);
+      saveUserToRegistry(me);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        localStorage.removeItem("uxguard_token");
+        setUser(null);
+      }
+      throw err;
+    }
   }, []);
 
   const value = useMemo(

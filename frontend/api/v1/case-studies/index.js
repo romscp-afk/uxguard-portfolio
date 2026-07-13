@@ -1,8 +1,22 @@
-import { createCaseStudy, listCaseStudies, toListItem } from "../_lib/demo-data.js";
-import { notifyNewPublication } from "../_lib/community.js";
-import { requireAuthUser } from "../_lib/auth.js";
-import { assertCanEdit } from "../_lib/projects.js";
-import { withApi } from "../_lib/withApi.js";
+import { createCaseStudy, listCaseStudies, toListItem } from "../../_lib/demo-data.js";
+import { notifyNewPublication } from "../../_lib/community.js";
+import { requireAuthUser } from "../../_lib/auth.js";
+import { assertCanEdit } from "../../_lib/projects.js";
+import { withApi } from "../../_lib/withApi.js";
+
+async function readBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
 
 export default withApi(async (req, res) => {
   if (req.method === "GET") {
@@ -20,13 +34,14 @@ export default withApi(async (req, res) => {
     if (!user) return;
     try {
       assertCanEdit(user);
-      const created = await createCaseStudy(user.id, req.body || {});
+      const body = await readBody(req);
+      const created = await createCaseStudy(user.id, body || {});
       if (created.status === "published") {
         await notifyNewPublication(created, user);
       }
       res.status(201).json(created);
     } catch (err) {
-      res.status(500).json({ detail: err.message || "Failed to create case study" });
+      res.status(err.status || 500).json({ detail: err.message || "Failed to create case study" });
     }
     return;
   }

@@ -40,7 +40,7 @@ const BADGE: Record<TemplateDefinition["accent"], string> = {
 };
 
 export function TemplatesPage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { setOpen: openAssistant } = useAssistant();
   const navigate = useNavigate();
   const readOnly = !canEditPlatform(user);
@@ -59,14 +59,35 @@ export function TemplatesPage() {
     [selectedId, templates],
   );
 
+  function requireSession() {
+    const token = localStorage.getItem("uxguard_token");
+    if (!token || !user) {
+      setMessageType("error");
+      setMessage("Your session expired. Please log in again to apply templates.");
+      logout();
+      navigate("/admin/login", { state: { from: "/admin/templates" }, replace: true });
+      return false;
+    }
+    return true;
+  }
+
   async function applyTemplate(template: TemplateDefinition) {
     if (readOnly || applying) return;
+    if (!requireSession()) return;
+
     setApplying(true);
     setMessage("");
     try {
       const createdIds: number[] = [];
       let projectId: number | undefined;
       let profileUpdated = false;
+
+      // Always persist theme / section config first so theme-only templates still work.
+      const configPatch = {
+        ...portfolioUpdatesFromTemplate(template),
+        applied_template_id: template.id,
+      };
+      await api.updatePortfolioBuilder(configPatch);
 
       if (template.profile && (template.profile.title || template.profile.bio)) {
         const patch: { title?: string; bio?: string } = {};
@@ -75,7 +96,11 @@ export function TemplatesPage() {
         if (Object.keys(patch).length) {
           await api.updateMe(patch);
           profileUpdated = true;
-          await refreshUser();
+          try {
+            await refreshUser();
+          } catch {
+            // Profile was saved; ignore refresh failures.
+          }
         }
       }
 
@@ -93,20 +118,17 @@ export function TemplatesPage() {
         const payload = stripCaseStudyForCreate(draft);
         if (projectId) payload.project_id = projectId;
         const created = await api.createCaseStudy(payload);
-        createdIds.push(created.id);
+        if (created?.id) createdIds.push(created.id);
       }
 
-      const configPatch = {
-        ...portfolioUpdatesFromTemplate(template),
-        applied_template_id: template.id,
-        ...(createdIds.length
-          ? {
-              featured_case_study_ids: createdIds.slice(0, 2),
-              case_study_order: createdIds,
-            }
-          : {}),
-      };
-      await api.updatePortfolioBuilder(configPatch);
+      if (createdIds.length) {
+        await api.updatePortfolioBuilder({
+          ...configPatch,
+          featured_case_study_ids: createdIds.slice(0, 2),
+          case_study_order: createdIds,
+        });
+      }
+
       setAppliedId(template.id);
 
       const bits: string[] = [];
@@ -127,6 +149,13 @@ export function TemplatesPage() {
         return;
       }
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setMessageType("error");
+        setMessage("Your session expired. Please log in again to apply templates.");
+        logout();
+        navigate("/admin/login", { state: { from: "/admin/templates" }, replace: true });
+        return;
+      }
       setMessageType("error");
       setMessage(err instanceof ApiError ? err.message : "Could not apply template.");
     } finally {

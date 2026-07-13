@@ -7,6 +7,20 @@ import { defaultPortfolioConfig } from "../_lib/roles.js";
 import { requireAuthUser } from "../_lib/auth.js";
 import { withApi } from "../_lib/withApi.js";
 
+async function readBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
@@ -20,7 +34,8 @@ export default withApi(async (req, res) => {
   if (req.method === "PATCH") {
     try {
       assertCanEdit(user);
-      const updated = await updatePortfolioConfigForUser(user.id, req.body || {});
+      const body = await readBody(req);
+      const updated = await updatePortfolioConfigForUser(user.id, body || {});
       res.status(200).json(updated);
     } catch (err) {
       res.status(err.status || 500).json({ detail: err.message || "Failed to update portfolio" });
