@@ -14,10 +14,28 @@ const RECOVERABLE_EMAILS = new Set([
   "jordan@uxguard.io",
 ]);
 
+/** Contact aliases only — demo and admin are separate accounts */
 const EMAIL_ALIASES = {
-  "demo@uxguard.io": ["admin@uxguard.io", "alex@uxguard.io"],
-  "admin@uxguard.io": ["demo@uxguard.io"],
-  "alex@uxguard.io": ["demo@uxguard.io", "admin@uxguard.io"],
+  "alex@uxguard.io": ["demo@uxguard.io"],
+};
+
+const ACCOUNT_PROFILES = {
+  "admin@uxguard.io": {
+    email: "admin@uxguard.io",
+    username: "romal-perera",
+    name: "Romal Perera",
+    title: "Founder · Super Admin",
+    role: "admin",
+    contact_email: "admin@uxguard.io",
+  },
+  "demo@uxguard.io": {
+    email: "demo@uxguard.io",
+    username: "alex-rivera",
+    name: "Alex Rivera",
+    title: "Senior UX Researcher",
+    role: "professional",
+    contact_email: "alex@uxguard.io",
+  },
 };
 
 function base64Url(input) {
@@ -35,7 +53,7 @@ export function signToken(user, expiresInSeconds = 7 * 24 * 60 * 60) {
       username: user.username,
       name: user.name,
       title: user.title,
-      role: user.role || "researcher",
+      role: user.role || "professional",
       iat: now,
       exp: now + expiresInSeconds,
     }),
@@ -77,10 +95,43 @@ function isRecoverableAccount(user) {
   const username = String(user.username || "").toLowerCase();
   return (
     RECOVERABLE_EMAILS.has(email) ||
-    user.role === "admin" ||
     username === "romal-perera" ||
     username === "alex-rivera"
   );
+}
+
+function nextUserId(users) {
+  return users.reduce((max, u) => Math.max(max, Number(u.id) || 0), 0) + 1;
+}
+
+function upsertLaunchAccount(store, profile) {
+  if (!Array.isArray(store.users)) store.users = [];
+  const email = profile.email.toLowerCase();
+  let user =
+    store.users.find((u) => String(u.email || "").toLowerCase() === email) ||
+    store.users.find((u) => String(u.username || "").toLowerCase() === profile.username);
+
+  if (!user) {
+    user = {
+      id: nextUserId(store.users),
+      password: DEMO_PASSWORD,
+      bio: null,
+      avatar_url: null,
+      cover_image_url: null,
+      location: null,
+      cv_url: null,
+      social_links: {},
+      onboarding_intent: "publish_case_studies",
+      portfolio_config: defaultPortfolioConfig(),
+      ...profile,
+    };
+    store.users.push(user);
+  } else {
+    Object.assign(user, profile);
+    user.password = DEMO_PASSWORD;
+  }
+
+  return user;
 }
 
 async function findUserForLogin(needle) {
@@ -94,9 +145,8 @@ async function findUserForLogin(needle) {
 }
 
 /**
- * After Phase A hashing + git rollback, stored passwords no longer match this
- * build's expectations. If the caller uses the known demo password, reset
- * recoverable accounts to plaintext demo1234 and return the matching user.
+ * Ensure Romal (admin) and Alex (professional) exist as separate accounts,
+ * reset recoverable demo passwords, return the user matching the login email.
  */
 async function recoverDemoLogin(needle) {
   let recovered = null;
@@ -104,28 +154,23 @@ async function recoverDemoLogin(needle) {
   await updateStore((store) => {
     if (!Array.isArray(store.users)) store.users = [];
 
-    if (store.users.length === 0) {
-      store.users.push({
-        id: 1,
-        email: needle === "admin@uxguard.io" ? "admin@uxguard.io" : "demo@uxguard.io",
-        password: DEMO_PASSWORD,
-        username: needle === "admin@uxguard.io" ? "romal-perera" : "alex-rivera",
-        name: needle === "admin@uxguard.io" ? "Romal Perera" : "Alex Rivera",
-        title: "Admin",
-        bio: null,
-        avatar_url: null,
-        cover_image_url: null,
-        contact_email: needle === "admin@uxguard.io" ? "admin@uxguard.io" : "demo@uxguard.io",
-        location: null,
-        cv_url: null,
-        social_links: {},
-        role: "admin",
-        onboarding_intent: "publish_case_studies",
-        portfolio_config: defaultPortfolioConfig(),
-      });
-    }
+    const romal = upsertLaunchAccount(store, ACCOUNT_PROFILES["admin@uxguard.io"]);
+    const alex = upsertLaunchAccount(store, ACCOUNT_PROFILES["demo@uxguard.io"]);
 
+    // Demote any leftover demo-as-admin confusion on other recoverable users
     for (const user of store.users) {
+      const email = String(user.email || "").toLowerCase();
+      if (email === "demo@uxguard.io" || email === "alex@uxguard.io") {
+        user.role = "professional";
+        user.name = "Alex Rivera";
+        user.username = user.username || "alex-rivera";
+      }
+      if (email === "admin@uxguard.io" || String(user.username || "").toLowerCase() === "romal-perera") {
+        user.role = "admin";
+        user.name = "Romal Perera";
+        user.email = "admin@uxguard.io";
+        user.username = "romal-perera";
+      }
       if (isRecoverableAccount(user)) {
         user.password = DEMO_PASSWORD;
       }
@@ -133,13 +178,11 @@ async function recoverDemoLogin(needle) {
 
     recovered =
       store.users.find((u) => String(u.email || "").toLowerCase() === needle) ||
-      store.users.find((u) => (EMAIL_ALIASES[needle] || []).includes(String(u.email || "").toLowerCase())) ||
-      store.users.find((u) => u.role === "admin") ||
-      store.users[0] ||
+      (needle === "alex@uxguard.io" ? alex : null) ||
+      (needle === "admin@uxguard.io" ? romal : null) ||
+      (needle === "demo@uxguard.io" ? alex : null) ||
       null;
 
-    // If they typed admin@ but the only admin is another email, keep that admin
-    // and also ensure admin@ resolves next time by alias map (already handled).
     return store;
   });
 
@@ -151,9 +194,20 @@ export async function checkLogin(email, password) {
   if (!needle || !password) return null;
 
   let user = await findUserForLogin(needle);
-  if (user && verifyPassword(password, user.password)) return user;
+  if (user && verifyPassword(password, user.password)) {
+    // Keep launch identities correct even when password already matches
+    if (needle === "admin@uxguard.io" || needle === "demo@uxguard.io" || needle === "alex@uxguard.io") {
+      if (
+        (needle === "admin@uxguard.io" && (user.name !== "Romal Perera" || user.role !== "admin")) ||
+        ((needle === "demo@uxguard.io" || needle === "alex@uxguard.io") &&
+          (user.name !== "Alex Rivera" || user.role === "admin"))
+      ) {
+        return (await recoverDemoLogin(needle)) || user;
+      }
+    }
+    return user;
+  }
 
-  // Locked out after rollback: force-reset known accounts when demo password is used.
   if (String(password) === DEMO_PASSWORD) {
     const recovered = await recoverDemoLogin(needle);
     if (recovered && verifyPassword(password, recovered.password)) {
@@ -184,7 +238,7 @@ export async function getAuthUser(req) {
       location: null,
       cv_url: null,
       social_links: {},
-      role: session.role || "researcher",
+      role: session.role || "professional",
     };
   }
 

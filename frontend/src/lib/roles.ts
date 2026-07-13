@@ -50,45 +50,35 @@ export const ROLE_OPTIONS = [
   },
 ];
 
+type NavLink = { to: string; label: string; section: string; comingSoon?: boolean };
+
+/** Fixed Platform nav order for launch */
+const PLATFORM_LINKS: NavLink[] = [
+  { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
+  { to: "/admin/profile", label: "Professional Profile", section: "profile" },
+  { to: "/admin/projects", label: "Projects", section: "projects" },
+  { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
+  { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
+  { to: "/admin/templates", label: "Templates", section: "templates" },
+  { to: "/admin/media", label: "Media Library", section: "media" },
+  { to: "/admin/billing", label: "Billing", section: "billing" },
+  { to: "/admin/notifications", label: "Notifications", section: "notifications" },
+];
+
+const PHASE2_LINKS: NavLink[] = [
+  { to: "#", label: "Resume Builder", section: "resume", comingSoon: true },
+  { to: "#", label: "Career Timeline", section: "timeline", comingSoon: true },
+  { to: "#", label: "Achievements", section: "achievements", comingSoon: true },
+  { to: "#", label: "Analytics", section: "analytics", comingSoon: true },
+];
+
 export function dashboardLinksForUser(user?: User | null) {
-  const role = normalizeRole(user?.role);
-  const intent = user?.onboarding_intent || "build_portfolio";
+  const primary = [...PLATFORM_LINKS];
 
-  const all = [
-    { to: "/admin/profile", label: "Professional Profile", section: "profile" },
-    { to: "/admin/billing", label: "Billing", section: "billing" },
-    { to: "/admin/projects", label: "Projects", section: "projects" },
-    { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
-    { to: "/admin/templates", label: "Templates", section: "templates" },
-    { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
-    { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
-    { to: "/admin/media", label: "Media Library", section: "media" },
-    { to: "/admin/notifications", label: "Notifications", section: "notifications" },
-  ];
-
-  const phase2 = [
-    { to: "#", label: "Resume Builder", section: "resume", comingSoon: true },
-    { to: "#", label: "Career Timeline", section: "timeline", comingSoon: true },
-    { to: "#", label: "Achievements", section: "achievements", comingSoon: true },
-    { to: "#", label: "Analytics", section: "analytics", comingSoon: true },
-  ];
-
-  if (role === "admin" || String(user?.email || "").toLowerCase() === "uxguardstudio@gmail.com") {
-    all.push({ to: "/admin/contact-inbox", label: "Mail", section: "contact" });
+  // Mail is super-admin only (Romal / admin role)
+  if (isAdmin(user)) {
+    primary.push({ to: "/admin/contact-inbox", label: "Mail", section: "contact" });
   }
 
-  const priority =
-    intent === "publish_case_studies"
-      ? ["ai", "case-studies", "templates", "projects", "portfolio", "profile"]
-      : intent === "track_career"
-        ? ["ai", "projects", "templates", "profile", "portfolio", "case-studies"]
-        : ["ai", "templates", "portfolio", "profile", "projects", "case-studies"];
-
-  const sorted = [...all].sort((a, b) => {
-    const aIndex = priority.indexOf(a.section);
-    const bIndex = priority.indexOf(b.section);
-    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
-  });
-
-  return { primary: sorted, phase2 };
+  return { primary, phase2: PHASE2_LINKS };
 }
