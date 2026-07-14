@@ -106,31 +106,38 @@ export function HomePage() {
                 Professional Experience Platform
               </p>
               <h1 className="font-display text-4xl font-bold leading-[1.1] text-ink-950 sm:text-5xl lg:text-6xl">
-                {HERO_LINES.primary}
+                <span className="block text-brand-600">UXGuard Studio</span>
+                <span className="mt-2 block">{HERO_LINES.primary}</span>
                 {HERO_LINES.accent ? (
                   <span className="mt-1 block text-brand-600">{HERO_LINES.accent}</span>
                 ) : null}
               </h1>
-              <p className="mt-6 text-lg leading-relaxed text-ink-600">{HOME.hero_subtitle}</p>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {BRAND_PILLARS.map((pillar) => (
-                  <span
-                    key={pillar}
-                    className="rounded-full border border-brand-200 bg-white px-4 py-1.5 text-sm font-semibold text-brand-800 shadow-sm"
-                  >
-                    {pillar}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-600">{HOME.hero_subtitle}</p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/admin/register" className="btn-primary">
+                <Link
+                  to={user ? "/admin" : "/admin/register"}
+                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-brand-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                >
                   Start Your Journey
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-5 w-5" />
                 </Link>
-                <a href="#latest-studies" className="btn-secondary">
+                <a
+                  href="#latest-studies"
+                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-6 py-4 text-base font-semibold text-ink-700 transition hover:bg-ink-50"
+                >
                   Explore Case Studies
                 </a>
               </div>
+              <p className="mt-4 text-sm text-ink-500">Free to start · No card required</p>
+              <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-ink-600">
+                <li>UX researchers</li>
+                <li className="text-ink-300">·</li>
+                <li>Designers</li>
+                <li className="text-ink-300">·</li>
+                <li>Product teams</li>
+                <li className="text-ink-300">·</li>
+                <li>Public portfolios</li>
+              </ul>
             </div>
 
             <div className="grid gap-3">
@@ -154,6 +161,22 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Trust signals */}
+      <section className="border-b border-ink-100 bg-ink-50/80">
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3 sm:px-6">
+          {[
+            { label: "Built for", value: "UX & product teams" },
+            { label: "Publish", value: "Impact case studies" },
+            { label: "Grow", value: "Audience & credibility" },
+          ].map((item) => (
+            <div key={item.label} className="text-center sm:text-left">
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">{item.label}</p>
+              <p className="mt-1 font-display text-xl font-bold text-ink-950">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Platform bento */}
       <section className="border-b border-ink-100 surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
@@ -164,10 +187,11 @@ export function HomePage() {
               <p className="mt-4 font-display text-2xl font-bold leading-snug">
                 More than a portfolio. A professional legacy.
               </p>
-              <p className="mt-4 text-sm leading-relaxed text-brand-100">
-                Organize projects, document research, measure impact, and present your journey with
-                confidence—far beyond Behance, Dribbble, or a static personal site.
-              </p>
+              <ul className="mt-5 space-y-2 text-sm text-brand-100">
+                <li>· Organize projects & research in one place</li>
+                <li>· Publish impact-focused case studies</li>
+                <li>· Measure views, likes, and engagement</li>
+              </ul>
               <Link to="/about" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-200 hover:text-white">
                 Learn our story
                 <ArrowRight className="h-4 w-4" />
@@ -223,8 +247,7 @@ export function HomePage() {
             </div>
           </div>
           <p className="-mt-4 mb-10 max-w-2xl text-ink-500">
-            Explore published case studies, follow professionals, leave feedback, and get notified when new
-            work is shared.
+            Browse published case studies from professionals worldwide.
           </p>
 
           {loading ? (
@@ -284,15 +307,15 @@ export function HomePage() {
           </div>
           <h2 className="mt-12 font-display text-3xl font-bold sm:text-4xl">Building Professional Legacies.</h2>
           <p className="mx-auto mt-4 max-w-xl text-ink-400">
-            Join the community, publish your work, and connect with professionals worldwide.
+            Publish proof of impact. Get discovered. Grow your practice.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/admin/register"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 font-semibold text-white transition hover:bg-brand-400"
+              to={user ? "/admin" : "/admin/register"}
+              className="inline-flex min-h-14 items-center gap-2 rounded-xl bg-brand-500 px-10 py-4 text-base font-semibold text-white transition hover:bg-brand-400"
             >
               Join UXGuard Studio
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
               to="/contact"

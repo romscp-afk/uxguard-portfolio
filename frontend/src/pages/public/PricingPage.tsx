@@ -26,6 +26,25 @@ const FAQS = [
   },
 ];
 
+const COMPARE_ROWS: { label: string; get: (plan: BillingPlan) => string }[] = [
+  {
+    label: "Case studies",
+    get: (p) => (p.case_study_limit == null ? "Unlimited" : String(p.case_study_limit)),
+  },
+  {
+    label: "AI credits / month",
+    get: (p) => (p.ai_credits == null ? "Custom" : String(p.ai_credits)),
+  },
+  {
+    label: "Custom domain",
+    get: (p) => (p.custom_domain_enabled ? "Yes" : "—"),
+  },
+  {
+    label: "Team workspace",
+    get: (p) => (p.team_workspace_enabled ? "Yes" : "—"),
+  },
+];
+
 function priceLabel(plan: BillingPlan, annual: boolean) {
   if (plan.code === "enterprise") return "Custom";
   const value = annual ? plan.annual_price : plan.monthly_price;
@@ -38,7 +57,9 @@ function annualSavingsNote(plan: BillingPlan) {
   if (!plan.monthly_price || !plan.annual_price) return null;
   const fullYear = plan.monthly_price * 12;
   if (plan.annual_price >= fullYear) return null;
-  return "Billed as 11 months — 1 month free";
+  const saved = fullYear - plan.annual_price;
+  const pct = Math.round((saved / fullYear) * 100);
+  return `Save ${pct}% annually ($${saved}/yr)`;
 }
 
 export function PricingPage() {
@@ -73,11 +94,10 @@ export function PricingPage() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">Pricing</p>
           <h1 className="mt-3 font-display text-4xl font-bold text-ink-950 sm:text-5xl">
-            Build, manage and grow your UX career in one intelligent workspace.
+            Simple plans for building your professional legacy.
           </h1>
           <p className="mt-4 text-lg text-ink-600">
-            Start free. Upgrade when you need advanced portfolio tools, AI assistance and professional
-            career features.
+            Start free. Upgrade when you need unlimited case studies, more AI, or team tools.
           </p>
           <div className="mt-8 inline-flex rounded-full border border-ink-200 bg-white p-1">
             <button
@@ -94,7 +114,7 @@ export function PricingPage() {
             >
               Annual
               <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                · 1 mo free
+                · Save ~8%
               </span>
             </button>
           </div>
@@ -103,23 +123,23 @@ export function PricingPage() {
         <div className="mt-12 grid gap-5 lg:grid-cols-4">
           {ordered.map((plan) => {
             const isCurrent = current?.plan.code === plan.code;
-            const recommended = plan.highlight;
+            const recommended = plan.highlight || plan.code === "professional";
             return (
               <div
                 key={plan.code}
                 className={`card relative flex flex-col p-6 ${
-                  recommended ? "border-brand-400 ring-2 ring-brand-200" : ""
+                  recommended ? "border-brand-500 bg-brand-50/40 shadow-lg shadow-brand-600/10 ring-2 ring-brand-300" : ""
                 }`}
               >
                 {recommended ? (
                   <span className="absolute -top-3 left-4 rounded-full bg-brand-600 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                    Recommended
+                    Most Popular
                   </span>
                 ) : null}
                 <h2 className="font-display text-xl font-bold text-ink-950">{plan.name}</h2>
                 <p className="mt-2 text-3xl font-bold text-ink-950">{priceLabel(plan, annual)}</p>
                 {annual && annualSavingsNote(plan) ? (
-                  <p className="mt-1 text-xs font-medium text-brand-700">{annualSavingsNote(plan)}</p>
+                  <p className="mt-1 text-xs font-semibold text-brand-700">{annualSavingsNote(plan)}</p>
                 ) : null}
                 <p className="mt-2 text-sm text-ink-500">{plan.description}</p>
                 <ul className="mt-5 flex-1 space-y-2 text-sm text-ink-700">
@@ -157,7 +177,7 @@ export function PricingPage() {
                   ) : (
                     <Link
                       to={user ? `/upgrade?plan=${plan.code}&interval=${annual ? "year" : "month"}` : "/admin/register"}
-                      className={`w-full ${recommended ? "btn-primary" : "btn-secondary"}`}
+                      className={`w-full ${recommended ? "btn-primary py-3 text-base" : "btn-secondary"}`}
                     >
                       {isCurrent ? "Current plan" : "Upgrade"}
                     </Link>
@@ -171,7 +191,50 @@ export function PricingPage() {
           })}
         </div>
 
-        <section className="mt-16">
+        {ordered.length > 0 ? (
+          <section className="mt-16 overflow-x-auto">
+            <h2 className="font-display text-2xl font-bold text-ink-950">Compare plans</h2>
+            <table className="mt-6 w-full min-w-[640px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-ink-200">
+                  <th className="py-3 pr-4 font-semibold text-ink-500">Feature</th>
+                  {ordered.map((plan) => (
+                    <th
+                      key={plan.code}
+                      className={`py-3 px-3 font-semibold ${
+                        plan.highlight || plan.code === "professional" ? "text-brand-700" : "text-ink-900"
+                      }`}
+                    >
+                      {plan.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-ink-100">
+                  <td className="py-3 pr-4 text-ink-600">Price</td>
+                  {ordered.map((plan) => (
+                    <td key={plan.code} className="px-3 py-3 font-medium text-ink-900">
+                      {priceLabel(plan, annual)}
+                    </td>
+                  ))}
+                </tr>
+                {COMPARE_ROWS.map((row) => (
+                  <tr key={row.label} className="border-b border-ink-100">
+                    <td className="py-3 pr-4 text-ink-600">{row.label}</td>
+                    {ordered.map((plan) => (
+                      <td key={plan.code} className="px-3 py-3 text-ink-900">
+                        {row.get(plan)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ) : null}
+
+        <section id="faq" className="mt-16 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink-950">Frequently asked questions</h2>
           <div className="mt-6 space-y-4">
             {FAQS.map((faq) => (

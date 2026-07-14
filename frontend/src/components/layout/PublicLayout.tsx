@@ -1,9 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
 import { useAuth } from "../../context/AuthContext";
+import { DEFAULT_PORTFOLIO_SETTINGS } from "../../lib/defaultSettings";
 
 function NavLink({
   to,
@@ -155,22 +156,120 @@ export function PublicHeader() {
 }
 
 export function PublicFooter() {
+  const [email, setEmail] = useState("");
+  const [newsletterNote, setNewsletterNote] = useState("");
+  const contactEmail = DEFAULT_PORTFOLIO_SETTINGS.contact_email;
+  const linkedin = DEFAULT_PORTFOLIO_SETTINGS.social_links.linkedin;
+
+  function onNewsletter(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setNewsletterNote("Thanks — we'll be in touch.");
+    setEmail("");
+  }
+
   return (
     <footer className="border-t border-ink-100 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <Logo variant="mark" theme="light" className="h-10 w-auto max-w-[220px]" />
-          <p className="text-center text-xs text-ink-400 sm:text-right">
-            Build Your Legacy. Showcase Your Impact.
-          </p>
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <div className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <Logo variant="mark" theme="light" className="h-10 w-auto max-w-[220px]" />
+            <p className="mt-4 max-w-sm text-sm text-ink-500">
+              Build your legacy. Showcase your impact.
+            </p>
+            <p className="mt-4 text-sm">
+              <a href={`mailto:${contactEmail}`} className="font-medium text-brand-600 hover:text-brand-500">
+                {contactEmail}
+              </a>
+            </p>
+            {linkedin ? (
+              <a
+                href={linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-sm font-medium text-ink-600 hover:text-brand-600"
+              >
+                LinkedIn
+              </a>
+            ) : null}
+          </div>
+
+          <div className="grid gap-8 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">Product</p>
+              <ul className="mt-3 space-y-2 text-sm text-ink-600">
+                <li>
+                  <Link to="/discover" className="hover:text-brand-600">
+                    Discover
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/pricing" className="hover:text-brand-600">
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/pricing#faq" className="hover:text-brand-600">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/about" className="hover:text-brand-600">
+                    Documentation
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">Company</p>
+              <ul className="mt-3 space-y-2 text-sm text-ink-600">
+                <li>
+                  <Link to="/about" className="hover:text-brand-600">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="hover:text-brand-600">
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy" className="hover:text-brand-600">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-brand-600">
+                    Terms
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="lg:col-span-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-400">Newsletter</p>
+            <p className="mt-3 text-sm text-ink-500">Product updates and tips for impactful case studies.</p>
+            <form onSubmit={onNewsletter} className="mt-4 flex flex-col gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="input-field"
+                aria-label="Email for newsletter"
+              />
+              <button type="submit" className="btn-primary">
+                Subscribe
+              </button>
+            </form>
+            {newsletterNote ? <p className="mt-2 text-xs text-brand-700">{newsletterNote}</p> : null}
+          </div>
         </div>
-        <div className="mt-4 flex flex-col items-center justify-between gap-2 text-xs text-ink-400 sm:flex-row">
-          <p className="text-center sm:text-left">
-            UXGuard Studio — your professional operating system.
-          </p>
-          <Link to="/contact" className="font-medium text-brand-600 hover:text-brand-500">
-            Contact us
-          </Link>
+
+        <div className="mt-10 border-t border-ink-100 pt-6 text-center text-xs text-ink-400 sm:text-left">
+          © {new Date().getFullYear()} UXGuard Studio
         </div>
       </div>
     </footer>

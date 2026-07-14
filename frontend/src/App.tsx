@@ -31,6 +31,7 @@ import { AiWorkspacePage } from "./pages/admin/ai/AiWorkspacePage";
 import { AiHistoryPage } from "./pages/admin/ai/AiHistoryPage";
 import { AiSavedPage } from "./pages/admin/ai/AiSavedPage";
 import { PricingPage } from "./pages/public/PricingPage";
+import { LegalPage } from "./pages/public/LegalPage";
 import { UpgradePage } from "./pages/admin/UpgradePage";
 import { BillingSettingsPage } from "./pages/admin/BillingSettingsPage";
 import { MockCheckoutPage } from "./pages/admin/MockCheckoutPage";
@@ -46,6 +47,8 @@ export default function App() {
           <Route path="/discover" element={<DiscoverPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+          <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/search" element={<Navigate to="/discover" replace />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
