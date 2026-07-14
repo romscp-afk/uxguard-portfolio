@@ -60,32 +60,32 @@ export function ProfileSettingsPage() {
     updateField(field, stored);
     try {
       const saved = await api.updateMe({ [field]: stored });
-      // Prefer the committed value; refresh session without letting a stale
-      // auth/me snapshot resurrect media we just cleared or replaced.
+      const confirmed = toStoredAssetUrl(saved[field] || "") || stored;
+
       setForm((prev) => ({
         ...prev,
-        [field]: saved[field] || "",
+        [field]: confirmed || "",
       }));
       await refreshUser();
       setForm((prev) => ({
         ...prev,
-        [field]: stored || saved[field] || "",
+        [field]: confirmed || "",
       }));
 
-      // Delete previous hosted file when clearing or replacing (await so tombstones stick).
-      if (previous && previous !== stored) {
-        const match = previous.match(/\/api\/v1\/media\/file\/(\d+)/);
-        if (match) {
-          try {
-            await api.deleteMedia(Number(match[1]));
-          } catch {
-            // Best-effort cleanup; profile field already updated.
-          }
+      // Only delete the previous file after the new/cleared value is confirmed,
+      // so a failed replace cannot orphan the working photo.
+      const previousId = previous.match(/\/api\/v1\/media\/file\/(\d+)/)?.[1];
+      const confirmedId = String(confirmed || "").match(/\/api\/v1\/media\/file\/(\d+)/)?.[1];
+      if (previousId && previousId !== confirmedId) {
+        try {
+          await api.deleteMedia(Number(previousId));
+        } catch {
+          // Best-effort cleanup; profile field already updated.
         }
       }
 
       setMessageType("success");
-      if (!stored) {
+      if (!confirmed) {
         setMessage(
           field === "cv_url"
             ? "CV removed from your profile."

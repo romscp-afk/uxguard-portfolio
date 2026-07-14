@@ -536,13 +536,10 @@ function pickProfileMediaField(localUser, remoteUser, field) {
   if (localTs > remoteTs) return normalizeMergedMediaValue(localValue);
   if (remoteTs > localTs) return normalizeMergedMediaValue(remoteValue);
 
-  // Equal/unknown timestamps: explicit clear still wins.
-  if (localValue === "" || remoteValue === "") return null;
-  // Prefer remote on conflicting URLs so stale local snapshots cannot lock
-  // an older photo over a newer remote upload.
-  if (localValue && remoteValue && localValue !== remoteValue) {
-    return normalizeMergedMediaValue(remoteValue);
-  }
+  // Equal / unknown timestamps: explicit clear wins; otherwise prefer local
+  // (the writer) so a fresh upload is not reverted to a stale remote URL.
+  if (localValue === "") return null;
+  if (remoteValue === "") return null;
   return normalizeMergedMediaValue(localValue || remoteValue);
 }
 

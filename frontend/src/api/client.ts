@@ -37,7 +37,7 @@ const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_BASE = `${API_ROOT}/api/v1`;
 const AI_API_BASE = `${API_ROOT}/api/ai`;
 /** Bump when media serving strategy changes so CDN/browser drop bad cached redirects. */
-const MEDIA_CACHE_BUST = "4";
+const MEDIA_CACHE_BUST = "5";
 
 export function resolveAssetUrl(url: string): string {
   if (!url) return url;

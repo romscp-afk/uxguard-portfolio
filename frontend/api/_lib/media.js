@@ -56,8 +56,8 @@ export async function listMediaAssets(userId) {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
-export async function getMediaAssetById(assetId) {
-  const store = await readStore();
+export async function getMediaAssetById(assetId, options = {}) {
+  const store = await readStore(options);
   return (store.mediaAssets || []).find((asset) => Number(asset.id) === Number(assetId)) || null;
 }
 
@@ -149,11 +149,15 @@ export function sanitizeUserMediaFields(user, store) {
 
   const next = { ...user };
   let changed = false;
+  const now = Date.now();
   for (const field of ["avatar_url", "cover_image_url", "cv_url"]) {
-    if (next[field] && !hasAsset(next[field])) {
-      next[field] = null;
-      changed = true;
-    }
+    if (!next[field] || hasAsset(next[field])) continue;
+    // Grace period: a just-uploaded asset can be briefly missing on a stale Blob read.
+    // Never wipe a brand-new profile photo during that window.
+    const touchedAt = Date.parse(String(next.__mediaUpdatedAt?.[field] || ""));
+    if (Number.isFinite(touchedAt) && now - touchedAt < 120_000) continue;
+    next[field] = null;
+    changed = true;
   }
   next.__mediaSanitized = changed;
   return next;
@@ -169,17 +173,21 @@ export async function repairBrokenUserMedia(userId) {
       store.__uxguardSkipWrite = true;
       return store;
     }
-    const cleaned = sanitizeUserMediaFields(store.users[index], store);
+    const before = store.users[index];
+    const cleaned = sanitizeUserMediaFields(before, store);
     if (!cleaned.__mediaSanitized) {
       store.__uxguardSkipWrite = true;
       repaired = cleaned;
       return store;
     }
     const { __mediaSanitized: _flag, ...user } = cleaned;
-    store.users[index] = user;
-    repaired = user;
+    const cleared = ["avatar_url", "cover_image_url", "cv_url"].filter(
+      (field) => before[field] && !user[field],
+    );
+    store.users[index] = cleared.length ? touchMediaUpdatedAt(user, cleared) : user;
+    repaired = store.users[index];
     return store;
-  });
+  }, { forceRefresh: true });
   if (repaired) {
     const { __mediaSanitized: _flag, ...user } = repaired;
     return user;
@@ -188,7 +196,7 @@ export async function repairBrokenUserMedia(userId) {
 }
 
 export async function deleteMediaAsset(userId, assetId) {
-  const asset = await getMediaAssetById(assetId);
+  const asset = await getMediaAssetById(assetId, { forceRefresh: true });
   if (!asset) throw new Error("Media not found");
   if (Number(asset.uploaded_by_id) !== Number(userId)) throw new Error("Forbidden");
 
@@ -198,39 +206,23 @@ export async function deleteMediaAsset(userId, assetId) {
     // Blob may already be gone; still remove metadata.
   }
 
-  const uid = Number(userId);
   const id = Number(asset.id);
-  const marker = `/api/v1/media/file/${id}`;
 
+  // Only remove the asset row + tombstone. Do NOT clear profile fields here —
+  // a stale read can still show the old URL and would wipe a newer replacement
+  // with a fresher clear timestamp.
   await updateStore((store) => {
     store.mediaAssets = (store.mediaAssets || []).filter((item) => Number(item.id) !== id);
     store.__uxguardDeleted = {
       ...(store.__uxguardDeleted || {}),
       mediaAssets: [...new Set([...(store.__uxguardDeleted?.mediaAssets || []), id])],
     };
-
-    const index = (store.users || []).findIndex((u) => Number(u.id) === uid);
-    if (index !== -1) {
-      const user = store.users[index];
-      const cleared = [];
-      const next = { ...user };
-      for (const field of ["avatar_url", "cover_image_url", "cv_url"]) {
-        if (String(next[field] || "").includes(marker)) {
-          next[field] = "";
-          cleared.push(field);
-        }
-      }
-      if (cleared.length) {
-        store.users[index] = touchMediaUpdatedAt(next, cleared);
-      }
-    }
-
     return store;
   }, { forceRefresh: true });
 }
 
 export async function streamMediaAsset(assetId) {
-  const asset = await getMediaAssetById(assetId);
+  const asset = await getMediaAssetById(assetId, { forceRefresh: true });
   if (!asset?.pathname) return null;
 
   const result = await get(asset.pathname, { access: "private", useCache: true });
