@@ -483,14 +483,67 @@ function mergeByNumericId(remoteList = [], localList = [], deletedIds = []) {
   return [...byId.values()];
 }
 
-function pickProfileMedia(localValue, remoteValue) {
-  // Explicit empty string = intentional clear (must win over remote).
-  if (localValue === "") return null;
-  const local = localValue == null ? null : localValue;
-  const remote = remoteValue == null || remoteValue === "" ? null : remoteValue;
-  // Prefer the local write when it set a value; otherwise keep remote so races
-  // from billing/usage writes do not wipe recently uploaded avatar/cover/CV.
-  return local ?? remote ?? null;
+const PROFILE_MEDIA_FIELDS = ["avatar_url", "cover_image_url", "cv_url"];
+
+function mediaFieldTimestamp(user, field) {
+  const raw = user?.__mediaUpdatedAt?.[field];
+  const parsed = Date.parse(String(raw || ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Bump per-field media timestamps so clears/replacements win Blob merge races. */
+export function touchMediaUpdatedAt(user, fields, at = new Date().toISOString()) {
+  const prev =
+    user?.__mediaUpdatedAt && typeof user.__mediaUpdatedAt === "object"
+      ? user.__mediaUpdatedAt
+      : {};
+  const nextMap = { ...prev };
+  for (const field of fields || []) {
+    if (PROFILE_MEDIA_FIELDS.includes(field)) nextMap[field] = at;
+  }
+  return { ...user, __mediaUpdatedAt: nextMap };
+}
+
+function mergeMediaUpdatedAt(localMap = {}, remoteMap = {}) {
+  const out = { ...remoteMap, ...localMap };
+  for (const field of PROFILE_MEDIA_FIELDS) {
+    const localTs = Date.parse(String(localMap?.[field] || ""));
+    const remoteTs = Date.parse(String(remoteMap?.[field] || ""));
+    const max = Math.max(
+      Number.isFinite(localTs) ? localTs : 0,
+      Number.isFinite(remoteTs) ? remoteTs : 0,
+    );
+    if (max > 0) out[field] = new Date(max).toISOString();
+  }
+  return out;
+}
+
+function normalizeMergedMediaValue(value) {
+  if (value === "" || value == null) return null;
+  return value;
+}
+
+/**
+ * Choose avatar/cover/CV by per-field update timestamp.
+ * Empty-string clears are intentional and beat older URLs.
+ */
+function pickProfileMediaField(localUser, remoteUser, field) {
+  const localValue = localUser?.[field];
+  const remoteValue = remoteUser?.[field];
+  const localTs = mediaFieldTimestamp(localUser, field);
+  const remoteTs = mediaFieldTimestamp(remoteUser, field);
+
+  if (localTs > remoteTs) return normalizeMergedMediaValue(localValue);
+  if (remoteTs > localTs) return normalizeMergedMediaValue(remoteValue);
+
+  // Equal/unknown timestamps: explicit clear still wins.
+  if (localValue === "" || remoteValue === "") return null;
+  // Prefer remote on conflicting URLs so stale local snapshots cannot lock
+  // an older photo over a newer remote upload.
+  if (localValue && remoteValue && localValue !== remoteValue) {
+    return normalizeMergedMediaValue(remoteValue);
+  }
+  return normalizeMergedMediaValue(localValue || remoteValue);
 }
 
 function mergeUsersPreservingMedia(remoteUsers = [], localUsers = [], deletedIds = []) {
@@ -520,18 +573,22 @@ function mergeUsersPreservingMedia(remoteUsers = [], localUsers = [], deletedIds
     if (!remoteUser) {
       merged.push({
         ...localUser,
-        avatar_url: localUser.avatar_url === "" ? null : localUser.avatar_url,
-        cover_image_url: localUser.cover_image_url === "" ? null : localUser.cover_image_url,
-        cv_url: localUser.cv_url === "" ? null : localUser.cv_url,
+        avatar_url: normalizeMergedMediaValue(localUser.avatar_url),
+        cover_image_url: normalizeMergedMediaValue(localUser.cover_image_url),
+        cv_url: normalizeMergedMediaValue(localUser.cv_url),
       });
       continue;
     }
     merged.push({
       ...remoteUser,
       ...localUser,
-      avatar_url: pickProfileMedia(localUser.avatar_url, remoteUser.avatar_url),
-      cover_image_url: pickProfileMedia(localUser.cover_image_url, remoteUser.cover_image_url),
-      cv_url: pickProfileMedia(localUser.cv_url, remoteUser.cv_url),
+      avatar_url: pickProfileMediaField(localUser, remoteUser, "avatar_url"),
+      cover_image_url: pickProfileMediaField(localUser, remoteUser, "cover_image_url"),
+      cv_url: pickProfileMediaField(localUser, remoteUser, "cv_url"),
+      __mediaUpdatedAt: mergeMediaUpdatedAt(
+        localUser.__mediaUpdatedAt,
+        remoteUser.__mediaUpdatedAt,
+      ),
     });
   }
 
@@ -678,9 +735,11 @@ export async function writeStore(store) {
   const slot = getMemoryStore();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    // Apply tombstones locally so unfollows/unlikes stay deleted without Blob merge.
+    // Apply tombstones / media clears locally (mirrors Blob merge behavior).
     const cleaned = {
       ...store,
+      mediaAssets: mergeByNumericId(store.mediaAssets || [], [], deleted.mediaAssets),
+      users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
       follows: mergeFollows(store.follows || [], [], deleted.follows),
       likes: mergeLikes(store.likes || [], [], deleted.likes),
     };

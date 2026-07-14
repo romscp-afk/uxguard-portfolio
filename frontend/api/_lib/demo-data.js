@@ -1,4 +1,4 @@
-import { portfolioSettings, readStore, updateStore, persistRegistrationRecord } from "./store.js";
+import { portfolioSettings, readStore, updateStore, persistRegistrationRecord, touchMediaUpdatedAt } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
 import { likeCountsByCaseStudy } from "./like-utils.js";
 import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
@@ -234,11 +234,14 @@ function normalizeProfileValue(key, value) {
 }
 
 export async function updateUserProfile(userId, updates) {
-  let updated = null;
   const sanitized = {};
   for (const [key, value] of Object.entries(updates || {})) {
     if (PROFILE_FIELDS.has(key)) sanitized[key] = normalizeProfileValue(key, value);
   }
+
+  const touchedMedia = [...MEDIA_PROFILE_FIELDS].filter((field) =>
+    Object.prototype.hasOwnProperty.call(sanitized, field),
+  );
 
   await updateStore((store) => {
     const uid = Number(userId);
@@ -252,26 +255,30 @@ export async function updateUserProfile(userId, updates) {
       if (taken) throw new Error("Username already taken");
     }
 
-    const next = { ...store.users[index], ...sanitized };
-    // Normalize clear sentinels to null for API responses after write merge.
+    let next = { ...store.users[index], ...sanitized };
+    // Keep empty-string media clears through merge; then bump timestamps.
     for (const field of MEDIA_PROFILE_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(sanitized, field) && !sanitized[field]) {
         next[field] = "";
       }
     }
-    store.users[index] = next;
-    updated = next;
-    return store;
-  });
-
-  // Present nulls instead of "" to clients
-  if (updated) {
-    updated = { ...updated };
-    for (const field of MEDIA_PROFILE_FIELDS) {
-      if (!updated[field]) updated[field] = null;
+    if (touchedMedia.length) {
+      next = touchMediaUpdatedAt(next, touchedMedia);
     }
+    store.users[index] = next;
+    return store;
+  }, { forceRefresh: true });
+
+  // Return the post-merge row so clients see what actually stuck in Blob.
+  const after = await readStore({ forceRefresh: true });
+  const updated = (after.users || []).find((u) => Number(u.id) === Number(userId)) || null;
+  if (!updated) return null;
+
+  const presented = { ...updated };
+  for (const field of MEDIA_PROFILE_FIELDS) {
+    if (!presented[field]) presented[field] = null;
   }
-  return updated;
+  return presented;
 }
 
 export function toUserOut(user) {

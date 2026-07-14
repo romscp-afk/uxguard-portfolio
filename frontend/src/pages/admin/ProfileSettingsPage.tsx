@@ -60,7 +60,8 @@ export function ProfileSettingsPage() {
     updateField(field, stored);
     try {
       const saved = await api.updateMe({ [field]: stored });
-      // Only update the field we changed — avoid clobbering cover/avatar/CV with stale merges.
+      // Prefer the committed value; refresh session without letting a stale
+      // auth/me snapshot resurrect media we just cleared or replaced.
       setForm((prev) => ({
         ...prev,
         [field]: saved[field] || "",
@@ -68,14 +69,18 @@ export function ProfileSettingsPage() {
       await refreshUser();
       setForm((prev) => ({
         ...prev,
-        [field]: saved[field] || "",
+        [field]: stored || saved[field] || "",
       }));
 
-      // Best-effort delete of the previous hosted file when clearing or replacing.
+      // Delete previous hosted file when clearing or replacing (await so tombstones stick).
       if (previous && previous !== stored) {
         const match = previous.match(/\/api\/v1\/media\/file\/(\d+)/);
         if (match) {
-          void api.deleteMedia(Number(match[1])).catch(() => undefined);
+          try {
+            await api.deleteMedia(Number(match[1]));
+          } catch {
+            // Best-effort cleanup; profile field already updated.
+          }
         }
       }
 

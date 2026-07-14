@@ -1,5 +1,5 @@
 import { del, get, put } from "@vercel/blob";
-import { readStore, updateStore } from "./store.js";
+import { readStore, updateStore, touchMediaUpdatedAt } from "./store.js";
 
 const MEDIA_PREFIX = "uxguard/media";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -120,10 +120,14 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
       const field = isAvatar ? "avatar_url" : isCover ? "cover_image_url" : "cv_url";
       const index = (store.users || []).findIndex((u) => Number(u.id) === uid);
       if (index !== -1) {
-        store.users[index] = {
-          ...store.users[index],
-          [field]: mediaPublicUrl(id),
-        };
+        store.users[index] = touchMediaUpdatedAt(
+          {
+            ...store.users[index],
+            [field]: mediaPublicUrl(id),
+          },
+          [field],
+          created.created_at,
+        );
       }
     }
 
@@ -194,12 +198,35 @@ export async function deleteMediaAsset(userId, assetId) {
     // Blob may already be gone; still remove metadata.
   }
 
+  const uid = Number(userId);
+  const id = Number(asset.id);
+  const marker = `/api/v1/media/file/${id}`;
+
   await updateStore((store) => {
-    store.mediaAssets = (store.mediaAssets || []).filter(
-      (item) => Number(item.id) !== Number(asset.id),
-    );
+    store.mediaAssets = (store.mediaAssets || []).filter((item) => Number(item.id) !== id);
+    store.__uxguardDeleted = {
+      ...(store.__uxguardDeleted || {}),
+      mediaAssets: [...new Set([...(store.__uxguardDeleted?.mediaAssets || []), id])],
+    };
+
+    const index = (store.users || []).findIndex((u) => Number(u.id) === uid);
+    if (index !== -1) {
+      const user = store.users[index];
+      const cleared = [];
+      const next = { ...user };
+      for (const field of ["avatar_url", "cover_image_url", "cv_url"]) {
+        if (String(next[field] || "").includes(marker)) {
+          next[field] = "";
+          cleared.push(field);
+        }
+      }
+      if (cleared.length) {
+        store.users[index] = touchMediaUpdatedAt(next, cleared);
+      }
+    }
+
     return store;
-  });
+  }, { forceRefresh: true });
 }
 
 export async function streamMediaAsset(assetId) {
