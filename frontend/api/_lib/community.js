@@ -26,25 +26,38 @@ function searchableText(...parts) {
     .toLowerCase();
 }
 
+function subjectIdsForUser(store, userId) {
+  const uid = Number(userId);
+  const subject = (store.users || []).find((u) => sameId(u.id, uid));
+  if (!subject) {
+    return new Set([uid].filter((id) => Number.isFinite(id)));
+  }
+  const needle = String(subject.username || "").toLowerCase();
+  return new Set(
+    (store.users || [])
+      .filter((u) => String(u.username || "").toLowerCase() === needle)
+      .map((u) => Number(u.id))
+      .filter((id) => Number.isFinite(id)),
+  );
+}
+
+function subjectIdsForUsername(store, username) {
+  const needle = String(username || "").trim().toLowerCase();
+  return new Set(
+    (store.users || [])
+      .filter((u) => String(u.username || "").toLowerCase() === needle)
+      .map((u) => Number(u.id))
+      .filter((id) => Number.isFinite(id)),
+  );
+}
+
 export async function getFollowStats(userId, viewerId = null) {
   const store = normalizeStore(await readStore({ forceRefresh: true }));
   const uid = Number(userId);
   const vid = viewerId == null ? null : Number(viewerId);
 
   // Count across duplicate usernames (legacy race could create multiple rows).
-  const subject = (store.users || []).find((u) => sameId(u.id, uid));
-  const subjectIds = new Set(
-    subject
-      ? (store.users || [])
-          .filter(
-            (u) =>
-              String(u.username || "").toLowerCase() ===
-              String(subject.username || "").toLowerCase(),
-          )
-          .map((u) => Number(u.id))
-          .filter((id) => Number.isFinite(id))
-      : [uid].filter((id) => Number.isFinite(id)),
-  );
+  const subjectIds = subjectIdsForUser(store, uid);
 
   const followerCount = store.follows.filter((f) =>
     subjectIds.has(Number(f.following_id)),
@@ -85,6 +98,15 @@ export async function followUser(followerId, username) {
         following_id: tid,
         created_at: new Date().toISOString(),
       });
+      // Clear unfollow tombstones for all duplicate username ids.
+      const subjectIds = subjectIdsForUsername(normalized, username);
+      subjectIds.add(tid);
+      const clearKeys = new Set([...subjectIds].map((sid) => `${fid}:${sid}`));
+      const prevDeleted = normalized.__uxguardDeleted?.follows || [];
+      normalized.__uxguardDeleted = {
+        ...(normalized.__uxguardDeleted || {}),
+        follows: prevDeleted.filter((k) => !clearKeys.has(String(k))),
+      };
       newlyFollowed = true;
     }
     return normalized;
@@ -116,17 +138,22 @@ export async function unfollowUser(followerId, username) {
   const target = await getUserByUsername(username);
   if (!target) return { error: "User not found", status: 404 };
   const fid = Number(followerId);
-  const tid = Number(target.id);
 
   await updateStore((store) => {
     const normalized = normalizeStore(store);
+    // Remove edges to every duplicate username row, not just the canonical id.
+    const subjectIds = subjectIdsForUsername(normalized, username);
+    if (!subjectIds.size) subjectIds.add(Number(target.id));
+    const tombstones = [...subjectIds].map((sid) => `${fid}:${sid}`);
     normalized.follows = normalized.follows.filter(
-      (f) => !(sameId(f.follower_id, fid) && sameId(f.following_id, tid)),
+      (f) => !(sameId(f.follower_id, fid) && subjectIds.has(Number(f.following_id))),
     );
     // Prevent Blob race-merge from resurrecting the follow edge.
     normalized.__uxguardDeleted = {
       ...(normalized.__uxguardDeleted || {}),
-      follows: [`${fid}:${tid}`],
+      follows: [
+        ...new Set([...(normalized.__uxguardDeleted?.follows || []), ...tombstones]),
+      ],
     };
     return normalized;
   }, { forceRefresh: true });
@@ -414,7 +441,7 @@ export async function searchPlatform(query) {
 }
 
 export async function getLikeStats(caseStudyId, viewerId = null) {
-  const store = normalizeStore(await readStore());
+  const store = normalizeStore(await readStore({ forceRefresh: true }));
   const studyId = Number(caseStudyId);
   const likes = store.likes.filter((like) => sameId(like.case_study_id, studyId));
   return {
@@ -428,7 +455,10 @@ export async function getLikeStats(caseStudyId, viewerId = null) {
 export async function likeCaseStudy(userId, caseStudyId) {
   const studyId = Number(caseStudyId);
   const uid = Number(userId);
-  const store = await readStore();
+  if (!Number.isFinite(studyId) || !Number.isFinite(uid)) {
+    return { error: "Invalid like request", status: 400 };
+  }
+  const store = await readStore({ forceRefresh: true });
   const study = store.caseStudies.find(
     (cs) => sameId(cs.id, studyId) && cs.status === "published",
   );
@@ -447,21 +477,33 @@ export async function likeCaseStudy(userId, caseStudyId) {
         case_study_id: studyId,
         created_at: new Date().toISOString(),
       });
+      // Clear any prior unlike tombstone for this edge.
+      const key = `${uid}:${studyId}`;
+      const prevDeleted = normalized.__uxguardDeleted?.likes || [];
+      normalized.__uxguardDeleted = {
+        ...(normalized.__uxguardDeleted || {}),
+        likes: prevDeleted.filter((k) => String(k) !== key),
+      };
       created = true;
     }
     return normalized;
-  });
+  }, { forceRefresh: true });
 
   if (created && !sameId(study.author_id, uid)) {
-    const liker = store.users.find((u) => sameId(u.id, uid));
-    const author = store.users.find((u) => sameId(u.id, study.author_id));
-    await createNotification({
-      userId: study.author_id,
-      type: "like",
-      title: "Someone liked your case study",
-      message: `${liker?.name || "Someone"} liked "${study.title}"`,
-      link: `/u/${author?.username}/${study.slug}`,
-    });
+    try {
+      const latest = await readStore({ forceRefresh: true });
+      const liker = latest.users.find((u) => sameId(u.id, uid));
+      const author = latest.users.find((u) => sameId(u.id, study.author_id));
+      await createNotification({
+        userId: study.author_id,
+        type: "like",
+        title: "Someone liked your case study",
+        message: `${liker?.name || "Someone"} liked "${study.title}"`,
+        link: `/u/${author?.username}/${study.slug}`,
+      });
+    } catch {
+      // Like already saved; notification is best-effort.
+    }
   }
 
   return getLikeStats(studyId, uid);
@@ -470,12 +512,18 @@ export async function likeCaseStudy(userId, caseStudyId) {
 export async function unlikeCaseStudy(userId, caseStudyId) {
   const studyId = Number(caseStudyId);
   const uid = Number(userId);
+  const key = `${uid}:${studyId}`;
   await updateStore((store) => {
     const normalized = normalizeStore(store);
     normalized.likes = normalized.likes.filter(
       (like) => !(sameId(like.user_id, uid) && sameId(like.case_study_id, studyId)),
     );
+    // Prevent Blob race-merge from resurrecting the like edge.
+    normalized.__uxguardDeleted = {
+      ...(normalized.__uxguardDeleted || {}),
+      likes: [...new Set([...(normalized.__uxguardDeleted?.likes || []), key])],
+    };
     return normalized;
-  });
+  }, { forceRefresh: true });
   return getLikeStats(studyId, uid);
 }

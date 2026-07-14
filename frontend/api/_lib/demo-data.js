@@ -393,17 +393,26 @@ export async function getUserProfile(username) {
 }
 
 export async function getUserCaseStudy(username, slug) {
-  const store = await readStore();
-  const user = store.users.find((u) => u.username === username);
-  if (!user) return null;
-  return (
-    store.caseStudies.find(
-      (cs) =>
-        Number(cs.author_id) === Number(user.id) &&
-        cs.slug === slug &&
-        String(cs.status || "").toLowerCase() === "published",
-    ) || null
+  const store = await readStore({ forceRefresh: true });
+  const needle = String(username || "").trim().toLowerCase();
+  const matches = (store.users || []).filter(
+    (u) => String(u.username || "").toLowerCase() === needle,
   );
+  if (!matches.length) return null;
+  const subjectIds = new Set(matches.map((u) => Number(u.id)).filter((id) => Number.isFinite(id)));
+  const cs =
+    store.caseStudies.find(
+      (item) =>
+        subjectIds.has(Number(item.author_id)) &&
+        item.slug === slug &&
+        String(item.status || "").toLowerCase() === "published",
+    ) || null;
+  if (!cs) return null;
+  const likeCounts = likeCountsByCaseStudy(store);
+  return {
+    ...cs,
+    like_count: likeCounts.get(Number(cs.id)) || 0,
+  };
 }
 
 export async function listCaseStudies({ status, featured, authorId } = {}) {

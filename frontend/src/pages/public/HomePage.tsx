@@ -241,8 +241,8 @@ export function HomePage() {
                   : "No published case studies yet."}
               </p>
               {feedMode === "following" ? (
-                <Link to="/search" className="btn-primary mt-4 inline-flex">
-                  Find people to follow
+                <Link to="/discover" className="btn-primary mt-4 inline-flex">
+                  Browse published work
                 </Link>
               ) : (
                 <Link to="/admin" className="btn-primary mt-4 inline-flex">

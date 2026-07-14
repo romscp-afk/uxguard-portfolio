@@ -15,7 +15,6 @@ import { AboutPage } from "./pages/public/AboutPage";
 import { CaseStudyDetailPage } from "./pages/public/CaseStudyDetailPage";
 import { HomePage } from "./pages/public/HomePage";
 import { DiscoverPage } from "./pages/public/DiscoverPage";
-import { SearchPage } from "./pages/public/SearchPage";
 import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
 import { NotificationsPage } from "./pages/admin/NotificationsPage";
 import { ContactPage } from "./pages/public/ContactPage";
@@ -47,7 +46,7 @@ export default function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/search" element={<Navigate to="/discover" replace />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
 

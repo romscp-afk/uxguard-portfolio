@@ -45,6 +45,8 @@ export interface CaseStudy {
   updated_at: string;
   published_at?: string;
   attachments?: Attachment[];
+  like_count?: number;
+  is_liked?: boolean;
 }
 
 export interface CaseStudyListItem {

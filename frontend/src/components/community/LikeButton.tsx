@@ -27,30 +27,39 @@ export function LikeButton({
 
   useEffect(() => {
     let cancelled = false;
+
+    // Always load live counts so the badge is never stuck at 0/stale props.
     api
       .getLikeStats(caseStudyId)
       .then((stats) => {
         if (cancelled) return;
-        setLiked(stats.is_liked);
-        setCount(stats.like_count);
+        const nextCount = Number(stats.like_count) || 0;
+        const nextLiked = Boolean(stats.is_liked);
+        setCount(nextCount);
+        if (user) setLiked(nextLiked);
+        onChange?.({ like_count: nextCount, is_liked: nextLiked });
       })
       .catch(() => {
-        /* keep initial values */
+        if (cancelled) return;
+        setLiked(initialLiked);
+        setCount(Number(initialCount) || 0);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [caseStudyId]);
+  }, [caseStudyId, user?.id]);
 
+  // Keep sibling LikeButtons (sticky + footer) in sync via shared parent state.
   useEffect(() => {
-    setLiked(initialLiked);
-    setCount(initialCount);
+    setLiked(Boolean(initialLiked));
+    setCount(Number(initialCount) || 0);
   }, [initialLiked, initialCount]);
 
   if (!user) {
     return (
       <div className={compact ? "inline-flex items-center gap-2" : "flex flex-wrap items-center gap-3"}>
-        <span className="inline-flex items-center gap-1.5 text-sm text-ink-500">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1.5 text-sm font-semibold text-ink-800">
           <Heart className="h-4 w-4" />
           {count}
         </span>
@@ -70,9 +79,11 @@ export function LikeButton({
       const stats = liked
         ? await api.unlikeCaseStudy(caseStudyId)
         : await api.likeCaseStudy(caseStudyId);
-      setLiked(stats.is_liked);
-      setCount(stats.like_count);
-      onChange?.(stats);
+      const nextCount = Number(stats.like_count) || 0;
+      const nextLiked = Boolean(stats.is_liked);
+      setLiked(nextLiked);
+      setCount(nextCount);
+      onChange?.({ like_count: nextCount, is_liked: nextLiked });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update like");
     } finally {
@@ -84,7 +95,7 @@ export function LikeButton({
     <div>
       <button
         type="button"
-        onClick={toggleLike}
+        onClick={() => void toggleLike()}
         disabled={loading}
         className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
           liked
@@ -100,7 +111,7 @@ export function LikeButton({
           <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
         )}
         {liked ? "Liked" : "Like"}
-        <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs">{count}</span>
+        <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold">{count}</span>
       </button>
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </div>

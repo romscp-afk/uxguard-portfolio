@@ -1,4 +1,6 @@
 import { getUserCaseStudy } from "../../../../_lib/demo-data.js";
+import { getLikeStats } from "../../../../_lib/community.js";
+import { getAuthUser } from "../../../../_lib/auth.js";
 import { withApi } from "../../../../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
@@ -11,5 +13,7 @@ export default withApi(async (req, res) => {
     res.status(404).json({ detail: "Case study not found" });
     return;
   }
-  res.status(200).json(cs);
+  const viewer = await getAuthUser(req);
+  const likes = await getLikeStats(cs.id, viewer?.id ?? null);
+  res.status(200).json({ ...cs, ...likes });
 });

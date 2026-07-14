@@ -23,6 +23,7 @@ export function CaseStudyDetailPage() {
   const [author, setAuthor] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [likeStats, setLikeStats] = useState({ like_count: 0, is_liked: false });
 
   useEffect(() => {
     if (!username || !slug) {
@@ -43,6 +44,10 @@ export function CaseStudyDetailPage() {
 
       if (studyResult.status === "fulfilled") {
         setStudy(studyResult.value);
+        setLikeStats({
+          like_count: Number(studyResult.value.like_count) || 0,
+          is_liked: Boolean(studyResult.value.is_liked),
+        });
         setError("");
       } else {
         const registryUser = getUserFromRegistry(username);
@@ -163,6 +168,17 @@ export function CaseStudyDetailPage() {
               username={author.username}
               initialFollowing={author.is_following}
               followerCount={author.follower_count || 0}
+              onStatsChange={(stats) =>
+                setAuthor((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        is_following: stats.is_following,
+                        follower_count: stats.follower_count,
+                      }
+                    : prev,
+                )
+              }
             />
           ) : null}
         </div>
@@ -170,7 +186,12 @@ export function CaseStudyDetailPage() {
 
       <section className="sticky top-0 z-20 border-y border-ink-100 bg-white/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-none flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12 xl:px-16">
-          <LikeButton caseStudyId={study.id} />
+          <LikeButton
+            caseStudyId={study.id}
+            initialCount={likeStats.like_count}
+            initialLiked={likeStats.is_liked}
+            onChange={setLikeStats}
+          />
           <ShareBar title={study.title} url={sharePath} summary={shareSummary} />
         </div>
       </section>
@@ -184,7 +205,12 @@ export function CaseStudyDetailPage() {
             <p className="mt-1 text-sm text-ink-500">Like it or share it with your network.</p>
           </div>
           <div className="flex flex-col gap-4 sm:items-end">
-            <LikeButton caseStudyId={study.id} />
+            <LikeButton
+              caseStudyId={study.id}
+              initialCount={likeStats.like_count}
+              initialLiked={likeStats.is_liked}
+              onChange={setLikeStats}
+            />
             <ShareBar title={study.title} url={sharePath} summary={shareSummary} />
           </div>
         </div>

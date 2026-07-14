@@ -557,6 +557,10 @@ function followEdgeKey(followerId, followingId) {
   return `${Number(followerId)}:${Number(followingId)}`;
 }
 
+function likeEdgeKey(userId, caseStudyId) {
+  return `${Number(userId)}:${Number(caseStudyId)}`;
+}
+
 function mergeFollows(remoteList = [], localList = [], deletedKeys = []) {
   const deleted = new Set((deletedKeys || []).map(String));
   const byKey = new Map();
@@ -577,6 +581,40 @@ function mergeFollows(remoteList = [], localList = [], deletedKeys = []) {
   return [...byKey.values()];
 }
 
+function mergeLikes(remoteList = [], localList = [], deletedKeys = []) {
+  const deleted = new Set((deletedKeys || []).map(String));
+  const byKey = new Map();
+  let maxId = 0;
+
+  for (const item of [...remoteList, ...localList]) {
+    const userId = Number(item?.user_id);
+    const caseStudyId = Number(item?.case_study_id);
+    if (!Number.isFinite(userId) || !Number.isFinite(caseStudyId)) continue;
+    const key = likeEdgeKey(userId, caseStudyId);
+    if (deleted.has(key)) continue;
+    const id = Number(item?.id);
+    if (Number.isFinite(id)) maxId = Math.max(maxId, id);
+    const prev = byKey.get(key);
+    // Prefer the row that already has a stable numeric id.
+    if (prev && Number.isFinite(Number(prev.id)) && !Number.isFinite(id)) continue;
+    byKey.set(key, {
+      ...item,
+      user_id: userId,
+      case_study_id: caseStudyId,
+    });
+  }
+
+  // Ensure every merged like has a unique numeric id.
+  for (const like of byKey.values()) {
+    if (!Number.isFinite(Number(like.id))) {
+      maxId += 1;
+      like.id = maxId;
+    }
+  }
+
+  return [...byKey.values()];
+}
+
 function takeDeletionMarkers(store) {
   const markers = store?.__uxguardDeleted && typeof store.__uxguardDeleted === "object"
     ? store.__uxguardDeleted
@@ -590,6 +628,7 @@ function takeDeletionMarkers(store) {
     projects: markers.projects || [],
     mediaAssets: markers.mediaAssets || [],
     follows: markers.follows || [],
+    likes: markers.likes || [],
   };
 }
 
@@ -617,6 +656,7 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       deleted.projects,
     ),
     follows: mergeFollows(remote.follows || [], localStore.follows || [], deleted.follows),
+    likes: mergeLikes(remote.likes || [], localStore.likes || [], deleted.likes),
   };
 }
 
@@ -637,10 +677,16 @@ export async function writeStore(store) {
   const slot = getMemoryStore();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    memoryStore = store;
-    slot.current = store;
+    // Apply tombstones locally so unfollows/unlikes stay deleted without Blob merge.
+    const cleaned = {
+      ...store,
+      follows: mergeFollows(store.follows || [], [], deleted.follows),
+      likes: mergeLikes(store.likes || [], [], deleted.likes),
+    };
+    memoryStore = cleaned;
+    slot.current = cleaned;
     slot.writtenAt = Date.now();
-    return store;
+    return cleaned;
   }
 
   let lastError = null;

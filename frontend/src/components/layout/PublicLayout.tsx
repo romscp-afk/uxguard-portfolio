@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
 import { useAuth } from "../../context/AuthContext";
@@ -53,10 +53,6 @@ export function PublicHeader() {
         </Link>
 
         <nav className="hidden items-center gap-3 text-sm font-medium md:flex">
-          <NavLink to="/search" className="inline-flex items-center gap-1.5">
-            <Search className="h-4 w-4" />
-            Search
-          </NavLink>
           <NavLink to="/">Home</NavLink>
           <NavLink to="/discover">Discover</NavLink>
           <NavLink to="/pricing">Pricing</NavLink>
@@ -105,20 +101,18 @@ export function PublicHeader() {
             <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink-400">Menu</p>
             <ul className="space-y-1">
               {[
-                { to: "/search", label: "Search", icon: Search },
                 { to: "/", label: "Home" },
                 { to: "/discover", label: "Discover" },
                 { to: "/pricing", label: "Pricing" },
                 { to: "/about", label: "About" },
                 { to: "/contact", label: "Contact" },
-              ].map(({ to, label, icon: Icon }) => (
+              ].map(({ to, label }) => (
                 <li key={to}>
                   <Link
                     to={to}
                     onClick={close}
                     className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium text-ink-800 transition hover:bg-brand-50 hover:text-brand-700"
                   >
-                    {Icon ? <Icon className="h-5 w-5 text-brand-600" /> : null}
                     {label}
                   </Link>
                 </li>
