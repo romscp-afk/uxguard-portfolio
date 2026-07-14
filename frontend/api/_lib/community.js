@@ -235,8 +235,13 @@ export async function addComment(caseStudyId, authorId, body) {
       created_at: new Date().toISOString(),
     };
     normalized.comments.push(created);
+    const prevDeleted = normalized.__uxguardDeleted?.comments || [];
+    normalized.__uxguardDeleted = {
+      ...(normalized.__uxguardDeleted || {}),
+      comments: prevDeleted.filter((cid) => Number(cid) !== id),
+    };
     return normalized;
-  });
+  }, { forceRefresh: true });
 
   const author = store.users.find((u) => sameId(u.id, authorId));
   const studyAuthor = store.users.find((u) => sameId(u.id, study.author_id));
@@ -271,9 +276,14 @@ export async function deleteComment(commentId, userId) {
     const comment = normalized.comments.find((c) => sameId(c.id, commentId));
     if (!comment) throw new Error("Comment not found");
     if (!sameId(comment.author_id, userId)) throw new Error("Forbidden");
+    const cid = Number(comment.id);
     normalized.comments = normalized.comments.filter((c) => !sameId(c.id, commentId));
+    normalized.__uxguardDeleted = {
+      ...(normalized.__uxguardDeleted || {}),
+      comments: [...new Set([...(normalized.__uxguardDeleted?.comments || []), cid])],
+    };
     return normalized;
-  });
+  }, { forceRefresh: true });
 }
 
 export async function createNotification({ userId, type, title, message, link }) {
@@ -292,8 +302,13 @@ export async function createNotification({ userId, type, title, message, link })
       created_at: new Date().toISOString(),
     };
     normalized.notifications.push(notification);
+    const prevDeleted = normalized.__uxguardDeleted?.notifications || [];
+    normalized.__uxguardDeleted = {
+      ...(normalized.__uxguardDeleted || {}),
+      notifications: prevDeleted.filter((nid) => Number(nid) !== Number(notification.id)),
+    };
     return normalized;
-  });
+  }, { forceRefresh: true });
   return notification;
 }
 

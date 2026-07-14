@@ -1,9 +1,9 @@
 import { requireAuthUser } from "../../_lib/auth.js";
 import { assertCanEdit } from "../../_lib/projects.js";
 import {
-  createCheckoutSession,
   completeMockCheckout,
   createCustomerPortalSession,
+  getPaymentProvider,
 } from "../../_lib/billing/payments.js";
 import { getUsageSummary } from "../../_lib/billing/entitlements.js";
 import { withApi } from "../../_lib/withApi.js";
@@ -33,10 +33,11 @@ export default withApi(async (req, res) => {
   const body = req.body || {};
   const action = body.action || "checkout";
   const origin = body.origin || originFromReq(req);
+  const provider = getPaymentProvider();
 
   try {
     if (action === "checkout") {
-      const session = await createCheckoutSession({
+      const session = await provider.createCheckoutSession({
         userId: user.id,
         planCode: body.planCode,
         billingInterval: body.billingInterval === "year" ? "year" : "month",
@@ -58,9 +59,28 @@ export default withApi(async (req, res) => {
       return;
     }
 
+    if (action === "complete_paypal") {
+      if (provider.name !== "paypal" || typeof provider.completeCheckout !== "function") {
+        res.status(400).json({ detail: "PayPal provider is not active." });
+        return;
+      }
+      const result = await provider.completeCheckout({
+        userId: user.id,
+        orderId: body.orderId || body.token,
+        planCode: body.planCode,
+        billingInterval: body.billingInterval === "year" ? "year" : "month",
+      });
+      const summary = result.success ? await getUsageSummary(user.id) : null;
+      res.status(200).json({ ...result, current: summary });
+      return;
+    }
+
     if (action === "portal") {
-      const portal = createCustomerPortalSession({ origin });
-      res.status(200).json(portal);
+      if (typeof provider.createCustomerPortalSession === "function") {
+        res.status(200).json(provider.createCustomerPortalSession({ origin }));
+        return;
+      }
+      res.status(200).json(createCustomerPortalSession({ origin }));
       return;
     }
 

@@ -357,3 +357,167 @@ export async function adminDeleteUser(userId, actorId) {
 
   return { ok: true, id: uid };
 }
+
+/**
+ * Merge duplicate username/email rows onto the lowest id (canonical),
+ * reassign related rows, then tombstone extras.
+ */
+export async function adminDedupeUsers() {
+  const before = await readStore({ forceRefresh: true });
+  const users = [...(before.users || [])];
+
+  // Union-find clusters: share username OR email → same person.
+  const parent = new Map();
+  function find(id) {
+    const key = Number(id);
+    if (!parent.has(key)) parent.set(key, key);
+    const p = parent.get(key);
+    if (p !== key) parent.set(key, find(p));
+    return parent.get(key);
+  }
+  function union(a, b) {
+    const pa = find(a);
+    const pb = find(b);
+    if (pa === pb) return;
+    const keep = Math.min(pa, pb);
+    const drop = Math.max(pa, pb);
+    parent.set(drop, keep);
+  }
+
+  const byEmail = new Map();
+  const byUsername = new Map();
+  for (const user of users) {
+    const id = Number(user.id);
+    if (!Number.isFinite(id)) continue;
+    find(id);
+    const email = String(user.email || "").trim().toLowerCase();
+    const username = String(user.username || "").trim().toLowerCase();
+    if (email) {
+      if (byEmail.has(email)) union(byEmail.get(email), id);
+      else byEmail.set(email, id);
+    }
+    if (username) {
+      if (byUsername.has(username)) union(byUsername.get(username), id);
+      else byUsername.set(username, id);
+    }
+  }
+
+  const clusters = new Map();
+  for (const user of users) {
+    const id = Number(user.id);
+    if (!Number.isFinite(id)) continue;
+    const root = find(id);
+    if (!clusters.has(root)) clusters.set(root, []);
+    clusters.get(root).push(user);
+  }
+
+  const remaps = [];
+  for (const group of clusters.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => Number(a.id) - Number(b.id));
+    const canonical = group[0];
+    for (const dup of group.slice(1)) {
+      remaps.push({
+        from: Number(dup.id),
+        to: Number(canonical.id),
+        email: dup.email,
+        username: dup.username,
+      });
+    }
+  }
+
+  if (!remaps.length) {
+    return { ok: true, merged: 0, remaps: [] };
+  }
+
+  const fromIds = new Set(remaps.map((r) => r.from));
+  const toByFrom = new Map(remaps.map((r) => [r.from, r.to]));
+
+  function remapId(value) {
+    const id = Number(value);
+    return toByFrom.has(id) ? toByFrom.get(id) : id;
+  }
+
+  await updateStore((store) => {
+    store.caseStudies = (store.caseStudies || []).map((cs) => ({
+      ...cs,
+      author_id: remapId(cs.author_id),
+    }));
+    store.projects = (store.projects || []).map((p) => ({
+      ...p,
+      author_id: remapId(p.author_id),
+    }));
+    store.mediaAssets = (store.mediaAssets || []).map((a) => ({
+      ...a,
+      uploaded_by_id: remapId(a.uploaded_by_id),
+    }));
+    store.follows = (store.follows || [])
+      .map((f) => ({
+        ...f,
+        follower_id: remapId(f.follower_id),
+        following_id: remapId(f.following_id),
+      }))
+      .filter((f) => Number(f.follower_id) !== Number(f.following_id));
+    store.comments = (store.comments || []).map((c) => ({
+      ...c,
+      author_id: remapId(c.author_id),
+    }));
+    store.likes = (store.likes || []).map((l) => ({
+      ...l,
+      user_id: remapId(l.user_id),
+    }));
+    store.notifications = (store.notifications || []).map((n) => ({
+      ...n,
+      user_id: remapId(n.user_id),
+    }));
+    store.case_study_views = (store.case_study_views || []).map((v) => ({
+      ...v,
+      author_id: remapId(v.author_id),
+    }));
+    store.subscriptions = (store.subscriptions || []).map((s) => ({
+      ...s,
+      user_id: remapId(s.user_id),
+    }));
+    store.user_usage = (store.user_usage || []).map((u) => ({
+      ...u,
+      user_id: remapId(u.user_id),
+    }));
+    store.user_ai_credits = (store.user_ai_credits || []).map((c) => ({
+      ...c,
+      user_id: remapId(c.user_id),
+    }));
+    store.ai_conversations = (store.ai_conversations || []).map((c) => ({
+      ...c,
+      user_id: remapId(c.user_id),
+    }));
+    store.saved_ai_outputs = (store.saved_ai_outputs || []).map((o) => ({
+      ...o,
+      user_id: remapId(o.user_id),
+    }));
+    store.payment_transactions = (store.payment_transactions || []).map((t) => ({
+      ...t,
+      user_id: remapId(t.user_id),
+    }));
+    store.subscription_events = (store.subscription_events || []).map((e) => ({
+      ...e,
+      user_id: remapId(e.user_id),
+    }));
+
+    store.users = (store.users || []).filter((u) => !fromIds.has(Number(u.id)));
+    store.__uxguardDeleted = {
+      ...(store.__uxguardDeleted || {}),
+      users: [...new Set([...(store.__uxguardDeleted?.users || []), ...fromIds])],
+    };
+    return store;
+  }, { forceRefresh: true });
+
+  for (const remap of remaps) {
+    try {
+      await deleteRegistrationRecord(remap.from, remap.email);
+    } catch {
+      // Best-effort sidecar cleanup.
+    }
+  }
+
+  return { ok: true, merged: remaps.length, remaps };
+}

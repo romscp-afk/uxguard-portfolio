@@ -35,6 +35,7 @@ import { UpgradePage } from "./pages/admin/UpgradePage";
 import { BillingSettingsPage } from "./pages/admin/BillingSettingsPage";
 import { MockCheckoutPage } from "./pages/admin/MockCheckoutPage";
 import { CheckoutCancelledPage, CheckoutSuccessPage } from "./pages/admin/CheckoutResultPages";
+import { PaypalReturnPage } from "./pages/admin/PaypalReturnPage";
 
 export default function App() {
   return (
@@ -85,6 +86,9 @@ export default function App() {
           <Route path="/upgrade" element={<Navigate to="/admin/upgrade" replace />} />
           <Route path="/checkout/mock" element={<AdminLayout />}>
             <Route index element={<MockCheckoutPage />} />
+          </Route>
+          <Route path="/checkout/paypal/return" element={<AdminLayout />}>
+            <Route index element={<PaypalReturnPage />} />
           </Route>
           <Route path="/checkout/success" element={<AdminLayout />}>
             <Route index element={<CheckoutSuccessPage />} />

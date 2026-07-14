@@ -540,6 +540,21 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ action: "complete_mock", ...payload }),
     }),
+
+  completePaypalCheckout: (payload: {
+    orderId: string;
+    planCode: string;
+    billingInterval: "month" | "year";
+  }) =>
+    request<{
+      success: boolean;
+      outcome: string;
+      detail?: string;
+      current?: BillingUsageSummary | null;
+    }>("/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ action: "complete_paypal", ...payload }),
+    }),
 };
 
 export { ApiError };

@@ -670,6 +670,10 @@ function mergeLikes(remoteList = [], localList = [], deletedKeys = []) {
   return [...byKey.values()];
 }
 
+function mergeCaseStudyViews(remoteList = [], localList = [], deletedIds = []) {
+  return mergeByNumericId(remoteList, localList, deletedIds);
+}
+
 function takeDeletionMarkers(store) {
   const markers = store?.__uxguardDeleted && typeof store.__uxguardDeleted === "object"
     ? store.__uxguardDeleted
@@ -684,6 +688,9 @@ function takeDeletionMarkers(store) {
     mediaAssets: markers.mediaAssets || [],
     follows: markers.follows || [],
     likes: markers.likes || [],
+    comments: markers.comments || [],
+    notifications: markers.notifications || [],
+    case_study_views: markers.case_study_views || [],
   };
 }
 
@@ -712,6 +719,21 @@ function mergeStoresForWrite(localStore, remote, deleted) {
     ),
     follows: mergeFollows(remote.follows || [], localStore.follows || [], deleted.follows),
     likes: mergeLikes(remote.likes || [], localStore.likes || [], deleted.likes),
+    comments: mergeByNumericId(
+      remote.comments || [],
+      localStore.comments || [],
+      deleted.comments,
+    ),
+    notifications: mergeByNumericId(
+      remote.notifications || [],
+      localStore.notifications || [],
+      deleted.notifications,
+    ),
+    case_study_views: mergeCaseStudyViews(
+      remote.case_study_views || [],
+      localStore.case_study_views || [],
+      deleted.case_study_views,
+    ),
   };
 }
 
@@ -739,6 +761,13 @@ export async function writeStore(store) {
       users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
       follows: mergeFollows(store.follows || [], [], deleted.follows),
       likes: mergeLikes(store.likes || [], [], deleted.likes),
+      comments: mergeByNumericId(store.comments || [], [], deleted.comments),
+      notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
+      case_study_views: mergeCaseStudyViews(
+        store.case_study_views || [],
+        [],
+        deleted.case_study_views,
+      ),
     };
     memoryStore = cleaned;
     slot.current = cleaned;

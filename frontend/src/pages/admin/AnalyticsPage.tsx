@@ -5,9 +5,7 @@ import {
   Eye,
   FileText,
   Heart,
-  Lock,
   MessageCircle,
-  Sparkles,
 } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
@@ -60,7 +58,9 @@ export function AnalyticsPage() {
     };
   }, [user]);
 
-  const advancedUnlocked = Boolean(
+  // 30-day view bars are included for every plan. Deeper exports can stay Pro later.
+  const showViewChart = true;
+  const isProAnalytics = Boolean(
     billing?.features?.advanced_analytics || billing?.is_admin_comp || billing?.unlimited,
   );
 
@@ -68,6 +68,11 @@ export function AnalyticsPage() {
     if (!summary?.views_last_30_days?.length) return 1;
     return Math.max(1, ...summary.views_last_30_days.map((d) => d.views));
   }, [summary]);
+
+  const totalRecentViews = useMemo(
+    () => (summary?.views_last_30_days || []).reduce((sum, day) => sum + (day.views || 0), 0),
+    [summary],
+  );
 
   if (!user) return null;
 
@@ -145,40 +150,43 @@ export function AnalyticsPage() {
             <BarChart3 className="h-5 w-5 text-brand-600" />
             <h2 className="font-semibold text-ink-900">Views · last 30 days</h2>
           </div>
-          {!advancedUnlocked ? (
+          {!isProAnalytics ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2.5 py-1 text-xs font-medium text-ink-600">
-              <Lock className="h-3 w-3" />
+              Free
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
               Pro
             </span>
-          ) : null}
+          )}
         </div>
 
-        {advancedUnlocked ? (
-          <div className="flex h-40 items-end gap-1">
-            {(summary?.views_last_30_days || []).map((day) => (
-              <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t bg-brand-500/80"
-                  style={{
-                    height: `${Math.max(4, Math.round((day.views / maxDayViews) * 100))}%`,
-                  }}
-                  title={`${day.date}: ${day.views} views`}
-                />
-              </div>
-            ))}
+        {showViewChart ? (
+          <div>
+            <div className="flex h-40 items-end gap-1">
+              {(summary?.views_last_30_days || []).map((day) => (
+                <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <div
+                    className={`w-full rounded-t ${day.views > 0 ? "bg-brand-500/80" : "bg-ink-200/70"}`}
+                    style={{
+                      height: `${Math.max(4, Math.round((day.views / maxDayViews) * 100))}%`,
+                    }}
+                    title={`${day.date}: ${day.views} views`}
+                  />
+                </div>
+              ))}
+            </div>
+            {!loading && totalRecentViews === 0 ? (
+              <p className="mt-4 text-center text-sm text-ink-500">
+                No views in the last 30 days yet. Open a published case study to start tracking.
+              </p>
+            ) : (
+              <p className="mt-3 text-center text-xs text-ink-400">
+                {totalRecentViews} view{totalRecentViews === 1 ? "" : "s"} over the last 30 days
+              </p>
+            )}
           </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-10 text-center">
-            <Sparkles className="mx-auto h-8 w-8 text-brand-500" />
-            <p className="mt-3 font-medium text-ink-900">Unlock 30-day view trends</p>
-            <p className="mt-1 text-sm text-ink-500">
-              Upgrade to Pro for daily view charts and deeper insights.
-            </p>
-            <Link to="/admin/upgrade" className="btn-primary mt-4 inline-flex">
-              Upgrade
-            </Link>
-          </div>
-        )}
+        ) : null}
       </div>
 
       <div className="card overflow-hidden">

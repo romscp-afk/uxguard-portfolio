@@ -44,8 +44,8 @@ export function UpgradePage() {
       <ReadOnlyNotice />
       <h1 className="font-display text-3xl font-bold text-ink-950">Upgrade your plan</h1>
       <p className="mt-2 text-ink-500">
-        Choose Professional or Team. In development, checkout uses a mock payment provider — no card
-        required.
+        Choose Professional or Team. Checkout uses your configured payment provider
+        (mock locally, PayPal or Stripe when credentials are set).
       </p>
 
       {error ? (

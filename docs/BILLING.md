@@ -33,6 +33,20 @@ ENABLE_MOCK_PAYMENTS=true
 # AI_MONTHLY_CREDITS=10
 ```
 
+### PayPal
+
+Use a PayPal **Business / Developer app** for the merchant that should receive funds
+(login such as `romscp@gmail.com`). Configure **API credentials** — the email itself is not passed to PayPal Checkout.
+
+```bash
+PAYMENT_PROVIDER=paypal
+PAYPAL_MODE=sandbox
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+```
+
+Sandbox first via [developer.paypal.com](https://developer.paypal.com/) → Apps & Credentials.
+
 ### Production (Stripe-ready)
 
 ```bash
@@ -46,7 +60,7 @@ STRIPE_PROFESSIONAL_YEARLY_PRICE_ID=
 STRIPE_TEAM_MONTHLY_PRICE_ID=
 ```
 
-Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, or Blob/service-role keys to the frontend.
+Never expose `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, PayPal secrets, or Blob/service-role keys to the frontend.
 
 Mock payments are **blocked** when `NODE_ENV=production` unless `ALLOW_MOCK_PAYMENTS_IN_PROD=true` (admin override only).
 

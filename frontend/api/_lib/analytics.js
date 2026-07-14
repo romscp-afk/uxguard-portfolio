@@ -96,11 +96,30 @@ function buildLast30DaysSeries(views) {
 export async function getAnalyticsSummary(userId) {
   const uid = Number(userId);
   const store = await readStore({ forceRefresh: true });
-  const studies = (store.caseStudies || []).filter((cs) => Number(cs.author_id) === uid);
+
+  // Aggregate across duplicate username/email rows from historic store races.
+  const self = (store.users || []).find((u) => Number(u.id) === uid);
+  const email = String(self?.email || "").trim().toLowerCase();
+  const username = String(self?.username || "").trim().toLowerCase();
+  const authorIds = new Set(
+    (store.users || [])
+      .filter((u) => {
+        const id = Number(u.id);
+        if (!Number.isFinite(id)) return false;
+        if (id === uid) return true;
+        if (email && String(u.email || "").trim().toLowerCase() === email) return true;
+        if (username && String(u.username || "").trim().toLowerCase() === username) return true;
+        return false;
+      })
+      .map((u) => Number(u.id)),
+  );
+  if (!authorIds.size) authorIds.add(uid);
+
+  const studies = (store.caseStudies || []).filter((cs) => authorIds.has(Number(cs.author_id)));
   const studyIds = new Set(studies.map((cs) => Number(cs.id)));
 
   const views = (store.case_study_views || []).filter(
-    (v) => studyIds.has(Number(v.case_study_id)) || Number(v.author_id) === uid,
+    (v) => studyIds.has(Number(v.case_study_id)) || authorIds.has(Number(v.author_id)),
   );
   const likeCounts = likeCountsByCaseStudy(store);
 
@@ -147,18 +166,17 @@ export async function getAnalyticsSummary(userId) {
     .sort((a, b) => b.views - a.views || String(a.title).localeCompare(String(b.title)));
 
   const published = studies.filter((cs) => cs.status === "published").length;
+  const seriesViews = views.filter((v) => studyIds.has(Number(v.case_study_id)));
 
   return {
     totals: {
-      views: views.filter((v) => studyIds.has(Number(v.case_study_id))).length,
+      views: seriesViews.length,
       likes: totalLikes,
       comments: totalComments,
       published_case_studies: published,
       case_studies: studies.length,
     },
     case_studies: caseStudies,
-    views_last_30_days: buildLast30DaysSeries(
-      views.filter((v) => studyIds.has(Number(v.case_study_id))),
-    ),
+    views_last_30_days: buildLast30DaysSeries(seriesViews),
   };
 }
