@@ -47,6 +47,8 @@ export interface CaseStudy {
   attachments?: Attachment[];
   like_count?: number;
   is_liked?: boolean;
+  /** Live prototype / external website URL shown in a view-only popup. */
+  prototype_url?: string | null;
 }
 
 export interface CaseStudyListItem {

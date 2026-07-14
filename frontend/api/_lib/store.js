@@ -141,6 +141,7 @@ const SEED_CASE_STUDIES = [
     updated_at: "2026-07-04T19:26:59.000Z",
     published_at: "2026-07-04T19:26:59.000Z",
     attachments: [],
+    prototype_url: "https://example.com",
   },
   {
     id: 2,

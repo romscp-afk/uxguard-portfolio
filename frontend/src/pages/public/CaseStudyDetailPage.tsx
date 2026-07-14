@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { api, resolveAssetUrl } from "../../api/client";
 import { AuthorBadge } from "../../components/case-study/AuthorBadge";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
+import { CaseStudyCard } from "../../components/case-study/CaseStudyCard";
 import { CommentsSection } from "../../components/community/CommentsSection";
 import { FollowButton } from "../../components/community/FollowButton";
 import { LikeButton } from "../../components/community/LikeButton";
@@ -12,7 +14,7 @@ import { DocumentMeta } from "../../components/seo/DocumentMeta";
 import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
 import { getOrCreateViewerKey, sessionViewGuardKey } from "../../lib/viewerKey";
-import type { CaseStudy, UserProfile } from "../../types";
+import type { CaseStudy, CaseStudyListItem, UserProfile } from "../../types";
 
 export function CaseStudyDetailPage() {
   const { username: rawUsername, slug: rawSlug } = useParams<{ username: string; slug: string }>();
@@ -24,6 +26,9 @@ export function CaseStudyDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [likeStats, setLikeStats] = useState({ like_count: 0, is_liked: false });
+  const relatedRailRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     if (!username || !slug) {
@@ -108,6 +113,50 @@ export function CaseStudyDetailPage() {
         // Analytics must never block reading the case study.
       });
   }, [study?.id, study?.status, username, slug]);
+
+  const relatedStudies = useMemo(() => {
+    if (!study) return [];
+    const items = (author?.case_studies || []) as CaseStudyListItem[];
+    return items
+      .filter(
+        (item) =>
+          Number(item.id) !== Number(study.id) &&
+          item.slug !== study.slug &&
+          String(item.status || "published").toLowerCase() === "published",
+      )
+      .slice(0, 3);
+  }, [author?.case_studies, study]);
+
+  useEffect(() => {
+    const rail = relatedRailRef.current;
+    if (!rail) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    function updateScrollState() {
+      if (!rail) return;
+      const maxScroll = rail.scrollWidth - rail.clientWidth;
+      setCanScrollLeft(rail.scrollLeft > 4);
+      setCanScrollRight(maxScroll > 4 && rail.scrollLeft < maxScroll - 4);
+    }
+
+    updateScrollState();
+    rail.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      rail.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [relatedStudies.length, study?.id]);
+
+  function scrollRelated(direction: "left" | "right") {
+    const rail = relatedRailRef.current;
+    if (!rail) return;
+    const amount = Math.max(280, Math.floor(rail.clientWidth * 0.85));
+    rail.scrollBy({ left: direction === "left" ? -amount : amount, behavior: "smooth" });
+  }
 
   if (loading) {
     return (
@@ -215,6 +264,67 @@ export function CaseStudyDetailPage() {
           </div>
         </div>
       </section>
+
+      {relatedStudies.length > 0 ? (
+        <section className="border-t border-ink-100 bg-white">
+          <div className="mx-auto w-full max-w-none px-4 py-12 sm:px-8 lg:px-12 xl:px-16">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">
+                  More from {author?.name || username}
+                </p>
+                <h2 className="mt-1 font-display text-2xl font-semibold text-ink-950">
+                  Related case studies
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollRelated("left")}
+                    disabled={!canScrollLeft}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-35"
+                    aria-label="Scroll related case studies left"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollRelated("right")}
+                    disabled={!canScrollRight}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-35"
+                    aria-label="Scroll related case studies right"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                {username ? (
+                  <Link
+                    to={`/u/${encodeURIComponent(username)}`}
+                    className="text-sm font-medium text-brand-600 hover:text-brand-500"
+                  >
+                    View full portfolio
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              ref={relatedRailRef}
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {relatedStudies.map((item) => (
+                <div
+                  key={item.id}
+                  className="w-[min(86vw,320px)] shrink-0 snap-start sm:w-[300px]"
+                >
+                  <CaseStudyCard study={item} username={username} showSummary />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <CommentsSection caseStudyId={study.id} />
       <PublicFooter />

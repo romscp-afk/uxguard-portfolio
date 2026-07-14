@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, MonitorPlay } from "lucide-react";
 import { resolveAssetUrl } from "../../api/client";
 import { ContentBlockRenderer } from "../../components/case-study/ContentBlockRenderer";
+import {
+  isValidHttpUrl,
+  PrototypeViewerDialog,
+} from "../../components/case-study/PrototypeViewerDialog";
 import { RichText } from "../ui/RichText";
 import type { CaseStudy, UserProfile } from "../../types";
 
@@ -35,6 +40,9 @@ export function CaseStudyArticle({
   const profileUsername = username || author?.username;
   const backTo = backHref || (profileUsername ? `/u/${profileUsername}` : "/");
   const backText = backLabel || (author?.name ? `${author.name}'s portfolio` : "Back");
+  const prototypeUrl = String(study.prototype_url || "").trim();
+  const hasPrototype = isValidHttpUrl(prototypeUrl);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   return (
     <>
@@ -107,6 +115,20 @@ export function CaseStudyArticle({
               </div>
             ) : null}
           </dl>
+
+          {hasPrototype ? (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setViewerOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-800"
+              >
+                <MonitorPlay className="h-4 w-4" />
+                View live prototype
+              </button>
+              <p className="mt-2 text-xs text-ink-400">Opens in a view-only popup · no download</p>
+            </div>
+          ) : null}
         </header>
 
         {study.summary ? (
@@ -160,6 +182,15 @@ export function CaseStudyArticle({
         ) : null}
         </div>
       </article>
+
+      {hasPrototype ? (
+        <PrototypeViewerDialog
+          open={viewerOpen}
+          url={prototypeUrl}
+          title={`${study.title} · prototype`}
+          onClose={() => setViewerOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

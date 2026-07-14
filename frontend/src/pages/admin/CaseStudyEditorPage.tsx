@@ -50,6 +50,7 @@ const emptyStudy: Partial<CaseStudy> = {
   project_type: "",
   role: "",
   duration: "",
+  prototype_url: "",
   summary: "",
   challenge: "",
   methodology: "",
@@ -381,6 +382,7 @@ export function CaseStudyEditorPage() {
       project_type: payload.project_type,
       role: payload.role,
       duration: payload.duration,
+      prototype_url: payload.prototype_url || null,
       summary: payload.summary,
       challenge: payload.challenge,
       methodology: payload.methodology,
@@ -436,7 +438,11 @@ export function CaseStudyEditorPage() {
         }
         navigate(`/admin/case-studies/${created.id}`, { replace: true });
         setMessageType("success");
-        setMessage(publish ? "Published successfully." : "Draft saved.");
+        setMessage(
+          publish || status === "published"
+            ? "Saved and published successfully."
+            : "Draft saved.",
+        );
       } else {
         const updated = await api.updateCaseStudy(studyId, payload);
         if (updated.id !== studyId) {
@@ -458,7 +464,11 @@ export function CaseStudyEditorPage() {
         setForm(merged);
         setMethodsInput(updated.methods.join(", "));
         setMessageType("success");
-        setMessage(publish ? "Published successfully." : "Draft saved.");
+        setMessage(
+          publish || status === "published"
+            ? "Saved and published successfully."
+            : "Draft saved.",
+        );
       }
     } catch (err) {
       setMessageType("error");
@@ -682,7 +692,11 @@ export function CaseStudyEditorPage() {
           ) : null}
           <button type="submit" form="case-study-form" className="btn-primary" disabled={saving}>
             <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save draft"}
+            {saving
+              ? "Saving..."
+              : form.status === "published"
+                ? "Save & publish"
+                : "Save draft"}
           </button>
         </div>
       </div>
@@ -820,6 +834,22 @@ export function CaseStudyEditorPage() {
                   onChange={(e) => updateField("duration", e.target.value)}
                   placeholder="e.g. 6 weeks"
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label-field">Prototype / live site URL</label>
+                <input
+                  className="input-field"
+                  type="url"
+                  inputMode="url"
+                  value={form.prototype_url || ""}
+                  onChange={(e) => updateField("prototype_url", e.target.value)}
+                  placeholder="https://www.figma.com/proto/… or https://your-prototype.web.app"
+                />
+                <p className="mt-1.5 text-xs text-ink-400">
+                  Readers open this in a view-only popup (no download button). Prefer embeddable
+                  prototype links (Figma proto, Framer, hosted demos). Sites that disallow iframes
+                  will show a blank frame.
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label className={fieldLabelClass(Boolean(fieldErrors.summary))}>
@@ -1073,7 +1103,9 @@ export function CaseStudyEditorPage() {
                   </span>
                 </p>
                 <p className="mt-1 text-xs">
-                  Save as draft anytime. Use Preview to check layout, then Publish when ready.
+                  {form.status === "published"
+                    ? "This case study is live. Use Save & publish to push prototype and content updates to your public portfolio."
+                    : "Save as draft anytime. Use Preview to check layout, then Publish when ready."}
                 </p>
               </div>
               {!isNew ? (
