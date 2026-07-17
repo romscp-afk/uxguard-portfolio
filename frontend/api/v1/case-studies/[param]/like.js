@@ -6,7 +6,7 @@ import {
 import { getAuthUser, requireAuthUser } from "../../../_lib/auth.js";
 import { withApi } from "../../../_lib/withApi.js";
 
-/** Legacy nested route — prefer /api/v1/likes?case_study_id= */
+/** Nested route — /api/v1/case-studies/:id/like */
 function parseCaseStudyId(req) {
   const fromQuery = req.query?.param ?? req.query?.id;
   const value = Array.isArray(fromQuery) ? fromQuery[0] : fromQuery;

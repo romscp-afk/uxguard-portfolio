@@ -418,15 +418,15 @@ export async function readStore(options = {}) {
   const slot = getMemoryStore();
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    // Use in-process memory only briefly after a local write (read-your-writes).
-    // Otherwise always reload from Blob so Home/Discover see publishes from other instances.
-    const freshlyWritten =
-      !forceRefresh &&
+    // Use in-process memory briefly after a local write (read-your-writes), and for a
+    // short soft-cache window so like/follow badge GETs don't each re-download Blob.
+    const cacheMs = forceRefresh ? 0 : 5000;
+    const cacheHit =
       slot.current &&
       typeof slot.writtenAt === "number" &&
-      Date.now() - slot.writtenAt < 2000;
+      Date.now() - slot.writtenAt < cacheMs;
 
-    if (freshlyWritten) {
+    if (cacheHit) {
       memoryStore = slot.current;
       return structuredClone(slot.current);
     }
@@ -435,7 +435,8 @@ export async function readStore(options = {}) {
       const { data, etag } = await loadFromBlobWithMeta();
       memoryStore = normalizeLoadedStore(data);
       slot.current = memoryStore;
-      slot.writtenAt = 0;
+      // Mark as freshly loaded so soft-cache applies (not only post-write).
+      slot.writtenAt = Date.now();
       slot.etag = etag;
       return structuredClone(memoryStore);
     } catch (error) {

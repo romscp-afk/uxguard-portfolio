@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Heart, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
@@ -24,25 +24,27 @@ export function LikeButton({
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const liveLoaded = useRef(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
+    liveLoaded.current = false;
     let cancelled = false;
 
-    // Always load live counts so the badge is never stuck at 0/stale props.
     api
       .getLikeStats(caseStudyId)
       .then((stats) => {
         if (cancelled) return;
+        liveLoaded.current = true;
         const nextCount = Number(stats.like_count) || 0;
         const nextLiked = Boolean(stats.is_liked);
         setCount(nextCount);
         if (user) setLiked(nextLiked);
-        onChange?.({ like_count: nextCount, is_liked: nextLiked });
+        onChangeRef.current?.({ like_count: nextCount, is_liked: nextLiked });
       })
       .catch(() => {
-        if (cancelled) return;
-        setLiked(initialLiked);
-        setCount(Number(initialCount) || 0);
+        /* keep current props / state */
       });
 
     return () => {
@@ -50,7 +52,7 @@ export function LikeButton({
     };
   }, [caseStudyId, user?.id]);
 
-  // Keep sibling LikeButtons (sticky + footer) in sync via shared parent state.
+  // Align sticky + footer buttons via shared parent state.
   useEffect(() => {
     setLiked(Boolean(initialLiked));
     setCount(Number(initialCount) || 0);
@@ -79,11 +81,12 @@ export function LikeButton({
       const stats = liked
         ? await api.unlikeCaseStudy(caseStudyId)
         : await api.likeCaseStudy(caseStudyId);
+      liveLoaded.current = true;
       const nextCount = Number(stats.like_count) || 0;
       const nextLiked = Boolean(stats.is_liked);
       setLiked(nextLiked);
       setCount(nextCount);
-      onChange?.({ like_count: nextCount, is_liked: nextLiked });
+      onChangeRef.current?.({ like_count: nextCount, is_liked: nextLiked });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update like");
     } finally {

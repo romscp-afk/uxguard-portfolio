@@ -43,6 +43,7 @@ export function listCachedCaseStudies(authorId: number): CaseStudyListItem[] {
       methods: study.methods || [],
       featured: study.featured,
       status: study.status,
+      like_count: Number((study as CaseStudyListItem).like_count) || 0,
       updated_at: study.updated_at,
     }))
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
@@ -57,8 +58,21 @@ export function mergeCaseStudyLists(
   for (const item of cached) {
     const id = Number(item.id);
     const existing = byId.get(id);
-    if (!existing || new Date(item.updated_at) > new Date(existing.updated_at)) {
+    if (!existing) {
       byId.set(id, item);
+      continue;
+    }
+    // Prefer newer content fields from cache, but never wipe live engagement counts.
+    if (new Date(item.updated_at) > new Date(existing.updated_at)) {
+      byId.set(id, {
+        ...item,
+        like_count: Math.max(Number(existing.like_count) || 0, Number(item.like_count) || 0),
+      });
+    } else {
+      byId.set(id, {
+        ...existing,
+        like_count: Math.max(Number(existing.like_count) || 0, Number(item.like_count) || 0),
+      });
     }
   }
   return [...byId.values()].sort(

@@ -1,7 +1,7 @@
-import { getUserProfile } from "../../_lib/demo-data.js";
-import { getFollowStats } from "../../_lib/community.js";
-import { getAuthUser, requireAuth } from "../../_lib/auth.js";
-import { withApi } from "../../_lib/withApi.js";
+import { getUserProfile } from "../../../_lib/demo-data.js";
+import { getFollowStats } from "../../../_lib/community.js";
+import { getAuthUser, requireAuth } from "../../../_lib/auth.js";
+import { withApi } from "../../../_lib/withApi.js";
 
 function profileFromSession(session) {
   return {

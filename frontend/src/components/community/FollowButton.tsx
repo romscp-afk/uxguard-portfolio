@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserPlus, UserMinus, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
@@ -24,35 +24,42 @@ export function FollowButton({
   const [followers, setFollowers] = useState(followerCount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const liveLoaded = useRef(false);
+  const onStatsChangeRef = useRef(onStatsChange);
+  onStatsChangeRef.current = onStatsChange;
 
   useEffect(() => {
+    liveLoaded.current = false;
     let cancelled = false;
 
-    // Always load live counts (works logged-out too) so the badge is never stuck/stale.
     api
       .getFollowStats(username)
       .then((stats) => {
         if (cancelled) return;
+        liveLoaded.current = true;
         const count = Number(stats.follower_count) || 0;
         setFollowers(count);
         if (user && user.username !== username) {
           setFollowing(Boolean(stats.is_following));
         }
-        onStatsChange?.({
+        onStatsChangeRef.current?.({
           is_following: Boolean(stats.is_following),
           follower_count: count,
         });
       })
       .catch(() => {
-        if (cancelled) return;
-        setFollowing(initialFollowing);
-        setFollowers(Number(followerCount) || 0);
+        /* keep current props / state */
       });
 
     return () => {
       cancelled = true;
     };
   }, [user?.id, username]);
+
+  useEffect(() => {
+    setFollowing(Boolean(initialFollowing));
+    setFollowers(Number(followerCount) || 0);
+  }, [initialFollowing, followerCount]);
 
   const countClass =
     variant === "dark"
@@ -86,10 +93,14 @@ export function FollowButton({
     setError("");
     try {
       const stats = following ? await api.unfollowUser(username) : await api.followUser(username);
+      liveLoaded.current = true;
       const count = Number(stats.follower_count) || 0;
       setFollowing(Boolean(stats.is_following));
       setFollowers(count);
-      onStatsChange?.({ is_following: Boolean(stats.is_following), follower_count: count });
+      onStatsChangeRef.current?.({
+        is_following: Boolean(stats.is_following),
+        follower_count: count,
+      });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update follow status");
     } finally {

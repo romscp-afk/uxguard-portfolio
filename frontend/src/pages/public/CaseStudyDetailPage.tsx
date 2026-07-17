@@ -49,10 +49,13 @@ export function CaseStudyDetailPage() {
 
       if (studyResult.status === "fulfilled") {
         setStudy(studyResult.value);
-        setLikeStats({
-          like_count: Number(studyResult.value.like_count) || 0,
-          is_liked: Boolean(studyResult.value.is_liked),
-        });
+        setLikeStats((prev) => ({
+          like_count: Math.max(prev.like_count, Number(studyResult.value.like_count) || 0),
+          is_liked:
+            studyResult.value.is_liked != null
+              ? Boolean(studyResult.value.is_liked)
+              : prev.is_liked,
+        }));
         setError("");
       } else {
         const registryUser = getUserFromRegistry(username);

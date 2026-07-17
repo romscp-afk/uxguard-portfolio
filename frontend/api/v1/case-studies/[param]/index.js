@@ -3,11 +3,11 @@ import {
   getCaseStudyByIdForAuthor,
   getCaseStudyBySlug,
   updateCaseStudy,
-} from "../../_lib/demo-data.js";
-import { notifyNewPublication } from "../../_lib/community.js";
-import { requireAuthUser } from "../../_lib/auth.js";
-import { assertCanEdit } from "../../_lib/projects.js";
-import { withApi } from "../../_lib/withApi.js";
+} from "../../../_lib/demo-data.js";
+import { notifyNewPublication } from "../../../_lib/community.js";
+import { requireAuthUser } from "../../../_lib/auth.js";
+import { assertCanEdit } from "../../../_lib/projects.js";
+import { withApi } from "../../../_lib/withApi.js";
 
 async function maybeNotifyPublish(previous, updated, author) {
   const wasPublished = previous?.status === "published";

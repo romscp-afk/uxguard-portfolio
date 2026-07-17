@@ -52,7 +52,7 @@ function subjectIdsForUsername(store, username) {
 }
 
 export async function getFollowStats(userId, viewerId = null) {
-  const store = normalizeStore(await readStore({ forceRefresh: true }));
+  const store = normalizeStore(await readStore());
   const uid = Number(userId);
   const vid = viewerId == null ? null : Number(viewerId);
 
@@ -456,7 +456,7 @@ export async function searchPlatform(query) {
 }
 
 export async function getLikeStats(caseStudyId, viewerId = null) {
-  const store = normalizeStore(await readStore({ forceRefresh: true }));
+  const store = normalizeStore(await readStore());
   const studyId = Number(caseStudyId);
   const likes = store.likes.filter((like) => sameId(like.case_study_id, studyId));
   return {

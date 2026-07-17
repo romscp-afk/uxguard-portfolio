@@ -55,12 +55,10 @@ export function CaseStudyCard({
               {study.client || "Case Study"}
             </span>
             <div className="flex items-center gap-2">
-              {(study.like_count || 0) > 0 ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-400">
-                  <Heart className="h-3.5 w-3.5" />
-                  {study.like_count}
-                </span>
-              ) : null}
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-400">
+                <Heart className="h-3.5 w-3.5" />
+                {Number(study.like_count) || 0}
+              </span>
               <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-600" />
             </div>
           </div>
