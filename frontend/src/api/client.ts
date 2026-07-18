@@ -29,7 +29,12 @@ import type {
   Project,
   Resume,
   ResumeImportResult,
+  ResumeExtraction,
   ResumeSummary,
+  ResumeTemplateInfo,
+  ResumeQualityResult,
+  ResumeVersionSummary,
+  ResumeMatchResult,
   SearchResults,
   User,
   UserProfile,
@@ -265,6 +270,116 @@ export const api = {
       body: form,
     });
   },
+
+  confirmResumeExtraction: (
+    id: number,
+    data: { resume?: Partial<Resume>; extraction?: Partial<ResumeExtraction>; action?: "skip" } = {},
+  ) =>
+    request<{ resume: Resume }>(`/resumes/${id}/confirm-extraction`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getResumeTemplates: () =>
+    request<{ templates: ResumeTemplateInfo[]; ai: { enabled: boolean; message: string } }>(
+      "/resumes/templates",
+    ),
+
+  runResumeQualityCheck: (id: number, resume?: Partial<Resume>) =>
+    request<ResumeQualityResult>(`/resumes/${id}/quality-check`, {
+      method: "POST",
+      body: JSON.stringify(resume ? { resume } : {}),
+    }),
+
+  downloadResumePdf: async (id: number) => {
+    const headers = new Headers();
+    const token = getToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const res = await fetch(`${API_BASE}/resumes/${id}/export/pdf`, {
+      method: "POST",
+      headers,
+    });
+    if (!res.ok) {
+      let detail = "PDF export failed";
+      try {
+        const data = await res.json();
+        detail = data.detail || detail;
+      } catch {
+        /* ignore */
+      }
+      throw new ApiError(res.status, detail);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match?.[1] || `Resume_${id}.pdf`;
+    return { blob, filename };
+  },
+
+  listResumeVersions: (id: number) =>
+    request<{ versions: ResumeVersionSummary[] }>(`/resumes/${id}/versions`),
+
+  createResumeVersion: (
+    id: number,
+    data: { label?: string; notes?: string; target_company?: string; target_role?: string } = {},
+  ) =>
+    request<{ resume: Resume; version: ResumeVersionSummary }>(`/resumes/${id}/versions`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  restoreResumeVersion: (id: number, versionId: string) =>
+    request<{ resume: Resume }>(`/resumes/${id}/versions/${versionId}/restore`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+
+  createTailoredResumeCopy: (
+    id: number,
+    data: { title?: string; target_role?: string; target_company?: string } = {},
+  ) =>
+    request<{ resume: Resume }>(`/resumes/${id}/tailor-copy`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  resumeAiImproveSummary: (id: number, tone = "professional") =>
+    request<{ suggestion: string; notes: string; labeled: string; credits_used: number }>(
+      `/resumes/${id}/ai/improve-summary`,
+      { method: "POST", body: JSON.stringify({ tone }) },
+    ),
+
+  resumeAiRewriteBullet: (id: number, bullet: string, style = "achievement") =>
+    request<{ suggestion: string; notes: string; labeled: string; credits_used: number }>(
+      `/resumes/${id}/ai/rewrite-bullet`,
+      { method: "POST", body: JSON.stringify({ bullet, style }) },
+    ),
+
+  resumeAiTailor: (
+    id: number,
+    data: { job_description: string; target_company?: string; target_role?: string },
+  ) =>
+    request<{
+      suggested_summary: string;
+      suggested_bullets: { original: string; suggestion: string }[];
+      missing_keywords: string[];
+      matched_keywords: string[];
+      notes: string;
+      labeled: string;
+      credits_used: number;
+    }>(`/resumes/${id}/ai/tailor`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  resumeMatchIndicator: (
+    id: number,
+    data: { job_description?: string; target_role?: string } = {},
+  ) =>
+    request<ResumeMatchResult>(`/resumes/${id}/ai/match`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   search: (q: string) =>
     request<SearchResults>(`/search?q=${encodeURIComponent(q)}`),

@@ -27,6 +27,7 @@ import { PortfolioBuilderPage } from "./pages/admin/PortfolioBuilderPage";
 import { ResumeDashboardPage } from "./pages/admin/ResumeDashboardPage";
 import { ResumeCreatePage } from "./pages/admin/ResumeCreatePage";
 import { ResumeEditorPage } from "./pages/admin/ResumeEditorPage";
+import { ResumeReviewPage } from "./pages/admin/ResumeReviewPage";
 import { TemplatesPage } from "./pages/admin/TemplatesPage";
 import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { AiHubPage } from "./pages/admin/ai/AiHubPage";
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="portfolio-builder" element={<PortfolioBuilderPage />} />
             <Route path="resume-builder" element={<ResumeDashboardPage />} />
             <Route path="resume-builder/new" element={<ResumeCreatePage />} />
+            <Route path="resume-builder/:id/review" element={<ResumeReviewPage />} />
             <Route path="resume-builder/:id" element={<ResumeEditorPage />} />
             <Route path="templates" element={<TemplatesPage />} />
             <Route path="ai" element={<AiHubPage />} />

@@ -11,6 +11,14 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { ResumeDocument } from "../../components/resume/ResumeDocument";
+import {
+  DesignPanel,
+  ExportPdfButton,
+  QualityPanel,
+  TailorAiPanel,
+  VersionsPanel,
+} from "../../components/resume/ResumeWorkspacePanels";
 import { useAuth } from "../../context/AuthContext";
 import { canEditPlatform } from "../../lib/roles";
 import type {
@@ -33,6 +41,10 @@ type SectionId =
   | "projects"
   | "certifications"
   | "languages"
+  | "design"
+  | "quality"
+  | "versions"
+  | "tailor"
   | "preview";
 
 type SaveState = "idle" | "saving" | "saved" | "failed";
@@ -47,6 +59,10 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "certifications", label: "Certifications" },
   { id: "languages", label: "Languages" },
+  { id: "design", label: "Design" },
+  { id: "quality", label: "Quality check" },
+  { id: "versions", label: "Versions" },
+  { id: "tailor", label: "Tailor & AI" },
   { id: "preview", label: "Preview" },
 ];
 
@@ -99,6 +115,7 @@ export function ResumeEditorPage() {
   const [dirty, setDirty] = useState(false);
   const [skillDraft, setSkillDraft] = useState("");
   const [skillCategory, setSkillCategory] = useState("Other");
+  const [previewZoom, setPreviewZoom] = useState(0.85);
 
   const resumeRef = useRef<Resume | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,6 +280,23 @@ export function ResumeEditorPage() {
     await persist(resume, { manual: true });
   }
 
+  async function handleDelete() {
+    if (!resume) return;
+    if (
+      !window.confirm(
+        `Delete “${resume.title}”? It will be soft-deleted and removed from your dashboard.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.deleteResume(resume.id);
+      navigate("/admin/resume-builder");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not delete resume.");
+    }
+  }
+
   if (loading) {
     return <div className="card h-48 animate-pulse bg-ink-100" aria-busy="true" />;
   }
@@ -336,6 +370,16 @@ export function ResumeEditorPage() {
               <Save className="h-4 w-4" />
               Save
             </button>
+            <ExportPdfButton resumeId={resume.id} readOnly={readOnly} />
+            <button
+              type="button"
+              className="btn-ghost text-sm text-red-700 hover:bg-red-50"
+              disabled={readOnly || saveState === "saving"}
+              onClick={() => void handleDelete()}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
           </EditGuard>
         </div>
       </div>
@@ -349,6 +393,18 @@ export function ResumeEditorPage() {
       {resume.parse_status === "failed" && resume.parse_error ? (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Import note: {resume.parse_error} You can still edit fields manually.
+        </div>
+      ) : null}
+
+      {resume.extraction?.status === "pending_review" ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950">
+          <span>This resume still has imported fields waiting for review.</span>
+          <Link
+            to={`/admin/resume-builder/${resume.id}/review`}
+            className="font-semibold text-brand-800 underline"
+          >
+            Open review
+          </Link>
         </div>
       ) : null}
 
@@ -1121,23 +1177,89 @@ export function ResumeEditorPage() {
             </div>
           ) : null}
 
+          {section === "design" ? (
+            <DesignPanel
+              resume={resume}
+              readOnly={readOnly}
+              onChange={(patch) => patchResume((prev) => ({ ...prev, ...patch }))}
+            />
+          ) : null}
+
+          {section === "quality" ? (
+            <QualityPanel
+              resume={resume}
+              readOnly={readOnly}
+              onJump={(sec) => {
+                const map: Record<string, SectionId> = {
+                  basics: "basics",
+                  summary: "summary",
+                  experience: "experience",
+                  education: "education",
+                  skills: "skills",
+                  design: "design",
+                };
+                setSection(map[sec] || "basics");
+              }}
+            />
+          ) : null}
+
+          {section === "versions" ? (
+            <VersionsPanel
+              resume={resume}
+              readOnly={readOnly}
+              onRestored={(next) => {
+                skipNextAutosave.current = true;
+                setResume(next);
+                setDirty(false);
+              }}
+            />
+          ) : null}
+
+          {section === "tailor" ? (
+            <TailorAiPanel
+              resume={resume}
+              readOnly={readOnly}
+              onApplySummary={(summary) => updateBasics("summary", summary)}
+            />
+          ) : null}
+
           {section === "preview" ? (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-ink-900">Preview</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold text-ink-900">Preview</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-2 text-sm text-ink-600">
+                    Zoom
+                    <input
+                      type="range"
+                      min={0.6}
+                      max={1.2}
+                      step={0.05}
+                      value={previewZoom}
+                      onChange={(e) => setPreviewZoom(Number(e.target.value))}
+                    />
+                  </label>
+                  <ExportPdfButton resumeId={resume.id} readOnly={readOnly} />
+                </div>
+              </div>
               <p className="text-sm text-ink-500">
-                Live template preview and PDF export arrive in Phase 3. Here is a structured content
-                preview of what you have so far.
+                Live preview mirrors your selected template. Exported PDF uses the same content and
+                design settings.
               </p>
-              <ResumeContentPreview resume={resume} />
+              <div className="overflow-auto rounded-xl bg-ink-100/80 p-4">
+                <ResumeDocument resume={resume} zoom={previewZoom} />
+              </div>
             </div>
           ) : null}
         </div>
 
         <aside className="hidden xl:block">
-          <div className="sticky top-6 card p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-400">Live preview</p>
-            <div className="mt-3 max-h-[70vh] overflow-y-auto text-sm">
-              <ResumeContentPreview resume={resume} compact />
+          <div className="sticky top-6 card overflow-hidden p-3">
+            <p className="mb-2 px-1 text-xs font-medium uppercase tracking-wide text-ink-400">
+              Live preview
+            </p>
+            <div className="max-h-[75vh] overflow-auto rounded-lg bg-ink-50 p-2">
+              <ResumeDocument resume={resume} zoom={0.55} />
             </div>
           </div>
         </aside>
@@ -1168,66 +1290,3 @@ export function ResumeEditorPage() {
   );
 }
 
-function ResumeContentPreview({
-  resume,
-  compact = false,
-}: {
-  resume: Resume;
-  compact?: boolean;
-}) {
-  return (
-    <div className={compact ? "space-y-3" : "space-y-5 rounded-xl border border-ink-100 bg-white p-5"}>
-      <div>
-        <p className={`font-semibold text-ink-950 ${compact ? "text-base" : "text-xl"}`}>
-          {resume.basics.name || "Your name"}
-        </p>
-        <p className="text-sm text-ink-600">{resume.basics.title || resume.target_role}</p>
-        <p className="mt-1 text-xs text-ink-400">
-          {[resume.basics.email, resume.basics.phone, resume.basics.city || resume.basics.location]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      </div>
-      {(resume.basics.summary || resume.basics.objective) && (
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Summary</h3>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-ink-700">
-            {resume.basics.summary || resume.basics.objective}
-          </p>
-        </section>
-      )}
-      {resume.experience.length > 0 && (
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Experience</h3>
-          <ul className="mt-2 space-y-3">
-            {resume.experience.map((item) => (
-              <li key={item.id}>
-                <p className="text-sm font-medium text-ink-800">
-                  {item.role || "Role"} · {item.company || "Company"}
-                </p>
-                <p className="text-xs text-ink-400">
-                  {item.start}
-                  {item.start || item.end || item.current ? " – " : ""}
-                  {item.current ? "Present" : item.end}
-                </p>
-                <ul className="mt-1 list-disc space-y-0.5 pl-4 text-sm text-ink-600">
-                  {(item.bullets || []).filter(Boolean).map((b, i) => (
-                    <li key={i}>{b}</li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {(resume.skills || []).length > 0 && (
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Skills</h3>
-          <p className="mt-1 text-sm text-ink-700">
-            {(resume.skills || []).map((s) => s.name).join(" · ")}
-          </p>
-        </section>
-      )}
-    </div>
-  );
-}

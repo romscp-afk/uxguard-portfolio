@@ -10,6 +10,7 @@ function augmentNodeResponse(res: Connect.ServerResponse) {
   const anyRes = res as Connect.ServerResponse & {
     status: (code: number) => typeof anyRes;
     json: (body: unknown) => void;
+    send: (body: unknown) => typeof anyRes;
   };
 
   if (typeof anyRes.status !== "function") {
@@ -25,6 +26,20 @@ function augmentNodeResponse(res: Connect.ServerResponse) {
         anyRes.setHeader("Content-Type", "application/json; charset=utf-8");
       }
       anyRes.end(JSON.stringify(body));
+    };
+  }
+
+  if (typeof anyRes.send !== "function") {
+    anyRes.send = (body: unknown) => {
+      if (Buffer.isBuffer(body) || typeof body === "string") {
+        anyRes.end(body);
+        return anyRes;
+      }
+      if (!anyRes.getHeader("Content-Type")) {
+        anyRes.setHeader("Content-Type", "application/json; charset=utf-8");
+      }
+      anyRes.end(JSON.stringify(body));
+      return anyRes;
     };
   }
 

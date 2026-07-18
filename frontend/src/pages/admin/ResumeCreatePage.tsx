@@ -118,7 +118,12 @@ export function ResumeCreatePage() {
       const result = await api.importResume(file, meta);
       await refreshUser();
       if (result.message) setNotice(result.message);
-      navigate(`/admin/resume-builder/${result.resume.id}`);
+      const nextId = result.resume.id;
+      if (result.needs_review || result.resume.extraction?.status === "pending_review") {
+        navigate(`/admin/resume-builder/${nextId}/review`);
+      } else {
+        navigate(`/admin/resume-builder/${nextId}`);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not import resume.");
       setNotice("");

@@ -297,7 +297,8 @@ export interface Resume {
   status: ResumeStatus;
   completion_percentage: number;
   template_id?: string;
-  settings?: Record<string, unknown>;
+  settings?: ResumeSettings;
+  versions?: ResumeVersionSummary[];
   basics: ResumeBasics;
   experience: ResumeExperience[];
   education: ResumeEducation[];
@@ -318,6 +319,7 @@ export interface Resume {
   parsed_at?: string | null;
   parse_status: ResumeParseStatus;
   parse_error?: string | null;
+  extraction?: ResumeExtraction | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -335,11 +337,97 @@ export interface ResumeSummary {
   created_at: string;
 }
 
+export interface ResumeSettings {
+  primary_color: string;
+  accent_color: string;
+  font_family: string;
+  font_size: number;
+  line_spacing: number;
+  section_spacing: number;
+  margins: number;
+  layout: "single" | "two";
+  show_photo: boolean;
+  date_format: string;
+  page_size: "a4" | "letter";
+}
+
+export interface ResumeVersionSummary {
+  id: string;
+  version_number: number;
+  label: string;
+  notes?: string;
+  target_company?: string;
+  target_role?: string;
+  created_at: string;
+}
+
+export interface ResumeQualityIssue {
+  severity: "critical" | "recommended" | "optional";
+  code: string;
+  message: string;
+  section?: string | null;
+  field?: string | null;
+}
+
+export interface ResumeQualityResult {
+  issues: ResumeQualityIssue[];
+  summary: { critical: number; recommended: number; optional: number; total: number };
+  guidance: string;
+}
+
+export interface ResumeTemplateInfo {
+  id: string;
+  name: string;
+  description: string;
+  thumbnail: string;
+  supports_two_column: boolean;
+  ats_friendly: boolean;
+  defaults: ResumeSettings;
+}
+
+export interface ResumeMatchResult {
+  indicator: number;
+  breakdown: Record<string, number>;
+  matched_keywords: string[];
+  missing_keywords: string[];
+  quality_issues: { critical: number; recommended: number; optional: number };
+  disclaimer: string;
+}
+
 export interface ResumeImportResult {
   resume: Resume;
   credits_used?: number;
   ai_used: boolean;
   message?: string;
+  needs_review?: boolean;
+}
+
+export type ResumeExtractionFieldStatus =
+  | "confirmed"
+  | "needs_review"
+  | "missing"
+  | "not_imported";
+
+export interface ResumeExtractionField {
+  value: string | number | string[];
+  confidence: number;
+  status: ResumeExtractionFieldStatus;
+  reviewed?: boolean;
+  changed?: boolean;
+  source_text?: string;
+}
+
+export interface ResumeExtraction {
+  parser_version: string;
+  parser: string;
+  ai_used: boolean;
+  status: "pending_review" | "confirmed" | "failed" | "skipped";
+  raw_text: string;
+  warnings: { code?: string; message: string }[];
+  fields: Record<string, ResumeExtractionField>;
+  needs_review_count: number;
+  created_at?: string | null;
+  reviewed_at?: string | null;
 }
 
 export type PortfolioTheme =

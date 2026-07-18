@@ -1,3 +1,5 @@
+import { normalizeResumeSettings } from "./templates.js";
+
 function uid(prefix = "r") {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -332,7 +334,8 @@ export function normalizeResume(input, userId) {
     creation_method: creationMethod,
     status,
     template_id: asString(raw.template_id) || "classic_ats",
-    settings: raw.settings && typeof raw.settings === "object" ? raw.settings : {},
+    settings: normalizeResumeSettings(raw.settings, asString(raw.template_id) || "classic_ats"),
+    versions: normalizeVersions(raw.versions),
     basics: {
       ...emptyResumeBasics(),
       name: asString(raw.basics?.name),
@@ -381,6 +384,7 @@ export function normalizeResume(input, userId) {
       ? raw.parse_status
       : "none",
     parse_error: raw.parse_error ? asString(raw.parse_error) : null,
+    extraction: normalizeExtraction(raw.extraction),
     created_at: raw.created_at || now,
     updated_at: raw.updated_at || now,
     deleted_at: raw.deleted_at || null,
@@ -388,6 +392,42 @@ export function normalizeResume(input, userId) {
 
   resume.completion_percentage = calculateCompletion(resume);
   return resume;
+}
+
+function normalizeVersions(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item, index) => ({
+    id: asString(item?.id) || uid("ver"),
+    version_number: Number(item?.version_number) || index + 1,
+    label: asString(item?.label) || `Version ${index + 1}`,
+    notes: asString(item?.notes),
+    target_company: asString(item?.target_company),
+    target_role: asString(item?.target_role),
+    content_snapshot: item?.content_snapshot && typeof item.content_snapshot === "object"
+      ? item.content_snapshot
+      : {},
+    created_at: item?.created_at || new Date().toISOString(),
+    created_by: item?.created_by == null ? null : Number(item.created_by),
+  }));
+}
+
+function normalizeExtraction(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const status = ["pending_review", "confirmed", "failed", "skipped"].includes(raw.status)
+    ? raw.status
+    : "pending_review";
+  return {
+    parser_version: asString(raw.parser_version) || "1.0.0",
+    parser: asString(raw.parser) || "unknown",
+    ai_used: Boolean(raw.ai_used),
+    status,
+    raw_text: asString(raw.raw_text).slice(0, 80_000),
+    warnings: Array.isArray(raw.warnings) ? raw.warnings : [],
+    fields: raw.fields && typeof raw.fields === "object" ? raw.fields : {},
+    needs_review_count: Number(raw.needs_review_count) || 0,
+    created_at: raw.created_at || null,
+    reviewed_at: raw.reviewed_at || null,
+  };
 }
 
 export function mergeParsedIntoResume(existing, parsed) {

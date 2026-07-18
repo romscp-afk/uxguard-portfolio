@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Archive,
   Copy,
+  Download,
   FileText,
   MoreHorizontal,
   Pencil,
@@ -184,6 +185,25 @@ export function ResumeDashboardPage() {
     }
   }
 
+  async function handleDownload(resume: ResumeSummary) {
+    setBusyId(resume.id);
+    setError("");
+    try {
+      const { blob, filename } = await api.downloadResumePdf(resume.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMenuOpenId(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not download PDF.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div>
       <ReadOnlyNotice />
@@ -326,6 +346,26 @@ export function ResumeDashboardPage() {
                   >
                     Preview
                   </Link>
+                  <EditGuard>
+                    <button
+                      type="button"
+                      className="btn-secondary text-sm"
+                      disabled={busyId === resume.id}
+                      onClick={() => void handleDownload(resume)}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost text-sm text-red-700 hover:bg-red-50"
+                      disabled={busyId === resume.id}
+                      onClick={() => void handleDelete(resume)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  </EditGuard>
                   <div className="relative ml-auto">
                     <button
                       type="button"
@@ -363,13 +403,6 @@ export function ResumeDashboardPage() {
                           >
                             <Archive className="h-3.5 w-3.5" />
                             {resume.status === "archived" ? "Unarchive" : "Archive"}
-                          </button>
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
-                            onClick={() => void handleDelete(resume)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </button>
                         </EditGuard>
                       </div>

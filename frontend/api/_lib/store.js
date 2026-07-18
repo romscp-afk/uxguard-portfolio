@@ -435,7 +435,19 @@ export async function readStore(options = {}) {
 
     try {
       const { data, etag } = await loadFromBlobWithMeta();
-      memoryStore = normalizeLoadedStore(data);
+      let next = normalizeLoadedStore(data);
+      // Blob reads can lag a local write. Keep recent in-memory mutations so
+      // follow-up updates (versions, export, delete) still see the new rows.
+      if (
+        slot.current &&
+        typeof slot.writtenAt === "number" &&
+        Date.now() - slot.writtenAt < 10_000
+      ) {
+        const localClone = structuredClone(slot.current);
+        const deleted = takeDeletionMarkers(localClone);
+        next = mergeStoresForWrite(localClone, next, deleted);
+      }
+      memoryStore = next;
       slot.current = memoryStore;
       // Mark as freshly loaded so soft-cache applies (not only post-write).
       slot.writtenAt = Date.now();
