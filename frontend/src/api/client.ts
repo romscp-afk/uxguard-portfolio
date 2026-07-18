@@ -35,6 +35,17 @@ import type {
   ResumeQualityResult,
   ResumeVersionSummary,
   ResumeMatchResult,
+  ResumeTimelineSelection,
+  CareerProfile,
+  CareerTimelineEntry,
+  CareerInsights,
+  CareerImportDuplicate,
+  Company,
+  CompanyMember,
+  Job,
+  JobApplication,
+  JobMatchSummary,
+  EmployerDashboard,
   SearchResults,
   User,
   UserProfile,
@@ -210,6 +221,234 @@ export const api = {
   getFollowingFeed: () => request<FeedCaseStudyItem[]>("/feed/following"),
 
   getMyResume: () => request<{ resume: Resume | null }>("/resumes/me"),
+
+  getCareerProfile: () => request<{ profile: CareerProfile }>("/career-profile"),
+
+  updateCareerProfile: (data: Partial<CareerProfile>) =>
+    request<{ profile: CareerProfile }>("/career-profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  listCareerTimeline: (includeHidden = true) =>
+    request<{ entries: CareerTimelineEntry[] }>(
+      `/career-timeline?include_hidden=${includeHidden ? "1" : "0"}`,
+    ),
+
+  createCareerTimelineEntry: (data: Partial<CareerTimelineEntry>) =>
+    request<{ entry: CareerTimelineEntry }>("/career-timeline", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getCareerTimelineEntry: (id: number) =>
+    request<{ entry: CareerTimelineEntry }>(`/career-timeline/${id}`),
+
+  updateCareerTimelineEntry: (id: number, data: Partial<CareerTimelineEntry>) =>
+    request<{ entry: CareerTimelineEntry }>(`/career-timeline/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteCareerTimelineEntry: (id: number) =>
+    request<{ ok: boolean }>(`/career-timeline/${id}`, { method: "DELETE" }),
+
+  importCareerTimelineFromResume: (resumeId: number) =>
+    request<{
+      resume_id: number;
+      created: CareerTimelineEntry[];
+      duplicates: CareerImportDuplicate[];
+      created_count: number;
+      duplicate_count: number;
+    }>("/career-timeline/import-from-resume", {
+      method: "POST",
+      body: JSON.stringify({ resume_id: resumeId }),
+    }),
+
+  resolveCareerTimelineMerge: (
+    decisions: Array<{
+      action: "merge" | "keep_both" | "replace" | "review_later";
+      candidate?: Partial<CareerTimelineEntry>;
+      existing_id?: number;
+    }>,
+  ) =>
+    request<{ results: unknown[] }>("/career-timeline/merge", {
+      method: "POST",
+      body: JSON.stringify({ decisions }),
+    }),
+
+  getCareerInsights: () =>
+    request<{
+      profile: CareerProfile;
+      insights: CareerInsights;
+      entries: CareerTimelineEntry[];
+    }>("/career-timeline/insights"),
+
+  getResumeTimelineSelection: (resumeId: number) =>
+    request<{
+      resume_id: number;
+      selections: ResumeTimelineSelection[];
+      available_entries: CareerTimelineEntry[];
+    }>(`/resumes/${resumeId}/timeline-selection`),
+
+  putResumeTimelineSelection: (
+    resumeId: number,
+    selections: Array<Partial<ResumeTimelineSelection>>,
+  ) =>
+    request<{
+      resume_id: number;
+      selections: ResumeTimelineSelection[];
+      available_entries: CareerTimelineEntry[];
+    }>(`/resumes/${resumeId}/timeline-selection`, {
+      method: "PUT",
+      body: JSON.stringify({ selections }),
+    }),
+
+  setActiveWorkspace: (active_workspace: "candidate" | "employer") =>
+    request<User>("/workspace", {
+      method: "PATCH",
+      body: JSON.stringify({ active_workspace }),
+    }),
+
+  enableEmployerWorkspace: () =>
+    request<User>("/workspace", {
+      method: "PATCH",
+      body: JSON.stringify({ enable_employer: true }),
+    }),
+
+  getEmployerDashboard: () => request<EmployerDashboard>("/employer/dashboard"),
+
+  listCompanies: () =>
+    request<{ companies: Company[]; dashboard: EmployerDashboard }>("/companies"),
+
+  createCompany: (data: Partial<Company> & { terms_accepted?: boolean }) =>
+    request<{ company: Company }>("/companies", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getCompany: (id: number) => request<{ company: Company }>(`/companies/${id}`),
+
+  updateCompany: (id: number, data: Partial<Company>) =>
+    request<{ company: Company }>(`/companies/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  listCompanyMembers: (companyId: number) =>
+    request<{ members: CompanyMember[] }>(`/companies/${companyId}/team`),
+
+  inviteCompanyMember: (
+    companyId: number,
+    data: { email: string; role?: string; assigned_job_ids?: number[] },
+  ) =>
+    request<{ invitation: unknown; invite_token: string }>(`/companies/${companyId}/team`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateCompanyMember: (companyId: number, memberId: number, data: Partial<CompanyMember>) =>
+    request<{ member: CompanyMember }>(`/companies/${companyId}/team/${memberId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  listCompanyJobs: (companyId: number) =>
+    request<{ jobs: Job[] }>(`/companies/${companyId}/jobs`),
+
+  createCompanyJob: (companyId: number, data: Partial<Job> = {}) =>
+    request<{ job: Job }>(`/companies/${companyId}/jobs`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  searchJobs: (params: Record<string, string | number | boolean | undefined> = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    }
+    const q = qs.toString();
+    return request<{
+      jobs: Job[];
+      total: number;
+      page: number;
+      page_size: number;
+      total_pages: number;
+    }>(`/jobs${q ? `?${q}` : ""}`);
+  },
+
+  getJob: (id: number) => request<{ job: Job; view: string }>(`/jobs/${id}`),
+
+  updateJob: (id: number, data: Partial<Job>) =>
+    request<{ job: Job }>(`/jobs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  jobAction: (id: number, action: string, data: Record<string, unknown> = {}) =>
+    request<{ job?: Job; match?: JobMatchSummary; report?: unknown }>(`/jobs/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ action, ...data }),
+    }),
+
+  saveJob: (id: number) => request<{ saved: unknown }>(`/jobs/${id}/save`, { method: "POST" }),
+
+  unsaveJob: (id: number) => request<{ ok: boolean }>(`/jobs/${id}/save`, { method: "DELETE" }),
+
+  applyToJob: (
+    id: number,
+    data: {
+      resume_id: number;
+      cover_letter?: string;
+      portfolio_url?: string;
+      screening_answers?: unknown[];
+      consent_accepted: boolean;
+    },
+  ) =>
+    request<{ application: JobApplication }>(`/jobs/${id}/applications`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listMyApplications: () => request<{ applications: JobApplication[] }>("/candidate/applications"),
+
+  listSavedJobs: () => request<{ jobs: Job[] }>("/candidate/saved-jobs"),
+
+  getApplication: (id: number) =>
+    request<{
+      application: JobApplication;
+      view: string;
+      resume_snapshot?: unknown;
+      career_profile_snapshot?: unknown;
+      job?: Partial<Job> | null;
+      company?: Partial<Company> | null;
+      notes?: unknown[];
+      history?: unknown[];
+      candidate?: { id: number; name: string; title?: string; username?: string } | null;
+    }>(`/applications/${id}`),
+
+  withdrawApplication: (id: number) =>
+    request<{ application: JobApplication }>(`/applications/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "withdraw" }),
+    }),
+
+  updateApplicationStage: (id: number, data: { status: string; candidate_visible_status?: string; note?: string }) =>
+    request<{ application: JobApplication }>(`/applications/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  addApplicationNote: (id: number, note: string) =>
+    request<{ note: unknown }>(`/applications/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "note", note }),
+    }),
+
+  listEmployerJobApplications: (jobId: number, stage?: string) =>
+    request<{ applications: JobApplication[] }>(
+      `/employer/jobs/${jobId}/applications${stage ? `?stage=${encodeURIComponent(stage)}` : ""}`,
+    ),
 
   listResumes: () => request<{ resumes: ResumeSummary[] }>("/resumes"),
 

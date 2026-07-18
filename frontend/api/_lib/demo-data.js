@@ -283,12 +283,23 @@ export async function updateUserProfile(userId, updates) {
 
 export function toUserOut(user) {
   const { password: _password, ...rest } = user;
+  const role = rest.role === "researcher" ? "professional" : rest.role;
+  const canEdit = role === "admin" || role === "professional";
+  const workspaces = {
+    candidate:
+      rest.workspaces?.candidate !== undefined ? Boolean(rest.workspaces.candidate) : canEdit,
+    employer:
+      rest.workspaces?.employer !== undefined ? Boolean(rest.workspaces.employer) : false,
+  };
   return {
     ...rest,
     avatar_url: rest.avatar_url || null,
     cover_image_url: rest.cover_image_url || null,
     cv_url: rest.cv_url || null,
-    role: rest.role === "researcher" ? "professional" : rest.role,
+    role,
+    workspaces,
+    active_workspace:
+      rest.active_workspace === "employer" && workspaces.employer ? "employer" : "candidate",
     portfolio_url: `/u/${user.username}`,
     portfolio_config: {
       ...defaultPortfolioConfig(),

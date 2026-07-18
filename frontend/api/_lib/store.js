@@ -236,6 +236,20 @@ function normalizeLoadedStore(data) {
     contact_messages: data.contact_messages || [],
     projects: data.projects || [],
     resumes: data.resumes || [],
+    career_profiles: data.career_profiles || [],
+    career_timeline_entries: data.career_timeline_entries || [],
+    companies: data.companies || [],
+    company_members: data.company_members || [],
+    jobs: data.jobs || [],
+    saved_jobs: data.saved_jobs || [],
+    job_applications: data.job_applications || [],
+    application_stage_history: data.application_stage_history || [],
+    application_internal_notes: data.application_internal_notes || [],
+    employer_invitations: data.employer_invitations || [],
+    job_reports: data.job_reports || [],
+    job_revisions: data.job_revisions || [],
+    hiring_analytics_events: data.hiring_analytics_events || [],
+    hiring_audit_log: data.hiring_audit_log || [],
     ai_conversations: data.ai_conversations || [],
     ai_messages: data.ai_messages || [],
     ai_usage: data.ai_usage || [],
@@ -249,14 +263,34 @@ function normalizeLoadedStore(data) {
       ...asset,
       url: normalizeMediaAssetUrl(asset.url, asset.id),
     })),
-    users: (data.users || []).map((user) => ({
-      ...user,
-      role: user.role === "researcher" ? "professional" : user.role,
-      portfolio_config: {
-        ...defaultPortfolioConfig(),
-        ...(user.portfolio_config || {}),
-      },
-    })),
+    users: (data.users || []).map((user) => {
+      const role = user.role === "researcher" ? "professional" : user.role;
+      const canEdit = role === "admin" || role === "professional";
+      const workspaces = {
+        candidate:
+          user.workspaces?.candidate !== undefined
+            ? Boolean(user.workspaces.candidate)
+            : canEdit,
+        employer:
+          user.workspaces?.employer !== undefined
+            ? Boolean(user.workspaces.employer)
+            : false,
+      };
+      const activeWorkspace =
+        user.active_workspace === "employer" && workspaces.employer
+          ? "employer"
+          : "candidate";
+      return {
+        ...user,
+        role,
+        workspaces,
+        active_workspace: activeWorkspace,
+        portfolio_config: {
+          ...defaultPortfolioConfig(),
+          ...(user.portfolio_config || {}),
+        },
+      };
+    }),
   };
   return store;
 }
@@ -299,6 +333,20 @@ function seedStore() {
       },
     ],
     resumes: [],
+    career_profiles: [],
+    career_timeline_entries: [],
+    companies: [],
+    company_members: [],
+    jobs: [],
+    saved_jobs: [],
+    job_applications: [],
+    application_stage_history: [],
+    application_internal_notes: [],
+    employer_invitations: [],
+    job_reports: [],
+    job_revisions: [],
+    hiring_analytics_events: [],
+    hiring_audit_log: [],
     ai_conversations: [],
     ai_messages: [],
     ai_usage: [],
@@ -701,6 +749,17 @@ function takeDeletionMarkers(store) {
     caseStudies: markers.caseStudies || [],
     projects: markers.projects || [],
     resumes: markers.resumes || [],
+    career_profiles: markers.career_profiles || [],
+    career_timeline_entries: markers.career_timeline_entries || [],
+    companies: markers.companies || [],
+    company_members: markers.company_members || [],
+    jobs: markers.jobs || [],
+    saved_jobs: markers.saved_jobs || [],
+    job_applications: markers.job_applications || [],
+    application_stage_history: markers.application_stage_history || [],
+    application_internal_notes: markers.application_internal_notes || [],
+    employer_invitations: markers.employer_invitations || [],
+    job_reports: markers.job_reports || [],
     mediaAssets: markers.mediaAssets || [],
     follows: markers.follows || [],
     likes: markers.likes || [],
@@ -737,6 +796,49 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       remote.resumes || [],
       localStore.resumes || [],
       deleted.resumes,
+    ),
+    career_profiles: mergeByNumericId(
+      remote.career_profiles || [],
+      localStore.career_profiles || [],
+      deleted.career_profiles,
+    ),
+    career_timeline_entries: mergeByNumericId(
+      remote.career_timeline_entries || [],
+      localStore.career_timeline_entries || [],
+      deleted.career_timeline_entries,
+    ),
+    companies: mergeByNumericId(remote.companies || [], localStore.companies || [], deleted.companies),
+    company_members: mergeByNumericId(
+      remote.company_members || [],
+      localStore.company_members || [],
+      deleted.company_members,
+    ),
+    jobs: mergeByNumericId(remote.jobs || [], localStore.jobs || [], deleted.jobs),
+    saved_jobs: mergeByNumericId(remote.saved_jobs || [], localStore.saved_jobs || [], deleted.saved_jobs),
+    job_applications: mergeByNumericId(
+      remote.job_applications || [],
+      localStore.job_applications || [],
+      deleted.job_applications,
+    ),
+    application_stage_history: mergeByNumericId(
+      remote.application_stage_history || [],
+      localStore.application_stage_history || [],
+      deleted.application_stage_history,
+    ),
+    application_internal_notes: mergeByNumericId(
+      remote.application_internal_notes || [],
+      localStore.application_internal_notes || [],
+      deleted.application_internal_notes,
+    ),
+    employer_invitations: mergeByNumericId(
+      remote.employer_invitations || [],
+      localStore.employer_invitations || [],
+      deleted.employer_invitations,
+    ),
+    job_reports: mergeByNumericId(
+      remote.job_reports || [],
+      localStore.job_reports || [],
+      deleted.job_reports,
     ),
     follows: mergeFollows(remote.follows || [], localStore.follows || [], deleted.follows),
     likes: mergeLikes(remote.likes || [], localStore.likes || [], deleted.likes),
@@ -790,6 +892,41 @@ export async function writeStore(store) {
         deleted.case_study_views,
       ),
       resumes: mergeByNumericId(store.resumes || [], [], deleted.resumes),
+      career_profiles: mergeByNumericId(
+        store.career_profiles || [],
+        [],
+        deleted.career_profiles,
+      ),
+      career_timeline_entries: mergeByNumericId(
+        store.career_timeline_entries || [],
+        [],
+        deleted.career_timeline_entries,
+      ),
+      companies: mergeByNumericId(store.companies || [], [], deleted.companies),
+      company_members: mergeByNumericId(store.company_members || [], [], deleted.company_members),
+      jobs: mergeByNumericId(store.jobs || [], [], deleted.jobs),
+      saved_jobs: mergeByNumericId(store.saved_jobs || [], [], deleted.saved_jobs),
+      job_applications: mergeByNumericId(
+        store.job_applications || [],
+        [],
+        deleted.job_applications,
+      ),
+      application_stage_history: mergeByNumericId(
+        store.application_stage_history || [],
+        [],
+        deleted.application_stage_history,
+      ),
+      application_internal_notes: mergeByNumericId(
+        store.application_internal_notes || [],
+        [],
+        deleted.application_internal_notes,
+      ),
+      employer_invitations: mergeByNumericId(
+        store.employer_invitations || [],
+        [],
+        deleted.employer_invitations,
+      ),
+      job_reports: mergeByNumericId(store.job_reports || [], [], deleted.job_reports),
     };
     memoryStore = cleaned;
     slot.current = cleaned;

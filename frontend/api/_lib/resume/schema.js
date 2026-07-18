@@ -385,6 +385,27 @@ export function normalizeResume(input, userId) {
       : "none",
     parse_error: raw.parse_error ? asString(raw.parse_error) : null,
     extraction: normalizeExtraction(raw.extraction),
+    timeline_selections: Array.isArray(raw.timeline_selections)
+      ? raw.timeline_selections.map((item) => {
+          const content =
+            item?.resume_specific_content && typeof item.resume_specific_content === "object"
+              ? {
+                  title: asString(item.resume_specific_content.title),
+                  description: asString(item.resume_specific_content.description),
+                  achievements: asStringArray(item.resume_specific_content.achievements),
+                  skills: asStringArray(item.resume_specific_content.skills),
+                }
+              : null;
+          return {
+            id: asString(item?.id) || uid("sel"),
+            timeline_entry_id: Number(item?.timeline_entry_id) || 0,
+            is_included: item?.is_included !== false,
+            resume_specific_content: content,
+            created_at: item?.created_at || now,
+            updated_at: item?.updated_at || now,
+          };
+        }).filter((item) => item.timeline_entry_id)
+      : [],
     created_at: raw.created_at || now,
     updated_at: raw.updated_at || now,
     deleted_at: raw.deleted_at || null,

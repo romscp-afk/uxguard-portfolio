@@ -28,6 +28,19 @@ import { ResumeDashboardPage } from "./pages/admin/ResumeDashboardPage";
 import { ResumeCreatePage } from "./pages/admin/ResumeCreatePage";
 import { ResumeEditorPage } from "./pages/admin/ResumeEditorPage";
 import { ResumeReviewPage } from "./pages/admin/ResumeReviewPage";
+import { CareerTimelinePage } from "./pages/admin/CareerTimelinePage";
+import { CareerTimelineEntryPage } from "./pages/admin/CareerTimelineEntryPage";
+import { EmployerWorkspacePage } from "./pages/admin/EmployerWorkspacePage";
+import { EmployerJobEditorPage } from "./pages/admin/EmployerJobEditorPage";
+import { EmployerCompanyPage, EmployerTeamPage } from "./pages/admin/EmployerCompanyPage";
+import {
+  EmployerApplicationsPage,
+  EmployerApplicationDetailPage,
+} from "./pages/admin/EmployerApplicationsPage";
+import { JobsBrowsePage } from "./pages/admin/JobsBrowsePage";
+import { JobDetailPage } from "./pages/admin/JobDetailPage";
+import { MyApplicationsPage } from "./pages/admin/MyApplicationsPage";
+import { ApplicationDetailPage, SavedJobsPage } from "./pages/admin/ApplicationDetailPage";
 import { TemplatesPage } from "./pages/admin/TemplatesPage";
 import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { AiHubPage } from "./pages/admin/ai/AiHubPage";
@@ -76,6 +89,21 @@ export default function App() {
             <Route path="resume-builder/new" element={<ResumeCreatePage />} />
             <Route path="resume-builder/:id/review" element={<ResumeReviewPage />} />
             <Route path="resume-builder/:id" element={<ResumeEditorPage />} />
+            <Route path="career-timeline" element={<CareerTimelinePage />} />
+            <Route path="career-timeline/new" element={<CareerTimelineEntryPage />} />
+            <Route path="career-timeline/:entryId" element={<CareerTimelineEntryPage />} />
+            <Route path="jobs" element={<JobsBrowsePage />} />
+            <Route path="jobs/:jobId" element={<JobDetailPage />} />
+            <Route path="applications" element={<MyApplicationsPage />} />
+            <Route path="applications/:applicationId" element={<ApplicationDetailPage />} />
+            <Route path="saved-jobs" element={<SavedJobsPage />} />
+            <Route path="employer" element={<EmployerWorkspacePage />} />
+            <Route path="employer/company/:companyId" element={<EmployerCompanyPage />} />
+            <Route path="employer/company/:companyId/team" element={<EmployerTeamPage />} />
+            <Route path="employer/jobs/new" element={<EmployerJobEditorPage />} />
+            <Route path="employer/jobs/:jobId" element={<EmployerJobEditorPage />} />
+            <Route path="employer/jobs/:jobId/applications" element={<EmployerApplicationsPage />} />
+            <Route path="employer/applications/:applicationId" element={<EmployerApplicationDetailPage />} />
             <Route path="templates" element={<TemplatesPage />} />
             <Route path="ai" element={<AiHubPage />} />
             <Route path="ai/history" element={<AiHistoryPage />} />

@@ -19,6 +19,7 @@ import {
   TailorAiPanel,
   VersionsPanel,
 } from "../../components/resume/ResumeWorkspacePanels";
+import { ResumeTimelinePanel } from "../../components/resume/ResumeTimelinePanel";
 import { useAuth } from "../../context/AuthContext";
 import { canEditPlatform } from "../../lib/roles";
 import type {
@@ -41,6 +42,7 @@ type SectionId =
   | "projects"
   | "certifications"
   | "languages"
+  | "timeline"
   | "design"
   | "quality"
   | "versions"
@@ -59,6 +61,7 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "certifications", label: "Certifications" },
   { id: "languages", label: "Languages" },
+  { id: "timeline", label: "Career Timeline" },
   { id: "design", label: "Design" },
   { id: "quality", label: "Quality check" },
   { id: "versions", label: "Versions" },
@@ -1177,6 +1180,12 @@ export function ResumeEditorPage() {
                 </div>
               ))}
             </div>
+          ) : null}
+
+          {section === "timeline" ? (
+            <EditGuard>
+              <ResumeTimelinePanel resumeId={resume.id} />
+            </EditGuard>
           ) : null}
 
           {section === "design" ? (

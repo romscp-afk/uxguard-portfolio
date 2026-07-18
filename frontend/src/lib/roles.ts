@@ -50,36 +50,115 @@ export const ROLE_OPTIONS = [
   },
 ];
 
-type NavLink = { to: string; label: string; section: string; comingSoon?: boolean };
+export type NavLink = {
+  to: string;
+  label: string;
+  section: string;
+  comingSoon?: boolean;
+};
 
-/** Fixed Platform nav order for launch */
-const PLATFORM_LINKS: NavLink[] = [
-  { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
-  { to: "/admin/resume-builder", label: "Resume Builder", section: "resume" },
-  { to: "/admin/profile", label: "Professional Profile", section: "profile" },
-  { to: "/admin/projects", label: "Projects", section: "projects" },
-  { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
-  { to: "/admin/analytics", label: "Analytics", section: "analytics" },
-  { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
-  { to: "/admin/templates", label: "Templates", section: "templates" },
-  { to: "/admin/media", label: "Media Library", section: "media" },
-  { to: "/admin/billing", label: "Billing", section: "billing" },
-  { to: "/admin/notifications", label: "Notifications", section: "notifications" },
+export type NavGroup = {
+  id: string;
+  label: string;
+  links: NavLink[];
+};
+
+const CANDIDATE_GROUPS: NavGroup[] = [
+  {
+    id: "career",
+    label: "Career",
+    links: [
+      { to: "/admin/resume-builder", label: "Resume Builder", section: "resume" },
+      { to: "/admin/career-timeline", label: "Career Timeline", section: "timeline" },
+      { to: "/admin/profile", label: "Profile", section: "profile" },
+    ],
+  },
+  {
+    id: "opportunities",
+    label: "Opportunities",
+    links: [
+      { to: "/admin/jobs", label: "Jobs", section: "jobs" },
+      { to: "/admin/applications", label: "My Applications", section: "applications" },
+      { to: "/admin/saved-jobs", label: "Saved Jobs", section: "saved" },
+    ],
+  },
+  {
+    id: "portfolio",
+    label: "Portfolio",
+    links: [
+      { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
+      { to: "/admin/projects", label: "Projects", section: "projects" },
+      { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
+      { to: "/admin/templates", label: "Templates", section: "templates" },
+      { to: "/admin/media", label: "Media Library", section: "media" },
+    ],
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    links: [
+      { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
+      { to: "/admin/analytics", label: "Analytics", section: "analytics" },
+    ],
+  },
+  {
+    id: "account",
+    label: "Account",
+    links: [
+      { to: "/admin/billing", label: "Billing", section: "billing" },
+      { to: "/admin/notifications", label: "Notifications", section: "notifications" },
+    ],
+  },
+];
+
+const EMPLOYER_GROUPS: NavGroup[] = [
+  {
+    id: "hiring",
+    label: "Hiring",
+    links: [
+      { to: "/admin/employer", label: "Dashboard", section: "employer" },
+      { to: "/admin/employer/jobs/new", label: "Post a Job", section: "post-job" },
+    ],
+  },
+  {
+    id: "account",
+    label: "Account",
+    links: [
+      { to: "/admin/billing", label: "Billing", section: "billing" },
+      { to: "/admin/notifications", label: "Notifications", section: "notifications" },
+    ],
+  },
 ];
 
 const PHASE2_LINKS: NavLink[] = [
-  { to: "#", label: "Career Timeline", section: "timeline", comingSoon: true },
   { to: "#", label: "Achievements", section: "achievements", comingSoon: true },
 ];
 
 export function dashboardLinksForUser(user?: User | null) {
-  const primary = [...PLATFORM_LINKS];
+  const workspace = user?.active_workspace === "employer" ? "employer" : "candidate";
+  const groups =
+    workspace === "employer"
+      ? EMPLOYER_GROUPS.map((g) => ({ ...g, links: [...g.links] }))
+      : CANDIDATE_GROUPS.map((g) => ({ ...g, links: [...g.links] }));
 
-  // Admin-only tools
-  if (isAdmin(user)) {
-    primary.push({ to: "/admin/users", label: "Users", section: "users" });
-    primary.push({ to: "/admin/contact-inbox", label: "Mail", section: "contact" });
+  if (isAdmin(user) && workspace === "candidate") {
+    groups.push({
+      id: "admin",
+      label: "Admin",
+      links: [
+        { to: "/admin/users", label: "Users", section: "users" },
+        { to: "/admin/contact-inbox", label: "Mail", section: "contact" },
+      ],
+    });
   }
 
-  return { primary, phase2: PHASE2_LINKS };
+  // Flat list kept for any callers that still expect `primary`
+  const primary = groups.flatMap((g) => g.links);
+
+  return {
+    groups,
+    primary,
+    phase2: workspace === "candidate" ? PHASE2_LINKS : [],
+    workspace,
+  };
 }

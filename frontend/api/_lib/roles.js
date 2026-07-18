@@ -31,8 +31,49 @@ export function canEditPlatform(user) {
   return role === "admin" || role === "professional";
 }
 
+export function assertCanEdit(user) {
+  if (!canEditPlatform(user)) {
+    const error = new Error("Your account is read-only. Upgrade to Professional to edit.");
+    error.status = 403;
+    throw error;
+  }
+}
+
 export function isAdmin(user) {
   return normalizeRole(user?.role) === "admin";
+}
+
+/** Product workspaces — orthogonal to platform role (admin/professional/viewer). */
+export function defaultWorkspaces(user) {
+  const canEdit = canEditPlatform(user);
+  const existing = user?.workspaces && typeof user.workspaces === "object" ? user.workspaces : {};
+  return {
+    candidate: existing.candidate !== undefined ? Boolean(existing.candidate) : canEdit,
+    employer: existing.employer !== undefined ? Boolean(existing.employer) : false,
+  };
+}
+
+export function normalizeActiveWorkspace(value, workspaces) {
+  if (value === "employer" && workspaces?.employer) return "employer";
+  return "candidate";
+}
+
+export function assertCandidateWorkspace(user) {
+  const workspaces = defaultWorkspaces(user);
+  if (!workspaces.candidate && !isAdmin(user)) {
+    const err = new Error("Candidate workspace is not available for this account");
+    err.status = 403;
+    throw err;
+  }
+}
+
+export function assertEmployerWorkspace(user) {
+  const workspaces = defaultWorkspaces(user);
+  if (!workspaces.employer && !isAdmin(user)) {
+    const err = new Error("Employer workspace is not enabled for this account");
+    err.status = 403;
+    throw err;
+  }
 }
 
 export function defaultPortfolioConfig() {

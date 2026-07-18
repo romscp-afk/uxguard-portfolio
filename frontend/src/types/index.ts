@@ -320,9 +320,136 @@ export interface Resume {
   parse_status: ResumeParseStatus;
   parse_error?: string | null;
   extraction?: ResumeExtraction | null;
+  timeline_selections?: ResumeTimelineSelection[];
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+}
+
+export interface ResumeTimelineSelection {
+  id: string;
+  timeline_entry_id: number;
+  is_included: boolean;
+  resume_specific_content?: {
+    title?: string;
+    description?: string;
+    achievements?: string[];
+    skills?: string[];
+  } | null;
+  created_at?: string;
+  updated_at?: string;
+  entry?: CareerTimelineEntry | null;
+}
+
+export type CareerTimelineType =
+  | "employment"
+  | "promotion"
+  | "education"
+  | "project"
+  | "certification"
+  | "award"
+  | "volunteering"
+  | "career_break"
+  | "milestone"
+  | "custom";
+
+export type CareerProfileVisibility =
+  | "private"
+  | "employers"
+  | "employers_after_apply"
+  | "public_link";
+
+export type CareerEntryVisibility = "private" | "employers" | "public";
+
+export interface CareerProfile {
+  id: number;
+  user_id: number;
+  headline: string;
+  summary: string;
+  total_experience_months: number;
+  visibility: CareerProfileVisibility;
+  public_slug?: string | null;
+  public_link_enabled: boolean;
+  display_settings?: {
+    sort?: "newest" | "oldest";
+    group_by_year?: boolean;
+    show_descriptions?: boolean;
+    show_career_breaks?: boolean;
+    show_only_resume_selected?: boolean;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CareerTimelineEntry {
+  id: number;
+  career_profile_id: number;
+  type: CareerTimelineType;
+  title: string;
+  organisation: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  description: string;
+  achievements: string[];
+  skills: string[];
+  employment_type?: string;
+  working_arrangement?: string;
+  previous_title?: string;
+  new_title?: string;
+  field_of_study?: string;
+  issuer?: string;
+  expiration_date?: string;
+  credential_details?: string;
+  supporting_url?: string;
+  break_reason?: string;
+  custom_type_label?: string;
+  source_type?: "manual" | "resume_import" | "system";
+  source_resume_id?: number | null;
+  source_section?: string | null;
+  source_item_id?: string | null;
+  verification_status?: string;
+  visibility: CareerEntryVisibility;
+  hidden: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface CareerInsights {
+  total_experience_months: number;
+  total_years: number;
+  employer_count: number;
+  role_count: number;
+  average_role_months: number;
+  longest_role: { id: number; months: number; title: string; organisation: string } | null;
+  career_start_year: number | null;
+  current_role: { id: number; title: string; organisation: string } | null;
+  promotion_count: number;
+  skills_by_stage: Record<string, Record<string, number>>;
+  gaps: Array<{
+    after_entry_id: number;
+    before_entry_id: number;
+    start_date: string;
+    end_date: string;
+    months: number;
+    message: string;
+  }>;
+  overlaps: Array<{ a_id: number; b_id: number }>;
+  inconsistent_company_names: Array<{ variants: string[] }>;
+  missing_date_entry_ids: number[];
+  entry_count: number;
+}
+
+export interface CareerImportDuplicate {
+  candidate: CareerTimelineEntry;
+  matches: Array<{
+    existing_id: number;
+    confidence: string;
+    entry: CareerTimelineEntry;
+  }>;
 }
 
 export interface ResumeSummary {
@@ -490,6 +617,8 @@ export interface User {
   cv_url?: string;
   social_links?: Record<string, string>;
   role: "admin" | "professional" | "viewer" | string;
+  workspaces?: { candidate: boolean; employer: boolean };
+  active_workspace?: "candidate" | "employer";
   onboarding_intent?: OnboardingIntent;
   portfolio_config?: PortfolioBuilderConfig;
   portfolio_url?: string;
@@ -790,4 +919,169 @@ export interface AnalyticsSummary {
   };
   case_studies: AnalyticsCaseStudyRow[];
   views_last_30_days: AnalyticsDayPoint[];
+}
+
+export type CompanyVerificationStatus = "pending" | "verified" | "rejected" | "suspended";
+export type JobStatus =
+  | "draft"
+  | "pending_review"
+  | "scheduled"
+  | "published"
+  | "paused"
+  | "closed"
+  | "expired"
+  | "archived"
+  | "rejected"
+  | "suspended";
+
+export interface Company {
+  id: number;
+  owner_user_id: number;
+  legal_name: string;
+  display_name: string;
+  slug: string;
+  logo_url?: string;
+  cover_image_url?: string;
+  industry?: string;
+  company_size?: string;
+  founded_year?: number | null;
+  headquarters?: string;
+  website?: string;
+  linkedin_url?: string;
+  description?: string;
+  culture?: string;
+  benefits?: string[];
+  locations?: unknown[];
+  contact_email?: string;
+  verification_email_domain?: string;
+  verification_status: CompanyVerificationStatus;
+  terms_accepted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanyMember {
+  id: number;
+  company_id: number;
+  user_id?: number | null;
+  email: string;
+  role: string;
+  permissions?: Record<string, boolean>;
+  status: string;
+  invited_by?: number | null;
+  assigned_job_ids?: number[];
+}
+
+export interface Job {
+  id: number;
+  company_id: number;
+  created_by: number;
+  title: string;
+  department?: string;
+  summary?: string;
+  description?: string;
+  responsibilities?: string[];
+  required_skills?: string[];
+  preferred_skills?: string[];
+  employment_type?: string;
+  experience_level?: string;
+  workplace_type?: string;
+  vacancies?: number;
+  country?: string;
+  city?: string;
+  deadline?: string;
+  expected_start_date?: string;
+  location?: { country?: string; city?: string; workplace_type?: string };
+  salary?: {
+    visible?: boolean;
+    currency?: string;
+    min?: number | null;
+    max?: number | null;
+    period?: string;
+    bonus?: string;
+  };
+  benefits?: string[];
+  visa_sponsorship?: boolean;
+  relocation_support?: boolean;
+  education_requirements?: string[];
+  team_info?: string;
+  reporting_line?: string;
+  portfolio_required?: boolean;
+  resume_required?: boolean;
+  cover_letter_required?: boolean;
+  min_experience_years?: number | null;
+  application_settings?: Record<string, unknown>;
+  questions?: Array<{
+    id: string;
+    question: string;
+    type: string;
+    options?: string[];
+    is_required?: boolean;
+    is_knockout?: boolean;
+  }>;
+  wizard_step?: number;
+  status: JobStatus;
+  published_at?: string | null;
+  closed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  company?: Partial<Company>;
+  saved?: boolean;
+  verification_status?: string;
+}
+
+export interface JobApplication {
+  id: number;
+  job_id: number;
+  company_id: number;
+  candidate_user_id?: number;
+  resume_id?: number | null;
+  status: string;
+  candidate_visible_status?: string;
+  submitted_at?: string | null;
+  updated_at?: string;
+  withdrawn_at?: string | null;
+  cover_letter?: string;
+  portfolio_url?: string;
+  match_summary?: JobMatchSummary | null;
+  job_title?: string;
+  company_name?: string;
+  company_logo?: string;
+  next_action?: string | null;
+  candidate_name?: string;
+  headline?: string;
+  latest_role?: string;
+  location?: string;
+  match_percent?: number | null;
+  tags?: string[];
+}
+
+export interface JobMatchSummary {
+  percent: number;
+  disclaimer: string;
+  categories: Record<string, { score: number; evidence?: string; matched?: string[]; missing?: string[] }>;
+  suggested_improvements?: string[];
+}
+
+export interface EmployerDashboard {
+  company: Company | null;
+  stats: {
+    active_jobs: number;
+    draft_jobs: number;
+    closed_jobs: number;
+    expired_jobs: number;
+    total_applications: number;
+    new_applications: number;
+    shortlisted: number;
+    interviews: number;
+    hires: number;
+  } | null;
+  jobs: Array<{ id: number; title: string; status: string; updated_at: string; published_at?: string | null }>;
+  recent_applications: Array<{
+    id: number;
+    job_id: number;
+    status: string;
+    submitted_at?: string | null;
+    candidate_user_id: number;
+  }>;
 }
