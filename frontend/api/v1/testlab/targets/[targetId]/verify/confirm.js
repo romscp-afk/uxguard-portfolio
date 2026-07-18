@@ -1,7 +1,7 @@
-import { requireAuthUser } from "../../../../_lib/auth.js";
-import { withApi } from "../../../../_lib/withApi.js";
-import { idFrom } from "../../../../_lib/testlab/http.js";
-import { confirmVerification } from "../../../../_lib/testlab/service.js";
+import { requireAuthUser } from "../../../../../_lib/auth.js";
+import { withApi } from "../../../../../_lib/withApi.js";
+import { idFrom } from "../../../../../_lib/testlab/http.js";
+import { confirmVerification } from "../../../../../_lib/testlab/service.js";
 
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);

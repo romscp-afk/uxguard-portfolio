@@ -1,5 +1,5 @@
-import { withApi } from "../../_lib/withApi.js";
-import { claimAndProcessNextRun, getExecutionCapabilities } from "../../_lib/testlab/service.js";
+import { withApi } from "../../../_lib/withApi.js";
+import { claimAndProcessNextRun, getExecutionCapabilities } from "../../../_lib/testlab/service.js";
 
 function authorizeWorker(req) {
   const token = process.env.TESTLAB_WORKER_TOKEN;

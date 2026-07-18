@@ -165,6 +165,12 @@ export function AdminResetPasswordPage() {
             </Link>
           </p>
         </form>
+
+        <p className="mt-6 text-center text-sm text-ink-500">
+          <Link to="/" className="text-brand-400 hover:text-brand-300">
+            ← Back to home
+          </Link>
+        </p>
       </div>
     </div>
   );

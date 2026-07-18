@@ -1,3 +1,5 @@
+import { normalizeRole } from "../roles.js";
+
 export const PERMISSIONS = {
   project_read: ["owner", "test_manager", "tester", "developer", "product_reviewer", "viewer"],
   project_write: ["owner", "test_manager"],
@@ -21,7 +23,7 @@ export function roleHasPermission(role, permission) {
 
 export function resolveProjectRole(store, projectId, user) {
   if (!user) return null;
-  if (user.role === "admin") return "owner";
+  if (normalizeRole(user.role) === "admin") return "owner";
 
   const project = (store.testlab_projects || []).find(
     (p) => p.id === projectId && !p.deleted_at,
@@ -52,8 +54,8 @@ export function assertProjectPermission(store, projectId, user, permission) {
 
 export function canAccessPlatformTestLab(user) {
   if (!user) return false;
-  if (user.role === "admin" || user.role === "professional") return true;
-  return false;
+  const role = normalizeRole(user.role);
+  return role === "admin" || role === "professional";
 }
 
 export function assertCanAccessTestLab(user) {

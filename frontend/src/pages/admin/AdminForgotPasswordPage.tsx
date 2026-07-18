@@ -76,7 +76,7 @@ export function AdminForgotPasswordPage() {
 
         <p className="mt-6 text-center text-sm text-ink-500">
           <Link to="/" className="text-brand-400 hover:text-brand-300">
-            ← Back to portfolio
+            ← Back to home
           </Link>
         </p>
       </div>

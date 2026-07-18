@@ -10,5 +10,5 @@ export const DEFAULT_PORTFOLIO_SETTINGS: PortfolioSettings = {
   about:
     "UXGuard Studio helps UX researchers, designers, and product teams build lasting professional legacies, while giving hiring teams a separate employer portal to publish jobs after admin approval.",
   contact_email: "uxguardstudio@gmail.com",
-  social_links: { linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
+  social_links: { linkedin: "https://www.linkedin.com/company/uxguard-studio/", twitter: "https://twitter.com" },
 };

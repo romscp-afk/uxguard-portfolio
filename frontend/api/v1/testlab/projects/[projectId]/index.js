@@ -1,11 +1,11 @@
-import { requireAuthUser } from "../../../_lib/auth.js";
-import { withApi } from "../../../_lib/withApi.js";
-import { idFrom, readBody } from "../../../_lib/testlab/http.js";
+import { requireAuthUser } from "../../../../_lib/auth.js";
+import { withApi } from "../../../../_lib/withApi.js";
+import { idFrom, readBody } from "../../../../_lib/testlab/http.js";
 import {
   deleteProject,
   getProjectDetail,
   updateProject,
-} from "../../../_lib/testlab/service.js";
+} from "../../../../_lib/testlab/service.js";
 
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
