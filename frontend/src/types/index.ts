@@ -619,6 +619,8 @@ export interface User {
   role: "admin" | "professional" | "viewer" | string;
   workspaces?: { candidate: boolean; employer: boolean };
   active_workspace?: "candidate" | "employer";
+  account_type?: "candidate" | "employer";
+  last_login_portal?: "candidate" | "employer" | null;
   onboarding_intent?: OnboardingIntent;
   portfolio_config?: PortfolioBuilderConfig;
   portfolio_url?: string;

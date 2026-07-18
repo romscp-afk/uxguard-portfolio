@@ -86,7 +86,7 @@ export async function enableEmployerWorkspaceForUser(userId) {
         ...user,
         workspaces,
         active_workspace: "employer",
-        account_type: user.account_type || "employer",
+        // Do not stamp candidate accounts as employer-only
       };
       store.users[index] = next;
       saved = next;
@@ -131,6 +131,8 @@ export async function setPortalWorkspaceForUser(userId, portal) {
           ...user,
           workspaces: nextWorkspaces,
           active_workspace: "employer",
+          last_login_portal: "employer",
+          account_type: user.account_type === "employer" ? "employer" : user.account_type || "candidate",
         };
         store.users[index] = next;
         saved = next;
@@ -138,7 +140,7 @@ export async function setPortalWorkspaceForUser(userId, portal) {
       }
 
       // candidate portal
-      if (!workspaces.candidate && workspaces.employer && !isAdmin) {
+      if (!workspaces.candidate && workspaces.employer && !isAdmin && user.account_type === "employer") {
         const err = new Error(
           "This is an employer account. Sign in at Employer sign in.",
         );
@@ -147,7 +149,10 @@ export async function setPortalWorkspaceForUser(userId, portal) {
       }
       const nextWorkspaces = isAdmin
         ? { candidate: true, employer: true }
-        : { ...workspaces, candidate: workspaces.candidate !== false };
+        : {
+            ...workspaces,
+            candidate: workspaces.candidate !== false ? true : false,
+          };
       if (!nextWorkspaces.candidate && !isAdmin) {
         const err = new Error("Candidate workspace is not available for this account");
         err.status = 403;
@@ -157,7 +162,67 @@ export async function setPortalWorkspaceForUser(userId, portal) {
         ...user,
         workspaces: nextWorkspaces,
         active_workspace: "candidate",
+        last_login_portal: "candidate",
+        // Repair legacy accounts wrongly marked as employer-only
+        account_type:
+          user.account_type === "employer" && nextWorkspaces.candidate
+            ? "candidate"
+            : user.account_type === "employer"
+              ? "employer"
+              : "candidate",
       };
+      store.users[index] = next;
+      saved = next;
+      return store;
+    },
+    { forceRefresh: true },
+  );
+  return saved;
+}
+
+/** Fix legacy users stuck on employer portal after the old workspace switcher. */
+export async function repairStuckEmployerPortal(userId) {
+  let saved = null;
+  await updateStore(
+    (store) => {
+      const uid = Number(userId);
+      const index = store.users.findIndex((u) => Number(u.id) === uid);
+      if (index === -1) return store;
+      const user = store.users[index];
+      const workspaces = defaultWorkspaces(user);
+      const employerOnly =
+        user.account_type === "employer" && workspaces.candidate === false;
+      const keepEmployer =
+        employerOnly || user.last_login_portal === "employer";
+
+      if (keepEmployer) {
+        saved = user;
+        return store;
+      }
+
+      // Force candidate portal + repair wrong account_type stamps
+      const next = {
+        ...user,
+        workspaces: {
+          ...workspaces,
+          candidate: workspaces.candidate === false && user.account_type === "employer" ? false : true,
+        },
+        active_workspace: "candidate",
+        last_login_portal: user.last_login_portal === "candidate" ? "candidate" : "candidate",
+        account_type:
+          user.account_type === "employer" && workspaces.candidate === false
+            ? "employer"
+            : "candidate",
+      };
+      // Only write when something actually changes
+      if (
+        user.active_workspace === next.active_workspace &&
+        user.account_type === next.account_type &&
+        user.last_login_portal === next.last_login_portal
+      ) {
+        saved = user;
+        return store;
+      }
       store.users[index] = next;
       saved = next;
       return store;

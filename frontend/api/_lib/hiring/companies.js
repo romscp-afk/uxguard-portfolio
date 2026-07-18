@@ -113,6 +113,7 @@ export async function createCompany(user, payload = {}) {
             employer: true,
           },
           active_workspace: "employer",
+          last_login_portal: "employer",
         };
       }
       saved = company;

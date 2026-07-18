@@ -1,5 +1,6 @@
 import { get, put, list, del, head, BlobPreconditionFailedError } from "@vercel/blob";
 import { defaultPortfolioConfig } from "./roles.js";
+import { resolveActiveWorkspace } from "./workspace-portal.js";
 
 function normalizeMediaAssetUrl(url, assetId) {
   if (assetId) return `/api/v1/media/file/${assetId}`;
@@ -289,15 +290,26 @@ function normalizeLoadedStore(data) {
             ? Boolean(user.workspaces.employer)
             : false,
       };
-      const activeWorkspace =
-        user.active_workspace === "employer" && workspaces.employer
-          ? "employer"
-          : "candidate";
-      return {
+      // Legacy bug: enableEmployerWorkspace stamped account_type=employer on candidates.
+      // Only keep employer account_type when candidate workspace is explicitly disabled.
+      let accountType = user.account_type === "employer" ? "employer" : "candidate";
+      if (accountType === "employer" && workspaces.candidate !== false && user.last_login_portal !== "employer") {
+        // Dual/legacy accounts are candidates by default
+        accountType = "candidate";
+      }
+      const normalized = {
         ...user,
         role,
         workspaces,
-        active_workspace: activeWorkspace,
+        account_type: accountType,
+        last_login_portal:
+          user.last_login_portal === "employer" || user.last_login_portal === "candidate"
+            ? user.last_login_portal
+            : null,
+      };
+      return {
+        ...normalized,
+        active_workspace: resolveActiveWorkspace(normalized),
         portfolio_config: {
           ...defaultPortfolioConfig(),
           ...(user.portfolio_config || {}),

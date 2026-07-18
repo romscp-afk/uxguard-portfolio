@@ -3,6 +3,7 @@ import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
 import { likeCountsByCaseStudy } from "./like-utils.js";
 import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
 import { sanitizeUserMediaFields } from "./media.js";
+import { resolveActiveWorkspace } from "./workspace-portal.js";
 
 export { portfolioSettings };
 
@@ -299,15 +300,22 @@ export function toUserOut(user) {
     employer:
       rest.workspaces?.employer !== undefined ? Boolean(rest.workspaces.employer) : false,
   };
-  return {
+  const normalized = {
     ...rest,
+    role,
+    workspaces,
+    account_type: rest.account_type === "employer" ? "employer" : "candidate",
+    last_login_portal:
+      rest.last_login_portal === "employer" || rest.last_login_portal === "candidate"
+        ? rest.last_login_portal
+        : null,
+  };
+  return {
+    ...normalized,
     avatar_url: rest.avatar_url || null,
     cover_image_url: rest.cover_image_url || null,
     cv_url: rest.cv_url || null,
-    role,
-    workspaces,
-    active_workspace:
-      rest.active_workspace === "employer" && workspaces.employer ? "employer" : "candidate",
+    active_workspace: resolveActiveWorkspace(normalized),
     portfolio_url: `/u/${user.username}`,
     portfolio_config: {
       ...defaultPortfolioConfig(),

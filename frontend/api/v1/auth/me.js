@@ -2,6 +2,7 @@ import { getAuthUser, requireAuth } from "../../_lib/auth.js";
 import { toUserOut, updateUserProfile } from "../../_lib/demo-data.js";
 import { canEditPlatform, normalizeRole } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
+import { repairStuckEmployerPortal } from "../../_lib/career/service.js";
 
 export default withApi(async (req, res) => {
   const session = requireAuth(req);
@@ -29,7 +30,12 @@ export default withApi(async (req, res) => {
     } catch {
       /* ignore repair errors */
     }
-    // Re-read after billing/repair so we return the latest persisted profile media fields.
+    // Persist candidate-default for accounts stuck on employer from the old switcher
+    try {
+      await repairStuckEmployerPortal(user.id);
+    } catch {
+      /* ignore */
+    }
     const fresh = (await getAuthUser(req)) || user;
     res.status(200).json(toUserOut(fresh));
     return;
@@ -49,7 +55,7 @@ export default withApi(async (req, res) => {
       }
       res.status(200).json(toUserOut(updated));
     } catch (err) {
-      res.status(400).json({ detail: err.message || "Update failed" });
+      res.status(err.status || 500).json({ detail: err.message || "Update failed" });
     }
     return;
   }
