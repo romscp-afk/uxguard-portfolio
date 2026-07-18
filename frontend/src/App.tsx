@@ -124,6 +124,7 @@ export default function App() {
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="testlab" element={<TestLabDashboardPage />} />
+            <Route path="testlab/create" element={<TestLabCreatePage />} />
             <Route path="testlab/new" element={<TestLabCreatePage />} />
             <Route path="testlab/:projectId" element={<TestLabProjectPage />} />
             <Route path="media" element={<MediaLibraryPage />} />

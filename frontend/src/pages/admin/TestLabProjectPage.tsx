@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -89,8 +89,13 @@ export function TestLabProjectPage() {
   }, [projectId]);
 
   useEffect(() => {
+    if (projectId === "new" || projectId === "create") return;
     void load();
-  }, [load]);
+  }, [load, projectId]);
+
+  if (projectId === "new" || projectId === "create") {
+    return <Navigate to="/admin/testlab/create" replace />;
+  }
 
   async function withBusy(fn: () => Promise<void>) {
     setBusy(true);

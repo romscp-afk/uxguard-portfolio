@@ -24,6 +24,7 @@ import {
   UserCircle,
   Users,
   X,
+  FlaskConical,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
@@ -54,6 +55,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   "post-job": PlusCircle,
   achievements: Briefcase,
   analytics: BarChart3,
+  testlab: FlaskConical,
 };
 
 function linkIsActive(pathname: string, to: string) {

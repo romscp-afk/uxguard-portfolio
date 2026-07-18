@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FlaskConical, Plus } from "lucide-react";
 import { api, ApiError } from "../../api/client";
-import { EditGuard, EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import type { TestLabExecutionCapabilities, TestLabProject } from "../../types";
 
 export function TestLabDashboardPage() {
@@ -11,31 +11,28 @@ export function TestLabDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const [list, status] = await Promise.all([api.listTestLabProjects(), api.testlabStatus()]);
+      setProjects(list.projects || []);
+      setExecution(status.execution);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not load TestLab.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([api.listTestLabProjects(), api.testlabStatus()])
-      .then(([list, status]) => {
-        if (cancelled) return;
-        setProjects(list.projects || []);
-        setExecution(status.execution);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "Could not load TestLab.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    void load();
   }, []);
 
   return (
     <div>
       <ReadOnlyNotice />
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
             QA Autopilot
@@ -46,15 +43,13 @@ export function TestLabDashboardPage() {
             targets. Complements human QA — does not replace it.
           </p>
         </div>
-        <EditGuard>
-          <EditLink
-            to="/admin/testlab/new"
-            className="inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-white"
-          >
-            <Plus className="h-4 w-4" />
-            New project
-          </EditLink>
-        </EditGuard>
+        <Link
+          to="/admin/testlab/create"
+          className="inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-ink-800"
+        >
+          <Plus className="h-4 w-4" />
+          New project
+        </Link>
       </div>
 
       {execution && (
@@ -72,7 +67,14 @@ export function TestLabDashboardPage() {
 
       {error && (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
+          <p>{error}</p>
+          <button
+            type="button"
+            className="mt-2 text-sm font-semibold underline"
+            onClick={() => void load()}
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -85,12 +87,13 @@ export function TestLabDashboardPage() {
           <p className="mt-1 text-sm text-stone-500">
             Create a project, add a verified target, then generate and run tests.
           </p>
-          <EditLink
-            to="/admin/testlab/new"
-            className="mt-6 inline-flex rounded-md bg-ink px-4 py-2 text-sm text-white"
+          <Link
+            to="/admin/testlab/create"
+            className="mt-6 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm text-white hover:bg-ink-800"
           >
+            <Plus className="h-4 w-4" />
             Create project
-          </EditLink>
+          </Link>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

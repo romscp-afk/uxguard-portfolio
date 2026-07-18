@@ -584,6 +584,53 @@ function mergeByNumericId(remoteList = [], localList = [], deletedIds = []) {
   return [...byId.values()];
 }
 
+/** Merge rows keyed by string ids (TestLab projects, runs, etc.). Local wins on equal timestamps. */
+function mergeByStringId(remoteList = [], localList = [], deletedIds = []) {
+  const deleted = new Set((deletedIds || []).map(String).filter(Boolean));
+  const byId = new Map();
+
+  function consider(item) {
+    const id = String(item?.id || "").trim();
+    if (!id || deleted.has(id)) return;
+    const prev = byId.get(id);
+    if (!prev) {
+      byId.set(id, item);
+      return;
+    }
+    const prevT = Date.parse(String(prev.updated_at || prev.created_at || 0)) || 0;
+    const nextT = Date.parse(String(item.updated_at || item.created_at || 0)) || 0;
+    if (nextT >= prevT) byId.set(id, item);
+  }
+
+  for (const item of remoteList || []) consider(item);
+  for (const item of localList || []) consider(item);
+  return [...byId.values()];
+}
+
+const TESTLAB_COLLECTIONS = [
+  "testlab_projects",
+  "testlab_targets",
+  "testlab_project_members",
+  "testlab_verification_challenges",
+  "testlab_requirements",
+  "testlab_test_cases",
+  "testlab_runs",
+  "testlab_results",
+  "testlab_defects",
+  "testlab_schedules",
+  "testlab_secrets",
+  "testlab_audit_events",
+  "testlab_baselines",
+];
+
+function mergeTestlabCollections(localStore, remote, deleted = {}) {
+  const out = {};
+  for (const key of TESTLAB_COLLECTIONS) {
+    out[key] = mergeByStringId(remote?.[key] || [], localStore?.[key] || [], deleted[key] || []);
+  }
+  return out;
+}
+
 const PROFILE_MEDIA_FIELDS = ["avatar_url", "cover_image_url", "cv_url"];
 
 function mediaFieldTimestamp(user, field) {
@@ -804,6 +851,19 @@ function takeDeletionMarkers(store) {
     comments: markers.comments || [],
     notifications: markers.notifications || [],
     case_study_views: markers.case_study_views || [],
+    testlab_projects: markers.testlab_projects || [],
+    testlab_targets: markers.testlab_targets || [],
+    testlab_project_members: markers.testlab_project_members || [],
+    testlab_verification_challenges: markers.testlab_verification_challenges || [],
+    testlab_requirements: markers.testlab_requirements || [],
+    testlab_test_cases: markers.testlab_test_cases || [],
+    testlab_runs: markers.testlab_runs || [],
+    testlab_results: markers.testlab_results || [],
+    testlab_defects: markers.testlab_defects || [],
+    testlab_schedules: markers.testlab_schedules || [],
+    testlab_secrets: markers.testlab_secrets || [],
+    testlab_audit_events: markers.testlab_audit_events || [],
+    testlab_baselines: markers.testlab_baselines || [],
   };
 }
 
@@ -895,6 +955,7 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       localStore.case_study_views || [],
       deleted.case_study_views,
     ),
+    ...mergeTestlabCollections(localStore, remote, deleted),
   };
 }
 
