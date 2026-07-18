@@ -27,6 +27,8 @@ import type {
   PortfolioBuilderConfig,
   PortfolioSettings,
   Project,
+  Resume,
+  ResumeImportResult,
   SearchResults,
   User,
   UserProfile,
@@ -200,6 +202,29 @@ export const api = {
     ),
 
   getFollowingFeed: () => request<FeedCaseStudyItem[]>("/feed/following"),
+
+  getMyResume: () => request<{ resume: Resume | null }>("/resumes/me"),
+
+  saveMyResume: (resume: Partial<Resume> & { create_blank?: boolean }) =>
+    request<{ resume: Resume }>("/resumes/me", {
+      method: "PUT",
+      body: JSON.stringify(resume),
+    }),
+
+  createBlankResume: () =>
+    request<{ resume: Resume }>("/resumes/me", {
+      method: "PUT",
+      body: JSON.stringify({ create_blank: true }),
+    }),
+
+  importResume: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<ResumeImportResult>("/resumes/me/import", {
+      method: "POST",
+      body: form,
+    });
+  },
 
   search: (q: string) =>
     request<SearchResults>(`/search?q=${encodeURIComponent(q)}`),

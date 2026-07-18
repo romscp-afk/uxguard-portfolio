@@ -235,6 +235,7 @@ function normalizeLoadedStore(data) {
     case_study_views: data.case_study_views || [],
     contact_messages: data.contact_messages || [],
     projects: data.projects || [],
+    resumes: data.resumes || [],
     ai_conversations: data.ai_conversations || [],
     ai_messages: data.ai_messages || [],
     ai_usage: data.ai_usage || [],
@@ -297,6 +298,7 @@ function seedStore() {
         updated_at: "2026-07-04T19:26:59.000Z",
       },
     ],
+    resumes: [],
     ai_conversations: [],
     ai_messages: [],
     ai_usage: [],
@@ -686,6 +688,7 @@ function takeDeletionMarkers(store) {
     users: markers.users || [],
     caseStudies: markers.caseStudies || [],
     projects: markers.projects || [],
+    resumes: markers.resumes || [],
     mediaAssets: markers.mediaAssets || [],
     follows: markers.follows || [],
     likes: markers.likes || [],
@@ -717,6 +720,11 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       remote.projects || [],
       localStore.projects || [],
       deleted.projects,
+    ),
+    resumes: mergeByNumericId(
+      remote.resumes || [],
+      localStore.resumes || [],
+      deleted.resumes,
     ),
     follows: mergeFollows(remote.follows || [], localStore.follows || [], deleted.follows),
     likes: mergeLikes(remote.likes || [], localStore.likes || [], deleted.likes),
@@ -769,6 +777,7 @@ export async function writeStore(store) {
         [],
         deleted.case_study_views,
       ),
+      resumes: mergeByNumericId(store.resumes || [], [], deleted.resumes),
     };
     memoryStore = cleaned;
     slot.current = cleaned;

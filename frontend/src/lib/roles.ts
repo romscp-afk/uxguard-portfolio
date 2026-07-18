@@ -55,6 +55,7 @@ type NavLink = { to: string; label: string; section: string; comingSoon?: boolea
 /** Fixed Platform nav order for launch */
 const PLATFORM_LINKS: NavLink[] = [
   { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
+  { to: "/admin/resume-builder", label: "Resume Builder", section: "resume" },
   { to: "/admin/profile", label: "Professional Profile", section: "profile" },
   { to: "/admin/projects", label: "Projects", section: "projects" },
   { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
@@ -67,7 +68,6 @@ const PLATFORM_LINKS: NavLink[] = [
 ];
 
 const PHASE2_LINKS: NavLink[] = [
-  { to: "#", label: "Resume Builder", section: "resume", comingSoon: true },
   { to: "#", label: "Career Timeline", section: "timeline", comingSoon: true },
   { to: "#", label: "Achievements", section: "achievements", comingSoon: true },
 ];

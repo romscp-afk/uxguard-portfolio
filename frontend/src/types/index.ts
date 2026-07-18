@@ -148,6 +148,85 @@ export interface Project {
   updated_at: string;
 }
 
+export type ResumeParseStatus = "none" | "pending" | "ready" | "failed";
+
+export interface ResumeLink {
+  label: string;
+  url: string;
+}
+
+export interface ResumeBasics {
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+  location: string;
+  summary: string;
+  links: ResumeLink[];
+}
+
+export interface ResumeExperience {
+  id: string;
+  company: string;
+  role: string;
+  location: string;
+  start: string;
+  end: string;
+  current: boolean;
+  bullets: string[];
+}
+
+export interface ResumeEducation {
+  id: string;
+  school: string;
+  degree: string;
+  field: string;
+  start: string;
+  end: string;
+  details: string;
+}
+
+export interface ResumeCertification {
+  id: string;
+  name: string;
+  issuer: string;
+  year: string;
+}
+
+export interface ResumeProjectItem {
+  id: string;
+  name: string;
+  url: string;
+  summary: string;
+}
+
+export interface Resume {
+  id: number;
+  user_id: number;
+  title: string;
+  basics: ResumeBasics;
+  experience: ResumeExperience[];
+  education: ResumeEducation[];
+  skills: string[];
+  certifications: ResumeCertification[];
+  projects: ResumeProjectItem[];
+  source_media_id?: number | null;
+  source_filename?: string | null;
+  source_mime?: string | null;
+  parsed_at?: string | null;
+  parse_status: ResumeParseStatus;
+  parse_error?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResumeImportResult {
+  resume: Resume;
+  credits_used?: number;
+  ai_used: boolean;
+  message?: string;
+}
+
 export type PortfolioTheme =
   | "evidence_lab"
   | "hiring_signal"
