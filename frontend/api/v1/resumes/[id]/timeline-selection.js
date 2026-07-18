@@ -1,10 +1,10 @@
-import { requireAuthUser } from "../../../../_lib/auth.js";
-import { withApi } from "../../../../_lib/withApi.js";
-import { assertCanEdit, assertCandidateWorkspace } from "../../../../_lib/roles.js";
+import { requireAuthUser } from "../../../_lib/auth.js";
+import { withApi } from "../../../_lib/withApi.js";
+import { assertCanEdit, assertCandidateWorkspace } from "../../../_lib/roles.js";
 import {
   getResumeTimelineSelections,
   putResumeTimelineSelections,
-} from "../../../../_lib/career/service.js";
+} from "../../../_lib/career/service.js";
 
 async function readBody(req) {
   if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {

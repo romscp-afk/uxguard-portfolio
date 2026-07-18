@@ -135,23 +135,36 @@ export function ResumeEditorPage() {
     }
     let cancelled = false;
     setLoading(true);
-    api
-      .getResume(resumeId)
-      .then((data) => {
-        if (cancelled) return;
-        setResume(data.resume);
-        setDirty(false);
-        skipNextAutosave.current = true;
-        setError("");
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "Could not load resume.");
+    setError("");
+
+    async function load() {
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const data = await api.getResume(resumeId);
+          if (cancelled) return;
+          setResume(data.resume);
+          setDirty(false);
+          skipNextAutosave.current = true;
+          setError("");
+          return;
+        } catch (err) {
+          lastError = err;
+          const notFound = err instanceof ApiError && err.status === 404;
+          if (!notFound || attempt === 3) break;
+          await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+      if (!cancelled) {
+        setError(
+          lastError instanceof ApiError ? lastError.message : "Could not load resume.",
+        );
+      }
+    }
+
+    void load().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };

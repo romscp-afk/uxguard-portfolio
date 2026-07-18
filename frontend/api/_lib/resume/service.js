@@ -53,7 +53,24 @@ export async function getResumeForUser(userId) {
   return resumes[0] || null;
 }
 
-async function writeResume(userId, payload, { existingId = null } = {}) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function findOwnedResume(store, resumeId, userId) {
+  const id = Number(resumeId);
+  const uid = Number(userId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return (store.resumes || []).find(
+    (item) =>
+      Number(item.id) === id &&
+      Number(item.user_id) === uid &&
+      item.status !== "deleted" &&
+      !item.deleted_at,
+  );
+}
+
+async function writeResume(userId, payload, { existingId = null, forceId = null } = {}) {
   const uid = Number(userId);
   let saved = null;
 
@@ -61,13 +78,9 @@ async function writeResume(userId, payload, { existingId = null } = {}) {
     (store) => {
       if (!store.resumes) store.resumes = [];
       const now = new Date().toISOString();
-      const existing = existingId
-        ? store.resumes.find(
-            (item) => Number(item.id) === Number(existingId) && Number(item.user_id) === uid,
-          )
-        : null;
+      const existing = existingId != null ? findOwnedResume(store, existingId, uid) : null;
 
-      if (existingId && !existing) {
+      if (existingId != null && !existing && forceId == null) {
         const err = new Error("Resume not found");
         err.status = 404;
         throw err;
@@ -78,11 +91,16 @@ async function writeResume(userId, payload, { existingId = null } = {}) {
         throw err;
       }
 
+      const nextId =
+        existing?.id ||
+        (forceId != null && Number(forceId) > 0 ? Number(forceId) : null) ||
+        nextResumeId(store.resumes);
+
       const normalized = normalizeResume(
         {
           ...(existing || {}),
           ...(payload || {}),
-          id: existing?.id || nextResumeId(store.resumes),
+          id: nextId,
           user_id: uid,
           created_at: existing?.created_at || now,
           updated_at: now,
@@ -141,11 +159,38 @@ export async function createResumeForUser(userId, payload = {}) {
     creation_method: payload.creation_method || "manual",
     basics: payload.basics || {},
   });
-  return writeResume(userId, blank);
+  const saved = await writeResume(userId, blank);
+  // Confirm visibility after Blob write (guards against stale follow-up GETs).
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const found = await getResumeByIdForUser(saved.id, userId);
+    if (found) return found;
+    await sleep(80 * (attempt + 1));
+  }
+  return saved;
 }
 
 export async function updateResumeForUser(resumeId, userId, payload = {}) {
-  return writeResume(userId, payload, { existingId: resumeId });
+  try {
+    return await writeResume(userId, payload, { existingId: resumeId });
+  } catch (err) {
+    if (err?.status !== 404) throw err;
+    // Blob read can lag a create on another instance — retry, then upsert with same id.
+    await sleep(120);
+    try {
+      return await writeResume(userId, payload, { existingId: resumeId });
+    } catch (err2) {
+      if (err2?.status !== 404) throw err2;
+      const hasBody =
+        payload &&
+        (payload.basics ||
+          payload.title ||
+          payload.experience ||
+          payload.education ||
+          payload.skills);
+      if (!hasBody) throw err2;
+      return writeResume(userId, payload, { forceId: resumeId });
+    }
+  }
 }
 
 /** Legacy single-resume upsert — updates newest or creates one. Prefer create/update by id. */

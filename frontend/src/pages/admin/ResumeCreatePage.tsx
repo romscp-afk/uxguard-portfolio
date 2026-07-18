@@ -75,7 +75,10 @@ export function ResumeCreatePage() {
           links: [],
         } as Resume["basics"],
       });
-      navigate(`/admin/resume-builder/${resume.id}`);
+      if (!resume?.id) {
+        throw new Error("Resume was created but no id was returned. Open My Resumes and try again.");
+      }
+      navigate(`/admin/resume-builder/${resume.id}`, { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create resume.");
     } finally {
