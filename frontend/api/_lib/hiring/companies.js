@@ -102,12 +102,16 @@ export async function createCompany(user, payload = {}) {
           invited_by: user.id,
         }),
       );
-      // Ensure employer workspace flag
+      // Ensure employer workspace flag (do not force candidate portal on)
       const idx = store.users.findIndex((u) => Number(u.id) === Number(user.id));
       if (idx !== -1) {
+        const prev = store.users[idx].workspaces || {};
         store.users[idx] = {
           ...store.users[idx],
-          workspaces: { ...(store.users[idx].workspaces || {}), candidate: true, employer: true },
+          workspaces: {
+            candidate: prev.candidate !== undefined ? Boolean(prev.candidate) : true,
+            employer: true,
+          },
           active_workspace: "employer",
         };
       }

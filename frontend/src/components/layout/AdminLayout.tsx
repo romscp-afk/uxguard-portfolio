@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import {
   BarChart3,
   Bell,
@@ -30,8 +30,7 @@ import { NotificationBell } from "../community/NotificationBell";
 import { AssistantFab, AssistantPanel } from "../assistant/AssistantPanel";
 import { AssistantProvider } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
-import { api, ApiError } from "../../api/client";
-import { dashboardLinksForUser, normalizeRole } from "../../lib/roles";
+import { dashboardLinksForUser } from "../../lib/roles";
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   profile: UserCircle,
@@ -72,11 +71,9 @@ function linkIsActive(pathname: string, to: string) {
 }
 
 export function AdminLayout() {
-  const { user, loading, logout, refreshUser } = useAuth();
+  const { user, loading, logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [workspaceBusy, setWorkspaceBusy] = useState(false);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -105,73 +102,51 @@ export function AdminLayout() {
   }
 
   if (!user) {
-    return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />;
+    const wantsEmployer = location.pathname.startsWith("/admin/employer");
+    return (
+      <Navigate
+        to={wantsEmployer ? "/admin/employer/login" : "/admin/login"}
+        state={{ from: location.pathname }}
+        replace
+      />
+    );
   }
 
   const { groups, phase2, workspace } = dashboardLinksForUser(user);
-  const roleLabel = normalizeRole(user.role);
+  const isEmployerPortal = workspace === "employer";
+  const displayName = user.name || user.email || "Account";
 
-  async function switchWorkspace(next: "candidate" | "employer") {
-    if (!user || next === workspace || workspaceBusy) return;
-    setWorkspaceBusy(true);
-    try {
-      if (next === "employer" && !user.workspaces?.employer) {
-        await api.enableEmployerWorkspace();
-      } else {
-        await api.setActiveWorkspace(next);
-      }
-      await refreshUser();
-      navigate(next === "employer" ? "/admin/employer" : "/admin");
-    } catch (err) {
-      console.error(err instanceof ApiError ? err.message : err);
-    } finally {
-      setWorkspaceBusy(false);
-    }
+  // Employer session → stay in hiring portal (not candidate profile pages)
+  if (
+    isEmployerPortal &&
+    !location.pathname.startsWith("/admin/employer") &&
+    !location.pathname.startsWith("/admin/billing") &&
+    !location.pathname.startsWith("/admin/notifications") &&
+    !location.pathname.startsWith("/admin/upgrade") &&
+    !location.pathname.startsWith("/checkout")
+  ) {
+    return <Navigate to="/admin/employer" replace />;
   }
 
-  const workspaceSwitcher = (
-    <div className="rounded-lg border border-ink-800 bg-ink-900/80 p-2">
-      <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
-        Workspace
-      </p>
-      <div className="grid grid-cols-2 gap-1">
-        <button
-          type="button"
-          disabled={workspaceBusy}
-          onClick={() => void switchWorkspace("candidate")}
-          className={`rounded-md px-2 py-2 text-xs font-medium transition ${
-            workspace === "candidate"
-              ? "bg-brand-600 text-white"
-              : "text-ink-300 hover:bg-ink-800 hover:text-white"
-          }`}
-        >
-          Candidate
-        </button>
-        <button
-          type="button"
-          disabled={workspaceBusy}
-          onClick={() => void switchWorkspace("employer")}
-          className={`rounded-md px-2 py-2 text-xs font-medium transition ${
-            workspace === "employer"
-              ? "bg-brand-600 text-white"
-              : "text-ink-300 hover:bg-ink-800 hover:text-white"
-          }`}
-        >
-          Employer
-        </button>
-      </div>
-    </div>
-  );
+  // Candidate session cannot open employer routes (use employer login instead)
+  if (
+    !isEmployerPortal &&
+    location.pathname.startsWith("/admin/employer") &&
+    !location.pathname.startsWith("/admin/employer/login") &&
+    !location.pathname.startsWith("/admin/employer/register")
+  ) {
+    return <Navigate to="/admin/employer/login" replace />;
+  }
+
+  const dashboardTo = isEmployerPortal ? "/admin/employer" : "/admin";
 
   const navLinks = (
     <>
-      {workspaceSwitcher}
-
       <div>
         <Link
-          to="/admin"
+          to={dashboardTo}
           className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-            location.pathname === "/admin"
+            location.pathname === dashboardTo
               ? "bg-brand-600 text-white"
               : "text-ink-300 hover:bg-ink-800 hover:text-white"
           }`}
@@ -237,14 +212,13 @@ export function AdminLayout() {
   const accountFooter = (
     <div className="border-t border-ink-800 p-4">
       <div className="mb-3 px-2">
-        <p className="truncate text-sm font-medium">{user.name}</p>
-        <p className="truncate text-xs text-ink-400">{user.email}</p>
-        <p className="mt-1 text-[10px] uppercase tracking-wider text-ink-500">
-          {workspace} workspace
-        </p>
+        <p className="truncate text-sm font-medium">{displayName}</p>
+        {user.email && user.email !== displayName ? (
+          <p className="truncate text-xs text-ink-400">{user.email}</p>
+        ) : null}
       </div>
       <div className="flex gap-2">
-        {user.portfolio_url ? (
+        {!isEmployerPortal && user.portfolio_url ? (
           <a
             href={user.portfolio_url}
             target="_blank"
@@ -294,7 +268,7 @@ export function AdminLayout() {
               <span className="text-brand-400">UX</span>Guard Studio
             </p>
             <p className="truncate text-[10px] uppercase tracking-wider text-ink-400">
-              {workspace} · Portal
+              {displayName}
             </p>
           </div>
           <NotificationBell />
@@ -318,9 +292,7 @@ export function AdminLayout() {
           <div className="flex items-center justify-between gap-3 border-b border-ink-800 px-4 py-3">
             <div className="min-w-0">
               <Logo variant="mark" theme="dark" />
-              <p className="mt-1 text-[10px] uppercase tracking-wider text-ink-400">
-                {roleLabel} account
-              </p>
+              <p className="mt-1 truncate text-xs text-ink-300">{displayName}</p>
             </div>
             <button
               type="button"
@@ -341,8 +313,10 @@ export function AdminLayout() {
               <Logo variant="mark" theme="dark" />
               <NotificationBell />
             </div>
-            <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">Platform Portal</p>
-            <p className="mt-1 text-xs capitalize text-brand-300">{roleLabel} account</p>
+            <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">
+              {isEmployerPortal ? "Employer portal" : "Platform portal"}
+            </p>
+            <p className="mt-1 truncate text-xs text-ink-200">{displayName}</p>
           </div>
           <nav className="flex-1 space-y-4 overflow-y-auto p-3">{navLinks}</nav>
           {accountFooter}

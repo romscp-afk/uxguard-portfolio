@@ -175,10 +175,10 @@ async function aiRequest<T>(path: string, options: RequestInit = {}): Promise<T>
 }
 
 export const api = {
-  login: (email: string, password: string) =>
-    request<{ access_token: string }>("/auth/login", {
+  login: (email: string, password: string, portal: "candidate" | "employer" = "candidate") =>
+    request<{ access_token: string; user?: User }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, portal }),
     }),
 
   resetPassword: (token: string, newPassword: string) =>

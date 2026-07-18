@@ -1,22 +1,19 @@
 import { FormEvent, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { Logo } from "../../components/ui/Logo";
 import { useAuth } from "../../context/AuthContext";
 
-export function AdminLoginPage() {
+export function EmployerLoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: string })?.from || "/admin";
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (user && user.active_workspace !== "employer") {
-    return <Navigate to="/admin" replace />;
+  if (user?.active_workspace === "employer" && user?.workspaces?.employer) {
+    return <Navigate to="/admin/employer" replace />;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -24,8 +21,8 @@ export function AdminLoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password, "candidate");
-      navigate(from.startsWith("/admin/employer") ? "/admin" : from, { replace: true });
+      await login(email, password, "employer");
+      navigate("/admin/employer", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Login failed");
     } finally {
@@ -37,17 +34,16 @@ export function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-        <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
-          <p className="mt-4 text-sm text-ink-400">
-            Your professional operating system for impact-driven case studies
-          </p>
+          <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
+          <h1 className="mt-6 font-display text-2xl font-bold text-white">Employer sign in</h1>
+          <p className="mt-2 text-sm text-ink-400">Hire with UXGuard — company jobs and applicants</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-8">
-          {user?.active_workspace === "employer" ? (
+          {user && user.active_workspace !== "employer" ? (
             <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              You are currently in the employer portal. Sign in here to open your candidate account
-              instead.
+              You are signed in as a candidate. Use an employer account here to open the hiring
+              portal.
             </div>
           ) : null}
           {error ? (
@@ -55,16 +51,16 @@ export function AdminLoginPage() {
           ) : null}
 
           <div className="mb-4">
-            <label htmlFor="email" className="label-field">
-              Email
+            <label htmlFor="employer-email" className="label-field">
+              Work email
             </label>
             <input
-              id="email"
+              id="employer-email"
               type="email"
               className="input-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="you@company.com"
               autoComplete="username"
               required
             />
@@ -72,7 +68,7 @@ export function AdminLoginPage() {
 
           <div className="mb-6">
             <div className="mb-2 flex items-center justify-between">
-              <label htmlFor="password" className="label-field">
+              <label htmlFor="employer-password" className="label-field">
                 Password
               </label>
               <Link
@@ -83,7 +79,7 @@ export function AdminLoginPage() {
               </Link>
             </div>
             <input
-              id="password"
+              id="employer-password"
               type="password"
               className="input-field"
               value={password}
@@ -95,29 +91,29 @@ export function AdminLoginPage() {
           </div>
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Signing in..." : "Sign in as employer"}
           </button>
 
           <p className="mt-6 text-center text-sm text-ink-500">
-            Don&apos;t have an account?{" "}
-            <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
-              Start your journey
+            Need an employer account?{" "}
+            <Link
+              to="/admin/employer/register"
+              className="font-semibold text-brand-600 hover:text-brand-700"
+            >
+              Register your company
             </Link>
           </p>
           <p className="mt-3 text-center text-sm text-ink-500">
-            Hiring?{" "}
-            <Link
-              to="/admin/employer/login"
-              className="font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Employer sign in
+            Looking for work?{" "}
+            <Link to="/admin/login" className="font-semibold text-brand-600 hover:text-brand-700">
+              Candidate sign in
             </Link>
           </p>
         </form>
 
         <p className="mt-6 text-center text-sm text-ink-500">
           <Link to="/" className="text-brand-400 hover:text-brand-300">
-            ← Back to portfolio
+            ← Back to site
           </Link>
         </p>
       </div>

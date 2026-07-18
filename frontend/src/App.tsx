@@ -3,6 +3,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminLoginPage } from "./pages/admin/AdminLoginPage";
+import { EmployerLoginPage } from "./pages/admin/EmployerLoginPage";
+import { EmployerRegisterPage } from "./pages/admin/EmployerRegisterPage";
 import { AdminForgotPasswordPage } from "./pages/admin/AdminForgotPasswordPage";
 import { AdminRegisterPage } from "./pages/admin/AdminRegisterPage";
 import { AdminResetPasswordPage } from "./pages/admin/AdminResetPasswordPage";
@@ -75,6 +77,8 @@ export default function App() {
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
 
           <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/employer/login" element={<EmployerLoginPage />} />
+          <Route path="/admin/employer/register" element={<EmployerRegisterPage />} />
           <Route path="/admin/register" element={<AdminRegisterPage />} />
           <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
           <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />

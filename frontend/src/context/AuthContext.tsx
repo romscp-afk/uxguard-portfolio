@@ -6,7 +6,7 @@ import { saveUserToRegistry } from "../lib/platformRegistry";
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, portal?: "candidate" | "employer") => Promise<void>;
   register: (data: RegisterPayload) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -31,10 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { access_token } = await api.login(email, password);
+  const login = useCallback(async (email: string, password: string, portal: "candidate" | "employer" = "candidate") => {
+    const { access_token, user: loggedIn } = await api.login(email, password, portal);
     localStorage.setItem("uxguard_token", access_token);
-    const me = await api.me();
+    const me = loggedIn || (await api.me());
     setUser(me);
     saveUserToRegistry(me);
   }, []);

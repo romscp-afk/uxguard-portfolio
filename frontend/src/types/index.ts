@@ -642,6 +642,7 @@ export interface RegisterPayload {
   title?: string;
   role?: "professional" | "viewer";
   onboarding_intent?: OnboardingIntent;
+  account_type?: "candidate" | "employer";
 }
 
 export interface MediaAsset {

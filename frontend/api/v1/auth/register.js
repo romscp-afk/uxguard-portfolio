@@ -9,7 +9,8 @@ export default withApi(async (req, res) => {
   }
 
   try {
-    const { email, password, name, username, title, role, onboarding_intent } = req.body || {};
+    const { email, password, name, username, title, role, onboarding_intent, account_type } =
+      req.body || {};
     const result = await registerUser({
       email,
       password,
@@ -18,6 +19,7 @@ export default withApi(async (req, res) => {
       title,
       role,
       onboarding_intent,
+      account_type,
       signup_geo: signupGeoFromRequest(req),
     });
 

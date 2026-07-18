@@ -81,11 +81,82 @@ export async function enableEmployerWorkspaceForUser(userId) {
         throw err;
       }
       const user = store.users[index];
-      const workspaces = { ...defaultWorkspaces(user), employer: true, candidate: true };
+      const workspaces = { ...defaultWorkspaces(user), employer: true };
       const next = {
         ...user,
         workspaces,
         active_workspace: "employer",
+        account_type: user.account_type || "employer",
+      };
+      store.users[index] = next;
+      saved = next;
+      return store;
+    },
+    { forceRefresh: true },
+  );
+  return saved;
+}
+
+/**
+ * Switch portal mode on login. Candidate and employer portals are separate —
+ * accounts only enter a portal they are entitled to.
+ */
+export async function setPortalWorkspaceForUser(userId, portal) {
+  let saved = null;
+  await updateStore(
+    (store) => {
+      const uid = Number(userId);
+      const index = store.users.findIndex((u) => Number(u.id) === uid);
+      if (index === -1) {
+        const err = new Error("User not found");
+        err.status = 404;
+        throw err;
+      }
+      const user = store.users[index];
+      const workspaces = defaultWorkspaces(user);
+      const isAdmin = user.role === "admin";
+
+      if (portal === "employer") {
+        if (!workspaces.employer && !isAdmin) {
+          const err = new Error(
+            "This account is not an employer account. Register at Employer sign-up, or use Candidate sign in.",
+          );
+          err.status = 403;
+          throw err;
+        }
+        const nextWorkspaces = isAdmin
+          ? { candidate: true, employer: true }
+          : { ...workspaces, employer: true };
+        const next = {
+          ...user,
+          workspaces: nextWorkspaces,
+          active_workspace: "employer",
+        };
+        store.users[index] = next;
+        saved = next;
+        return store;
+      }
+
+      // candidate portal
+      if (!workspaces.candidate && workspaces.employer && !isAdmin) {
+        const err = new Error(
+          "This is an employer account. Sign in at Employer sign in.",
+        );
+        err.status = 403;
+        throw err;
+      }
+      const nextWorkspaces = isAdmin
+        ? { candidate: true, employer: true }
+        : { ...workspaces, candidate: workspaces.candidate !== false };
+      if (!nextWorkspaces.candidate && !isAdmin) {
+        const err = new Error("Candidate workspace is not available for this account");
+        err.status = 403;
+        throw err;
+      }
+      const next = {
+        ...user,
+        workspaces: nextWorkspaces,
+        active_workspace: "candidate",
       };
       store.users[index] = next;
       saved = next;

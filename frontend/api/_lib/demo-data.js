@@ -102,6 +102,7 @@ export async function registerUser({
   title,
   role,
   onboarding_intent,
+  account_type,
   signup_geo,
 }) {
   if (!email || !password || !name) {
@@ -120,12 +121,14 @@ export async function registerUser({
   }
 
   const geo = signup_geo && typeof signup_geo === "object" ? signup_geo : {};
+  const isEmployer = account_type === "employer";
 
   let created = null;
   const normalizedEmail = String(email).trim().toLowerCase();
   const after = await updateStore((store) => {
     const id =
       (store.users || []).reduce((max, u) => Math.max(max, Number(u.id) || 0), 0) + 1;
+    const resolvedRole = resolveUserRole(email, role);
     created = {
       id,
       email: normalizedEmail,
@@ -144,8 +147,13 @@ export async function registerUser({
       signup_region: geo.signup_region || null,
       cv_url: null,
       social_links: {},
-      role: resolveUserRole(email, role),
+      role: resolvedRole,
       onboarding_intent: onboarding_intent || "build_portfolio",
+      account_type: isEmployer ? "employer" : "candidate",
+      workspaces: isEmployer
+        ? { candidate: false, employer: true }
+        : { candidate: true, employer: false },
+      active_workspace: isEmployer ? "employer" : "candidate",
       portfolio_config: defaultPortfolioConfig(),
       created_at: new Date().toISOString(),
     };

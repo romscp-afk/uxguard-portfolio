@@ -7,7 +7,7 @@ import { EditGuard, EditLink, ReadOnlyNotice } from "../../components/platform/R
 import type { EmployerDashboard } from "../../types";
 
 export function EmployerWorkspacePage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [dashboard, setDashboard] = useState<EmployerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,8 +27,9 @@ export function EmployerWorkspacePage() {
     setError("");
     try {
       if (!user?.workspaces?.employer) {
-        await api.enableEmployerWorkspace();
-        await refreshUser();
+        setError("Sign in with an employer account to access hiring tools.");
+        setDashboard(null);
+        return;
       }
       const data = await api.getEmployerDashboard();
       setDashboard(data);
@@ -48,7 +49,6 @@ export function EmployerWorkspacePage() {
     setError("");
     try {
       await api.createCompany(form);
-      await refreshUser();
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create company.");
