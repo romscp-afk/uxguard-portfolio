@@ -1,7 +1,7 @@
 import { requireAuthUser } from "../../../_lib/auth.js";
 import { parseMultipartForm } from "../../../_lib/multipart.js";
 import { withApi } from "../../../_lib/withApi.js";
-import { importResumeForUser } from "../../../_lib/resume/service.js";
+import { assertCanEdit, importResumeForUser } from "../../../_lib/resume/service.js";
 
 export const config = {
   api: {
@@ -19,8 +19,16 @@ export default withApi(async (req, res) => {
   if (!user) return;
 
   try {
-    const { file } = await parseMultipartForm(req);
-    const result = await importResumeForUser(user.id, file);
+    assertCanEdit(user);
+    const { file, fields } = await parseMultipartForm(req);
+    const meta = {
+      title: fields?.title || fields?.resume_name || "",
+      target_role: fields?.target_role || "",
+      target_industry: fields?.target_industry || "",
+      target_country: fields?.target_country || "",
+      experience_level: fields?.experience_level || "mid",
+    };
+    const result = await importResumeForUser(user.id, file, meta);
     res.status(200).json(result);
   } catch (err) {
     const status = err.status || 400;

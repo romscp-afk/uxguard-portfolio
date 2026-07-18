@@ -21,6 +21,11 @@ export async function parseMultipartForm(req) {
 
   const fileEntry = formData.get("file");
   const altText = formData.get("alt_text");
+  const fields = {};
+  for (const [key, value] of formData.entries()) {
+    if (key === "file") continue;
+    if (typeof value === "string") fields[key] = value;
+  }
 
   if (!fileEntry || typeof fileEntry === "string") {
     throw new Error("No file provided");
@@ -33,6 +38,7 @@ export async function parseMultipartForm(req) {
       filename: fileEntry.name || "upload",
       mimeType: fileEntry.type || "application/octet-stream",
     },
+    fields,
     altText: typeof altText === "string" && altText.trim() ? altText.trim() : undefined,
   };
 }

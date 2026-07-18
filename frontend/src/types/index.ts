@@ -149,6 +149,14 @@ export interface Project {
 }
 
 export type ResumeParseStatus = "none" | "pending" | "ready" | "failed";
+export type ResumeStatus = "draft" | "completed" | "archived" | "deleted";
+export type ResumeExperienceLevel =
+  | "entry"
+  | "mid"
+  | "senior"
+  | "executive"
+  | "career_change";
+export type ResumeCreationMethod = "manual" | "upload";
 
 export interface ResumeLink {
   label: string;
@@ -160,8 +168,18 @@ export interface ResumeBasics {
   title: string;
   email: string;
   phone: string;
+  country?: string;
+  city?: string;
+  address?: string;
+  postal_code?: string;
   location: string;
+  linkedin_url?: string;
+  portfolio_url?: string;
+  website_url?: string;
+  github_url?: string;
+  photo_url?: string;
   summary: string;
+  objective?: string;
   links: ResumeLink[];
 }
 
@@ -169,11 +187,15 @@ export interface ResumeExperience {
   id: string;
   company: string;
   role: string;
+  employment_type?: string;
   location: string;
+  work_mode?: string;
   start: string;
   end: string;
   current: boolean;
+  description?: string;
   bullets: string[];
+  tools?: string[];
 }
 
 export interface ResumeEducation {
@@ -181,9 +203,20 @@ export interface ResumeEducation {
   school: string;
   degree: string;
   field: string;
+  location?: string;
   start: string;
   end: string;
+  current?: boolean;
+  grade?: string;
   details: string;
+}
+
+export interface ResumeSkill {
+  id: string;
+  name: string;
+  category: string;
+  level?: string;
+  years?: string;
 }
 
 export interface ResumeCertification {
@@ -191,25 +224,94 @@ export interface ResumeCertification {
   name: string;
   issuer: string;
   year: string;
+  issue_date?: string;
+  expiration_date?: string;
+  credential_id?: string;
+  credential_url?: string;
+  no_expiry?: boolean;
 }
 
 export interface ResumeProjectItem {
   id: string;
   name: string;
+  role?: string;
+  organization?: string;
   url: string;
+  start?: string;
+  end?: string;
   summary: string;
+  outcomes?: string[];
+  tools?: string[];
+}
+
+export interface ResumeLanguage {
+  id: string;
+  language: string;
+  proficiency: string;
+}
+
+export interface ResumeSimpleEntry {
+  id: string;
+  title: string;
+  issuer?: string;
+  date?: string;
+  url?: string;
+  description?: string;
+}
+
+export interface ResumeReference {
+  id: string;
+  name: string;
+  position?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  relationship?: string;
+}
+
+export interface ResumeCustomSectionItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  date?: string;
+  description?: string;
+  url?: string;
+}
+
+export interface ResumeCustomSection {
+  id: string;
+  title: string;
+  items: ResumeCustomSectionItem[];
 }
 
 export interface Resume {
   id: number;
   user_id: number;
   title: string;
+  target_role?: string;
+  target_company?: string;
+  target_industry?: string;
+  target_country?: string;
+  experience_level?: ResumeExperienceLevel;
+  creation_method?: ResumeCreationMethod;
+  status: ResumeStatus;
+  completion_percentage: number;
+  template_id?: string;
+  settings?: Record<string, unknown>;
   basics: ResumeBasics;
   experience: ResumeExperience[];
   education: ResumeEducation[];
-  skills: string[];
+  skills: ResumeSkill[];
   certifications: ResumeCertification[];
   projects: ResumeProjectItem[];
+  languages?: ResumeLanguage[];
+  awards?: ResumeSimpleEntry[];
+  publications?: ResumeSimpleEntry[];
+  volunteering?: ResumeSimpleEntry[];
+  references?: ResumeReference[];
+  custom_sections?: ResumeCustomSection[];
+  section_order?: string[];
+  hidden_sections?: string[];
   source_media_id?: number | null;
   source_filename?: string | null;
   source_mime?: string | null;
@@ -218,6 +320,19 @@ export interface Resume {
   parse_error?: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface ResumeSummary {
+  id: number;
+  title: string;
+  target_role?: string;
+  status: ResumeStatus;
+  completion_percentage: number;
+  template_id?: string;
+  creation_method?: ResumeCreationMethod;
+  updated_at: string;
+  created_at: string;
 }
 
 export interface ResumeImportResult {

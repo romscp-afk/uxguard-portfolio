@@ -1,11 +1,27 @@
-import { requireAuthUser } from "../../_lib/auth.js";
-import { withApi } from "../../_lib/withApi.js";
+import { requireAuthUser } from "../../../_lib/auth.js";
+import { withApi } from "../../../_lib/withApi.js";
 import {
   createBlankResumeForUser,
   getResumeForUser,
   saveResumeForUser,
-} from "../../_lib/resume/service.js";
+  assertCanEdit,
+} from "../../../_lib/resume/service.js";
 
+async function readBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+/** Legacy single-resume endpoints — prefer /api/v1/resumes and /api/v1/resumes/:id. */
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
@@ -17,14 +33,19 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "PUT") {
-    const body = req.body || {};
-    if (body.create_blank === true) {
-      const resume = await createBlankResumeForUser(user.id);
+    try {
+      assertCanEdit(user);
+      const body = await readBody(req);
+      if (body.create_blank === true) {
+        const resume = await createBlankResumeForUser(user.id, body);
+        res.status(200).json({ resume });
+        return;
+      }
+      const resume = await saveResumeForUser(user.id, body);
       res.status(200).json({ resume });
-      return;
+    } catch (err) {
+      res.status(err.status || 500).json({ detail: err.message || "Failed to save resume" });
     }
-    const resume = await saveResumeForUser(user.id, body);
-    res.status(200).json({ resume });
     return;
   }
 

@@ -29,6 +29,7 @@ import type {
   Project,
   Resume,
   ResumeImportResult,
+  ResumeSummary,
   SearchResults,
   User,
   UserProfile,
@@ -205,6 +206,42 @@ export const api = {
 
   getMyResume: () => request<{ resume: Resume | null }>("/resumes/me"),
 
+  listResumes: () => request<{ resumes: ResumeSummary[] }>("/resumes"),
+
+  getResume: (id: number) => request<{ resume: Resume }>(`/resumes/${id}`),
+
+  createResume: (data: Partial<Resume> & { title?: string; target_role?: string } = {}) =>
+    request<{ resume: Resume }>("/resumes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateResume: (id: number, data: Partial<Resume> & { action?: string }) =>
+    request<{ resume: Resume }>(`/resumes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteResume: (id: number) => request<void>(`/resumes/${id}`, { method: "DELETE" }),
+
+  duplicateResume: (id: number, data: { title?: string } = {}) =>
+    request<{ resume: Resume }>(`/resumes/${id}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  archiveResume: (id: number) =>
+    request<{ resume: Resume }>(`/resumes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action: "archive" }),
+    }),
+
+  renameResume: (id: number, title: string) =>
+    request<{ resume: Resume }>(`/resumes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action: "rename", title }),
+    }),
+
   saveMyResume: (resume: Partial<Resume> & { create_blank?: boolean }) =>
     request<{ resume: Resume }>("/resumes/me", {
       method: "PUT",
@@ -217,9 +254,12 @@ export const api = {
       body: JSON.stringify({ create_blank: true }),
     }),
 
-  importResume: (file: File) => {
+  importResume: (file: File, meta: Record<string, string> = {}) => {
     const form = new FormData();
     form.append("file", file);
+    Object.entries(meta).forEach(([key, value]) => {
+      if (value) form.append(key, value);
+    });
     return request<ResumeImportResult>("/resumes/me/import", {
       method: "POST",
       body: form,

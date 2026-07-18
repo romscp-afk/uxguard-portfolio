@@ -24,7 +24,9 @@ import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
 import { ProjectsListPage } from "./pages/admin/ProjectsListPage";
 import { ProjectEditorPage } from "./pages/admin/ProjectEditorPage";
 import { PortfolioBuilderPage } from "./pages/admin/PortfolioBuilderPage";
-import { ResumeBuilderPage } from "./pages/admin/ResumeBuilderPage";
+import { ResumeDashboardPage } from "./pages/admin/ResumeDashboardPage";
+import { ResumeCreatePage } from "./pages/admin/ResumeCreatePage";
+import { ResumeEditorPage } from "./pages/admin/ResumeEditorPage";
 import { TemplatesPage } from "./pages/admin/TemplatesPage";
 import { AnalyticsPage } from "./pages/admin/AnalyticsPage";
 import { AiHubPage } from "./pages/admin/ai/AiHubPage";
@@ -69,7 +71,9 @@ export default function App() {
             <Route path="projects/new" element={<ProjectEditorPage />} />
             <Route path="projects/:id" element={<ProjectEditorPage />} />
             <Route path="portfolio-builder" element={<PortfolioBuilderPage />} />
-            <Route path="resume-builder" element={<ResumeBuilderPage />} />
+            <Route path="resume-builder" element={<ResumeDashboardPage />} />
+            <Route path="resume-builder/new" element={<ResumeCreatePage />} />
+            <Route path="resume-builder/:id" element={<ResumeEditorPage />} />
             <Route path="templates" element={<TemplatesPage />} />
             <Route path="ai" element={<AiHubPage />} />
             <Route path="ai/history" element={<AiHistoryPage />} />

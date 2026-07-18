@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
-    "test": "UXGUARD_TEST=1 node --test api/_lib/billing/billing.test.js",
+    "test": "UXGUARD_TEST=1 node --test api/_lib/billing/billing.test.js api/_lib/resume/schema.test.js",
     "lint": "npm run typecheck"
   },
   "dependencies": {
