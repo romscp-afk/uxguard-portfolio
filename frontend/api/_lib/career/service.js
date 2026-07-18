@@ -117,16 +117,27 @@ export async function setPortalWorkspaceForUser(userId, portal) {
       const isAdmin = user.role === "admin";
 
       if (portal === "employer") {
-        if (!workspaces.employer && !isAdmin) {
+        // Platform admins never enter the employer portal — keep/restore super-admin panel
+        if (isAdmin) {
+          const next = {
+            ...user,
+            workspaces: { candidate: true, employer: Boolean(workspaces.employer) },
+            active_workspace: "candidate",
+            last_login_portal: "candidate",
+            account_type: "candidate",
+          };
+          store.users[index] = next;
+          saved = next;
+          return store;
+        }
+        if (!workspaces.employer) {
           const err = new Error(
             "This account is not an employer account. Register at Employer sign-up, or use Candidate sign in.",
           );
           err.status = 403;
           throw err;
         }
-        const nextWorkspaces = isAdmin
-          ? { candidate: true, employer: true }
-          : { ...workspaces, employer: true };
+        const nextWorkspaces = { ...workspaces, employer: true };
         const next = {
           ...user,
           workspaces: nextWorkspaces,
@@ -177,10 +188,15 @@ export async function setPortalWorkspaceForUser(userId, portal) {
     },
     { forceRefresh: true },
   );
+  if (portal === "employer" && saved?.role === "admin") {
+    const err = new Error(
+      "Admin accounts use the platform portal. Sign in at /admin/login for the super admin panel.",
+    );
+    err.status = 403;
+    throw err;
+  }
   return saved;
 }
-
-/** Fix legacy users stuck on employer portal after the old workspace switcher. */
 export async function repairStuckEmployerPortal(userId) {
   let saved = null;
   await updateStore(
@@ -190,31 +206,34 @@ export async function repairStuckEmployerPortal(userId) {
       if (index === -1) return store;
       const user = store.users[index];
       const workspaces = defaultWorkspaces(user);
+      const isAdmin = user.role === "admin";
       const employerOnly =
-        user.account_type === "employer" && workspaces.candidate === false;
+        !isAdmin && user.account_type === "employer" && workspaces.candidate === false;
       const keepEmployer =
-        employerOnly || user.last_login_portal === "employer";
+        !isAdmin && (employerOnly || user.last_login_portal === "employer");
 
       if (keepEmployer) {
         saved = user;
         return store;
       }
 
-      // Force candidate portal + repair wrong account_type stamps
+      // Force candidate / super-admin portal
       const next = {
         ...user,
         workspaces: {
           ...workspaces,
-          candidate: workspaces.candidate === false && user.account_type === "employer" ? false : true,
+          candidate: true,
+          // Admins keep employer flag available for hiring tools later, but portal is candidate
+          employer: isAdmin ? Boolean(workspaces.employer) : workspaces.employer,
         },
         active_workspace: "candidate",
-        last_login_portal: user.last_login_portal === "candidate" ? "candidate" : "candidate",
-        account_type:
-          user.account_type === "employer" && workspaces.candidate === false
-            ? "employer"
-            : "candidate",
+        last_login_portal: "candidate",
+        account_type: isAdmin || workspaces.candidate !== false ? "candidate" : user.account_type,
       };
-      // Only write when something actually changes
+      if (isAdmin) {
+        next.account_type = "candidate";
+      }
+
       if (
         user.active_workspace === next.active_workspace &&
         user.account_type === next.account_type &&

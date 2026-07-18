@@ -136,9 +136,10 @@ const PHASE2_LINKS: NavLink[] = [
 ];
 
 export function dashboardLinksForUser(user?: User | null) {
-  // Employer portal only after employer login/register — never default from legacy switcher state
+  // Super admins always use the full platform / candidate portal (Users, Mail, etc.)
   const employerSession =
-    user?.workspaces?.employer &&
+    !isAdmin(user) &&
+    Boolean(user?.workspaces?.employer) &&
     (user?.account_type === "employer" || user?.last_login_portal === "employer");
   const workspace = employerSession ? "employer" : "candidate";
   const groups =

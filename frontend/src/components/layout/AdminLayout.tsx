@@ -128,13 +128,17 @@ export function AdminLayout() {
     return <Navigate to="/admin/employer" replace />;
   }
 
-  // Candidate session cannot open employer routes (use employer login instead)
+  // Candidate / admin session cannot open employer routes
   if (
     !isEmployerPortal &&
     location.pathname.startsWith("/admin/employer") &&
     !location.pathname.startsWith("/admin/employer/login") &&
     !location.pathname.startsWith("/admin/employer/register")
   ) {
+    // Super admins go to the platform dashboard, not employer login
+    if (user.role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to="/admin/employer/login" replace />;
   }
 
