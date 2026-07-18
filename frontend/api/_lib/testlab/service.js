@@ -30,6 +30,14 @@ function httpError(message, status = 400) {
   return err;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sameProjectId(a, b) {
+  return String(a || "").trim() === String(b || "").trim();
+}
+
 function ensureCollections(store) {
   store.testlab_projects = store.testlab_projects || [];
   store.testlab_targets = store.testlab_targets || [];
@@ -65,9 +73,15 @@ function publicSecret(secret) {
 }
 
 function getProjectOrThrow(store, projectId) {
-  const project = (store.testlab_projects || []).find((p) => p.id === projectId && !p.deleted_at);
+  const project = (store.testlab_projects || []).find(
+    (p) => sameProjectId(p.id, projectId) && !p.deleted_at,
+  );
   if (!project) throw httpError("TestLab project not found", 404);
   return project;
+}
+
+async function readProjectStore(forceRefresh = false) {
+  return ensureCollections(await readStore({ forceRefresh }));
 }
 
 export function getExecutionCapabilities() {
@@ -76,16 +90,20 @@ export function getExecutionCapabilities() {
 
 export async function listProjectsForUser(user) {
   assertCanAccessTestLab(user);
-  const store = ensureCollections(await readStore());
+  const store = await readProjectStore(true);
   return (store.testlab_projects || [])
     .filter((p) => !p.deleted_at && resolveProjectRole(store, p.id, user))
     .map((p) => ({
       ...p,
       role: resolveProjectRole(store, p.id, user),
-      target_count: (store.testlab_targets || []).filter((t) => t.project_id === p.id).length,
-      test_count: (store.testlab_test_cases || []).filter((t) => t.project_id === p.id && t.enabled !== false).length,
+      target_count: (store.testlab_targets || []).filter((t) => sameProjectId(t.project_id, p.id))
+        .length,
+      test_count: (store.testlab_test_cases || []).filter(
+        (t) => sameProjectId(t.project_id, p.id) && t.enabled !== false,
+      ).length,
       open_defects: (store.testlab_defects || []).filter(
-        (d) => d.project_id === p.id && !["closed", "wont_fix"].includes(d.status),
+        (d) =>
+          sameProjectId(d.project_id, p.id) && !["closed", "wont_fix"].includes(d.status),
       ).length,
     }))
     .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
@@ -128,59 +146,106 @@ export async function createProject(user, payload) {
     },
     { forceRefresh: true },
   );
+
+  // Confirm the project is readable after Blob write (same race as resumes).
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const store = await readProjectStore(true);
+      getProjectOrThrow(store, saved.id);
+      return saved;
+    } catch (err) {
+      if (err?.status !== 404 || attempt === 3) {
+        if (saved) return saved;
+        throw err;
+      }
+      await sleep(100 * (attempt + 1));
+    }
+  }
   return saved;
 }
 
 export async function getProjectDetail(user, projectId) {
   assertCanAccessTestLab(user);
-  const store = ensureCollections(await readStore());
-  const project = getProjectOrThrow(store, projectId);
-  const role = assertProjectPermission(store, projectId, user, "project_read");
-  const targets = store.testlab_targets.filter((t) => t.project_id === projectId);
-  const members = store.testlab_project_members.filter((m) => m.project_id === projectId);
-  const requirements = store.testlab_requirements.filter((r) => r.project_id === projectId);
-  const tests = store.testlab_test_cases.filter((t) => t.project_id === projectId);
-  const runs = store.testlab_runs
-    .filter((r) => r.project_id === projectId)
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
-    .slice(0, 20);
-  const defects = store.testlab_defects.filter((d) => d.project_id === projectId);
-  const schedules = store.testlab_schedules.filter((s) => s.project_id === projectId);
-  const secrets = store.testlab_secrets.filter((s) => s.project_id === projectId).map(publicSecret);
-  const baselines = (store.testlab_baselines || []).filter((b) => b.project_id === projectId);
+  let lastError = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const store = await readProjectStore(attempt > 0);
+      const project = getProjectOrThrow(store, projectId);
+      const role = assertProjectPermission(store, projectId, user, "project_read");
+      const targets = store.testlab_targets.filter((t) => sameProjectId(t.project_id, projectId));
+      const members = store.testlab_project_members.filter((m) =>
+        sameProjectId(m.project_id, projectId),
+      );
+      const requirements = store.testlab_requirements.filter((r) =>
+        sameProjectId(r.project_id, projectId),
+      );
+      const tests = store.testlab_test_cases.filter((t) => sameProjectId(t.project_id, projectId));
+      const runs = store.testlab_runs
+        .filter((r) => sameProjectId(r.project_id, projectId))
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+        .slice(0, 20);
+      const defects = store.testlab_defects.filter((d) => sameProjectId(d.project_id, projectId));
+      const schedules = store.testlab_schedules.filter((s) =>
+        sameProjectId(s.project_id, projectId),
+      );
+      const secrets = store.testlab_secrets
+        .filter((s) => sameProjectId(s.project_id, projectId))
+        .map(publicSecret);
+      const baselines = (store.testlab_baselines || []).filter((b) =>
+        sameProjectId(b.project_id, projectId),
+      );
 
-  return {
-    project: { ...project, role },
-    targets,
-    members,
-    requirements,
-    tests,
-    runs,
-    defects,
-    schedules,
-    secrets,
-    baselines,
-    execution: getExecutionCapabilities(),
-    stats: {
-      targets: targets.length,
-      verified_targets: targets.filter((t) => t.verification_status === "verified").length,
-      requirements: requirements.length,
-      tests: tests.length,
-      runs: store.testlab_runs.filter((r) => r.project_id === projectId).length,
-      open_defects: defects.filter((d) => !["closed", "wont_fix"].includes(d.status)).length,
-      baselines: baselines.length,
-    },
-  };
+      return {
+        project: { ...project, role },
+        targets,
+        members,
+        requirements,
+        tests,
+        runs,
+        defects,
+        schedules,
+        secrets,
+        baselines,
+        execution: getExecutionCapabilities(),
+        stats: {
+          targets: targets.length,
+          verified_targets: targets.filter((t) => t.verification_status === "verified").length,
+          requirements: requirements.length,
+          tests: tests.length,
+          runs: store.testlab_runs.filter((r) => sameProjectId(r.project_id, projectId)).length,
+          open_defects: defects.filter((d) => !["closed", "wont_fix"].includes(d.status)).length,
+          baselines: baselines.length,
+        },
+      };
+    } catch (err) {
+      lastError = err;
+      if (err?.status !== 404 || attempt === 3) throw err;
+      await sleep(120 * (attempt + 1));
+    }
+  }
+  throw lastError || httpError("TestLab project not found", 404);
 }
 
 export async function updateProject(user, projectId, payload) {
   assertCanAccessTestLab(user);
+  try {
+    return await writeProjectUpdate(user, projectId, payload);
+  } catch (err) {
+    if (err?.status !== 404) throw err;
+    await sleep(120);
+    return writeProjectUpdate(user, projectId, payload);
+  }
+}
+
+async function writeProjectUpdate(user, projectId, payload) {
   let saved = null;
   await updateStore(
     (store) => {
       ensureCollections(store);
       assertProjectPermission(store, projectId, user, "project_write");
-      const idx = store.testlab_projects.findIndex((p) => p.id === projectId && !p.deleted_at);
+      const idx = store.testlab_projects.findIndex(
+        (p) => sameProjectId(p.id, projectId) && !p.deleted_at,
+      );
       if (idx === -1) throw httpError("TestLab project not found", 404);
       const next = normalizeProject(
         {

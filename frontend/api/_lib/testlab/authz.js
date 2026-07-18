@@ -25,8 +25,9 @@ export function resolveProjectRole(store, projectId, user) {
   if (!user) return null;
   if (normalizeRole(user.role) === "admin") return "owner";
 
+  const pid = String(projectId || "").trim();
   const project = (store.testlab_projects || []).find(
-    (p) => p.id === projectId && !p.deleted_at,
+    (p) => String(p.id || "").trim() === pid && !p.deleted_at,
   );
   if (!project) return null;
 
@@ -34,7 +35,7 @@ export function resolveProjectRole(store, projectId, user) {
 
   const member = (store.testlab_project_members || []).find(
     (m) =>
-      m.project_id === projectId &&
+      String(m.project_id || "").trim() === pid &&
       (Number(m.user_id) === Number(user.id) ||
         (m.email && m.email.toLowerCase() === String(user.email || "").toLowerCase())),
   );

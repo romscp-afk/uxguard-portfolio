@@ -24,7 +24,7 @@ export function TestLabCreatePage() {
       if (!project?.id) {
         throw new Error("Project was created but no id was returned. Refresh TestLab and try again.");
       }
-      navigate(`/admin/testlab/${project.id}`);
+      navigate(`/admin/testlab/${project.id}`, { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create project.");
     } finally {

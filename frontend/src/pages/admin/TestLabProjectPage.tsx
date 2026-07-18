@@ -76,21 +76,30 @@ export function TestLabProjectPage() {
   );
 
   const load = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || projectId === "new" || projectId === "create") return;
     setLoading(true);
     setError("");
-    try {
-      setDetail(await api.getTestLabProject(projectId));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load project.");
-    } finally {
-      setLoading(false);
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        setDetail(await api.getTestLabProject(projectId));
+        setError("");
+        return;
+      } catch (err) {
+        lastError = err;
+        const notFound = err instanceof ApiError && err.status === 404;
+        if (!notFound || attempt === 3) break;
+        await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+      }
     }
+    setError(
+      lastError instanceof ApiError ? lastError.message : "Could not load project.",
+    );
   }, [projectId]);
 
   useEffect(() => {
     if (projectId === "new" || projectId === "create") return;
-    void load();
+    void load().finally(() => setLoading(false));
   }, [load, projectId]);
 
   if (projectId === "new" || projectId === "create") {
