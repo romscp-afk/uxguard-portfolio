@@ -190,13 +190,16 @@ export async function registerUser({
 
   try {
     const { notifyPlatformAdmins } = await import("./community.js");
+    const isEmployerAccount = created.account_type === "employer";
     await notifyPlatformAdmins({
-      type: "new_user",
-      title: "New user registered",
-      message: `${created.name} · ${created.email}${
-        created.signup_location ? ` · ${created.signup_location}` : ""
-      }`,
-      link: `/admin/users/${created.id}`,
+      type: isEmployerAccount ? "employer_registered" : "new_user",
+      title: isEmployerAccount ? "New employer account registered" : "New user registered",
+      message: isEmployerAccount
+        ? `${created.name} · ${created.email} registered as an employer and needs company verification before posting jobs.`
+        : `${created.name} · ${created.email}${
+            created.signup_location ? ` · ${created.signup_location}` : ""
+          }`,
+      link: isEmployerAccount ? "/admin/employers" : `/admin/users/${created.id}`,
     });
   } catch {
     // Registration already succeeded; admin notification is best-effort.

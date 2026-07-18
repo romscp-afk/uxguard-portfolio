@@ -122,6 +122,17 @@ export async function createCompany(user, payload = {}) {
     { forceRefresh: true },
   );
   await trackHiringEvent("employer_profile_completed", user.id, { company_id: saved.id });
+  try {
+    const { notifyPlatformAdmins } = await import("../community.js");
+    await notifyPlatformAdmins({
+      type: "employer_pending",
+      title: "New employer company pending approval",
+      message: `${saved.display_name} was submitted by ${user.name || user.email} and needs verification before jobs can be published.`,
+      link: `/admin/employers/${saved.id}`,
+    });
+  } catch (err) {
+    console.warn("[createCompany] admin notify failed", err.message);
+  }
   return saved;
 }
 
@@ -174,6 +185,7 @@ export async function setCompanyVerification(companyId, adminUser, status, note 
         ...existing,
         verification_status: status,
         moderation_note: note,
+        verified_at: status === "verified" ? new Date().toISOString() : existing.verified_at || null,
         updated_at: new Date().toISOString(),
       });
       store.companies = store.companies.map((c) => (Number(c.id) === Number(companyId) ? saved : c));

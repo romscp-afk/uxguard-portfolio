@@ -176,6 +176,8 @@ export function normalizeCompany(input) {
       ? raw.verification_documents
       : [],
     verification_status: status,
+    moderation_note: asString(raw.moderation_note),
+    verified_at: raw.verified_at || null,
     terms_accepted_at: raw.terms_accepted_at || null,
     created_at: raw.created_at || now,
     updated_at: raw.updated_at || now,

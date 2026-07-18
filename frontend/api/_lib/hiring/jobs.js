@@ -147,9 +147,14 @@ export async function transitionJob(jobId, user, action, extra = {}) {
         needPublishPerm ? "job_publish" : "job_create",
       );
       const company = companyById(store, existing.company_id);
-      if (action === "publish" && company?.verification_status === "suspended") {
-        const err = new Error("Suspended companies cannot publish jobs");
+      if (action === "publish" && company?.verification_status !== "verified") {
+        const err = new Error(
+          company?.verification_status === "suspended"
+            ? "Suspended companies cannot publish jobs"
+            : "Your company must be approved by a UXGuard admin before you can publish jobs.",
+        );
         err.status = 403;
+        err.code = "EMPLOYER_NOT_VERIFIED";
         throw err;
       }
       if (action === "publish" && !existing.title) {

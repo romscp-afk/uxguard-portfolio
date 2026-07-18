@@ -71,7 +71,8 @@ export function EmployerWorkspacePage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Create Employer Account</h1>
           <p className="mt-1 text-sm text-ink-500">
-            Set up your company profile. Verification is controlled by platform admins — you cannot self-verify.
+            Set up your company profile. It will be sent to platform admins for review — you cannot
+            publish jobs until your company is approved.
           </p>
         </div>
         <ReadOnlyNotice />
@@ -128,6 +129,9 @@ export function EmployerWorkspacePage() {
   }
 
   const { company, stats, jobs, recent_applications } = dashboard;
+  const isVerified = company.verification_status === "verified";
+  const isRejected = company.verification_status === "rejected";
+  const isSuspended = company.verification_status === "suspended";
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -144,7 +148,7 @@ export function EmployerWorkspacePage() {
             to={`/admin/employer/jobs/new?companyId=${company.id}`}
             className="btn-primary inline-flex items-center gap-2"
           >
-            <Plus className="h-4 w-4" /> Post a Job
+            <Plus className="h-4 w-4" /> {isVerified ? "Post a Job" : "Draft a Job"}
           </EditLink>
           <Link to={`/admin/employer/company/${company.id}`} className="btn-secondary inline-flex items-center gap-2">
             <Building2 className="h-4 w-4" /> Company profile
@@ -154,6 +158,35 @@ export function EmployerWorkspacePage() {
           </Link>
         </div>
       </div>
+
+      {!isVerified ? (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            isRejected || isSuspended
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-amber-200 bg-amber-50 text-amber-950"
+          }`}
+        >
+          {isRejected ? (
+            <>
+              Your company profile was rejected
+              {company.moderation_note ? `: ${company.moderation_note}` : "."} Update your profile and
+              wait for admin review — publishing jobs is blocked until approval.
+            </>
+          ) : isSuspended ? (
+            <>
+              Your employer account is suspended
+              {company.moderation_note ? `: ${company.moderation_note}` : "."} You can save drafts but
+              cannot publish jobs.
+            </>
+          ) : (
+            <>
+              Your company is pending admin approval. You can prepare job drafts, but publishing is
+              unlocked only after a super admin verifies your employer profile.
+            </>
+          )}
+        </div>
+      ) : null}
 
       {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 

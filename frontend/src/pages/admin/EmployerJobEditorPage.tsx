@@ -42,6 +42,7 @@ export function EmployerJobEditorPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [resolvedCompanyId, setResolvedCompanyId] = useState(companyId);
+  const [companyVerified, setCompanyVerified] = useState(true);
 
   useEffect(() => {
     async function boot() {
@@ -49,6 +50,14 @@ export function EmployerJobEditorPage() {
         if (!companyId) {
           const dash = await api.getEmployerDashboard();
           if (dash.company?.id) setResolvedCompanyId(dash.company.id);
+          setCompanyVerified(dash.company?.verification_status === "verified");
+        } else {
+          try {
+            const data = await api.getCompany(companyId);
+            setCompanyVerified(data.company?.verification_status === "verified");
+          } catch {
+            setCompanyVerified(false);
+          }
         }
         return;
       }
@@ -60,6 +69,14 @@ export function EmployerJobEditorPage() {
         setPreferredText((data.job.preferred_skills || []).join(", "));
         setRespText((data.job.responsibilities || []).join("\n"));
         setResolvedCompanyId(data.job.company_id);
+        if (data.job.company_id) {
+          try {
+            const company = await api.getCompany(Number(data.job.company_id));
+            setCompanyVerified(company.company?.verification_status === "verified");
+          } catch {
+            /* keep default */
+          }
+        }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Could not load job.");
       }
@@ -138,6 +155,12 @@ export function EmployerJobEditorPage() {
       </div>
 
       <ReadOnlyNotice />
+      {!companyVerified ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Your company is not verified yet. You can save drafts, but publishing is blocked until a
+          super admin approves your employer profile.
+        </p>
+      ) : null}
       {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       <div className="flex flex-wrap gap-1">
@@ -411,10 +434,10 @@ export function EmployerJobEditorPage() {
             </button>
             {step === 7 ? (
               <>
-                <button type="button" className="btn-secondary" disabled={saving || validation.length > 0} onClick={() => void publish("submit_review")}>
+                <button type="button" className="btn-secondary" disabled={saving || validation.length > 0 || !companyVerified} onClick={() => void publish("submit_review")}>
                   Submit for review
                 </button>
-                <button type="button" className="btn-primary" disabled={saving || validation.length > 0} onClick={() => void publish("publish")}>
+                <button type="button" className="btn-primary" disabled={saving || validation.length > 0 || !companyVerified} onClick={() => void publish("publish")}>
                   Publish
                 </button>
                 {job.status === "published" ? (

@@ -47,7 +47,8 @@ export function EmployerRegisterPage() {
           <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
           <h1 className="mt-6 font-display text-2xl font-bold text-white">Create employer account</h1>
           <p className="mt-2 text-sm text-ink-400">
-            Separate from candidate profiles — for hiring teams only
+            Separate from candidate profiles — for hiring teams only. After you register, submit your
+            company profile; a platform admin must approve it before you can publish jobs.
           </p>
         </div>
 

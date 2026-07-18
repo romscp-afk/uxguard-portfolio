@@ -215,6 +215,74 @@ export const api = {
   adminListUsers: () =>
     request<AdminUserSummary[]>(`/admin/users?_=${Date.now()}`),
 
+  adminCreateAccount: (data: {
+    account_type: "candidate" | "employer";
+    name: string;
+    email: string;
+    password: string;
+    title?: string;
+    username?: string;
+    company_name?: string;
+    legal_name?: string;
+    industry?: string;
+    website?: string;
+    auto_verify?: boolean;
+  }) =>
+    request<{
+      user: User;
+      company_id: number | null;
+      temporary_password: string;
+    }>("/admin/users", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  adminListEmployers: (status?: string) =>
+    request<{
+      companies: Array<
+        Company & {
+          owner?: { id: number; name: string; email: string; username?: string } | null;
+          job_count?: number;
+          member_count?: number;
+        }
+      >;
+      pending_accounts: Array<{
+        id: number;
+        name: string;
+        email: string;
+        username?: string;
+        title?: string;
+        created_at?: string;
+        status: string;
+      }>;
+      counts: Record<string, number>;
+    }>(`/admin/employers${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+
+  adminGetEmployer: (companyId: number) =>
+    request<{
+      company: Company & { moderation_note?: string; verified_at?: string | null };
+      owner: {
+        id: number;
+        name: string;
+        email: string;
+        username?: string;
+        account_type?: string;
+        created_at?: string;
+        title?: string;
+      } | null;
+      members: unknown[];
+      jobs: Array<{ id: number; title: string; status: string; updated_at?: string; published_at?: string | null }>;
+    }>(`/admin/employers/${companyId}`),
+
+  adminVerifyEmployer: (
+    companyId: number,
+    data: { status: string; note?: string },
+  ) =>
+    request<{ company: Company }>(`/admin/employers/${companyId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   adminGetUser: (id: number) => request<AdminUserSummary>(`/admin/users/${id}`),
 
   adminUpdateUser: (id: number, data: Record<string, unknown>) =>

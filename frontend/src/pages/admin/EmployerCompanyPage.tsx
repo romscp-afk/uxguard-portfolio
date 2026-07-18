@@ -46,8 +46,17 @@ export function EmployerCompanyPage() {
       </Link>
       <h1 className="font-display text-3xl font-bold text-ink-950">Company profile</h1>
       <p className="text-sm text-ink-500">
-        Verification status: <span className="capitalize">{company.verification_status}</span> (admin-controlled)
+        Verification status: <span className="capitalize">{company.verification_status}</span>{" "}
+        (admin-controlled).{" "}
+        {company.verification_status === "verified"
+          ? "You can publish jobs."
+          : "Publishing jobs stays locked until a super admin approves this profile."}
       </p>
+      {company.moderation_note ? (
+        <p className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-700">
+          Admin note: {company.moderation_note}
+        </p>
+      ) : null}
       <ReadOnlyNotice />
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <EditGuard>

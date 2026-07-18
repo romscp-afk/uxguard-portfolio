@@ -958,6 +958,8 @@ export interface Company {
   contact_email?: string;
   verification_email_domain?: string;
   verification_status: CompanyVerificationStatus;
+  moderation_note?: string;
+  verified_at?: string | null;
   terms_accepted_at?: string | null;
   created_at: string;
   updated_at: string;

@@ -23,6 +23,9 @@ import { ContactPage } from "./pages/public/ContactPage";
 import { ContactInboxPage } from "./pages/admin/ContactInboxPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
+import { AdminEmployersPage } from "./pages/admin/AdminEmployersPage";
+import { AdminEmployerDetailPage } from "./pages/admin/AdminEmployerDetailPage";
+import { AdminCreateAccountPage } from "./pages/admin/AdminCreateAccountPage";
 import { ProjectsListPage } from "./pages/admin/ProjectsListPage";
 import { ProjectEditorPage } from "./pages/admin/ProjectEditorPage";
 import { PortfolioBuilderPage } from "./pages/admin/PortfolioBuilderPage";
@@ -126,7 +129,10 @@ export default function App() {
             <Route path="media" element={<MediaLibraryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="users/new" element={<AdminCreateAccountPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
+            <Route path="employers" element={<AdminEmployersPage />} />
+            <Route path="employers/:companyId" element={<AdminEmployerDetailPage />} />
             <Route path="contact-inbox" element={<ContactInboxPage />} />
             <Route path="settings" element={<Navigate to="/admin/profile" replace />} />
             <Route path="settings/billing" element={<Navigate to="/admin/billing" replace />} />

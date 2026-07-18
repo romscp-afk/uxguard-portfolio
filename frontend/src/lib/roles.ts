@@ -153,6 +153,7 @@ export function dashboardLinksForUser(user?: User | null) {
       label: "Admin",
       links: [
         { to: "/admin/users", label: "Users", section: "users" },
+        { to: "/admin/employers", label: "Employers", section: "employers" },
         { to: "/admin/contact-inbox", label: "Mail", section: "contact" },
       ],
     });

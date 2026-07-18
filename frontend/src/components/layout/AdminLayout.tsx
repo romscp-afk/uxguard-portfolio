@@ -44,6 +44,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   notifications: Bell,
   contact: Mail,
   users: Users,
+  employers: Building2,
   resume: FileText,
   timeline: History,
   jobs: Search,
