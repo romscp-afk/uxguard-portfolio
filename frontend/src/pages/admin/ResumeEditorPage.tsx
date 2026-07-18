@@ -342,9 +342,9 @@ export function ResumeEditorPage() {
             {resume.target_role || "No target role"} · {resume.completion_percentage}% complete
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <p
-            className="text-sm text-ink-500"
+            className="order-last text-sm text-ink-500 sm:order-first"
             aria-live="polite"
             role="status"
           >
@@ -361,25 +361,27 @@ export function ResumeEditorPage() {
             )}
           </p>
           <EditGuard>
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={readOnly || saveState === "saving"}
-              onClick={() => void manualSave()}
-            >
-              <Save className="h-4 w-4" />
-              Save
-            </button>
-            <ExportPdfButton resumeId={resume.id} readOnly={readOnly} />
-            <button
-              type="button"
-              className="btn-ghost text-sm text-red-700 hover:bg-red-50"
-              disabled={readOnly || saveState === "saving"}
-              onClick={() => void handleDelete()}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <button
+                type="button"
+                className="btn-primary col-span-2 sm:col-span-1"
+                disabled={readOnly || saveState === "saving"}
+                onClick={() => void manualSave()}
+              >
+                <Save className="h-4 w-4" />
+                Save
+              </button>
+              <ExportPdfButton resumeId={resume.id} readOnly={readOnly} />
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                disabled={readOnly || saveState === "saving"}
+                onClick={() => void handleDelete()}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </div>
           </EditGuard>
         </div>
       </div>

@@ -300,13 +300,13 @@ export function ResumeDashboardPage() {
           {filtered.map((resume) => (
             <article
               key={resume.id}
-              className="card relative flex flex-col overflow-hidden transition hover:border-brand-300 hover:shadow-md"
+              className="card relative flex flex-col transition hover:border-brand-300 hover:shadow-md"
             >
-              <div className="flex h-28 items-center justify-center bg-gradient-to-br from-ink-50 to-brand-50">
+              <div className="flex h-28 items-center justify-center overflow-hidden rounded-t-[inherit] bg-gradient-to-br from-ink-50 to-brand-50">
                 <FileText className="h-8 w-8 text-brand-500" aria-hidden />
                 <span className="sr-only">Template preview placeholder</span>
               </div>
-              <div className="flex flex-1 flex-col p-5">
+              <div className="flex flex-1 flex-col p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h2 className="truncate font-semibold text-ink-900">{resume.title}</h2>
@@ -336,77 +336,111 @@ export function ResumeDashboardPage() {
                   Updated {formatDate(resume.updated_at)} · Created {formatDate(resume.created_at)}
                 </p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Link to={`/admin/resume-builder/${resume.id}`} className="btn-primary text-sm">
+                <div className="mt-4 flex flex-col gap-2">
+                  <Link
+                    to={`/admin/resume-builder/${resume.id}`}
+                    className="btn-primary w-full justify-center text-sm"
+                  >
                     Continue editing
                   </Link>
-                  <Link
-                    to={`/admin/resume-builder/${resume.id}?tab=preview`}
-                    className="btn-secondary text-sm"
-                  >
-                    Preview
-                  </Link>
-                  <EditGuard>
-                    <button
-                      type="button"
-                      className="btn-secondary text-sm"
-                      disabled={busyId === resume.id}
-                      onClick={() => void handleDownload(resume)}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      to={`/admin/resume-builder/${resume.id}?tab=preview`}
+                      className="btn-secondary justify-center px-2 text-sm"
                     >
-                      <Download className="h-3.5 w-3.5" />
-                      PDF
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost text-sm text-red-700 hover:bg-red-50"
-                      disabled={busyId === resume.id}
-                      onClick={() => void handleDelete(resume)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  </EditGuard>
-                  <div className="relative ml-auto">
-                    <button
-                      type="button"
-                      className="btn-ghost px-2"
-                      aria-label={`More actions for ${resume.title}`}
-                      aria-expanded={menuOpenId === resume.id}
-                      onClick={() =>
-                        setMenuOpenId((prev) => (prev === resume.id ? null : resume.id))
-                      }
-                      disabled={busyId === resume.id}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                    {menuOpenId === resume.id ? (
-                      <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-ink-100 bg-white py-1 shadow-lg">
-                        <EditGuard>
+                      Preview
+                    </Link>
+                    <EditGuard>
+                      <button
+                        type="button"
+                        className="btn-secondary justify-center px-2 text-sm"
+                        disabled={busyId === resume.id}
+                        onClick={() => void handleDownload(resume)}
+                      >
+                        <Download className="h-3.5 w-3.5 shrink-0" />
+                        PDF
+                      </button>
+                    </EditGuard>
+                    <EditGuard>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-2 py-2 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
+                        disabled={busyId === resume.id}
+                        onClick={() => void handleDelete(resume)}
+                        aria-label={`Delete ${resume.title}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                        Delete
+                      </button>
+                    </EditGuard>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="btn-secondary w-full justify-center px-2 text-sm"
+                        aria-label={`More actions for ${resume.title}`}
+                        aria-expanded={menuOpenId === resume.id}
+                        aria-haspopup="menu"
+                        onClick={() =>
+                          setMenuOpenId((prev) => (prev === resume.id ? null : resume.id))
+                        }
+                        disabled={busyId === resume.id}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                        More
+                      </button>
+                      {menuOpenId === resume.id ? (
+                        <>
                           <button
                             type="button"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
-                            onClick={() => void handleDuplicate(resume)}
+                            className="fixed inset-0 z-20 cursor-default bg-transparent"
+                            aria-label="Close menu"
+                            onClick={() => setMenuOpenId(null)}
+                          />
+                          <div
+                            role="menu"
+                            className="absolute bottom-full left-0 right-0 z-30 mb-2 rounded-xl border border-ink-200 bg-white py-1 shadow-xl"
                           >
-                            <Copy className="h-3.5 w-3.5" /> Duplicate
-                          </button>
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
-                            onClick={() => void handleRename(resume)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" /> Rename
-                          </button>
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
-                            onClick={() => void handleArchive(resume)}
-                          >
-                            <Archive className="h-3.5 w-3.5" />
-                            {resume.status === "archived" ? "Unarchive" : "Archive"}
-                          </button>
-                        </EditGuard>
-                      </div>
-                    ) : null}
+                            <EditGuard>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-ink-700 hover:bg-ink-50"
+                                onClick={() => void handleDuplicate(resume)}
+                              >
+                                <Copy className="h-3.5 w-3.5" /> Duplicate
+                              </button>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-ink-700 hover:bg-ink-50"
+                                onClick={() => void handleRename(resume)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> Rename
+                              </button>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-ink-700 hover:bg-ink-50"
+                                onClick={() => void handleArchive(resume)}
+                              >
+                                <Archive className="h-3.5 w-3.5" />
+                                {resume.status === "archived" ? "Unarchive" : "Archive"}
+                              </button>
+                              <div className="my-1 border-t border-ink-100" />
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50"
+                                onClick={() => void handleDelete(resume)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Delete resume
+                              </button>
+                            </EditGuard>
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
