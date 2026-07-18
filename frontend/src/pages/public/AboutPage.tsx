@@ -68,6 +68,10 @@ const LIVE_NOW = [
     title: "Billing",
     desc: "Free plan with no card, then self-serve upgrade to Professional or Team.",
   },
+  {
+    title: "Employer hiring",
+    desc: "Separate employer registration, company profiles, and job posts — unlocked after super-admin approval.",
+  },
 ] as const;
 
 const COMING_SOON = [
@@ -76,7 +80,7 @@ const COMING_SOON = [
   { name: "Achievement Tracking", desc: "Capture wins and impact milestones as career evidence." },
   { name: "Portfolio Analytics", desc: "Views, engagement, and portfolio performance dashboards." },
   { name: "Interview prep", desc: "Practice narratives and talking points from your case studies." },
-  { name: "Experts, Marketplace & Academy", desc: "Services, hiring, courses, and mentoring — later phases." },
+  { name: "Experts, Marketplace & Academy", desc: "Services, courses, and mentoring — later phases." },
 ] as const;
 
 const LAUNCH_PLANS = [
@@ -168,11 +172,12 @@ const LOST_ITEMS = [
 ] as const;
 
 const PROMISES = [
-  "Start free — no card required.",
+  "Start free as a professional — no card required.",
+  "Register separately as an employer when you need to hire.",
+  "Publish jobs only after your company is admin-verified.",
   "Document the journey behind your work.",
   "Showcase measurable impact.",
   "Use AI built for UX storytelling.",
-  "Upgrade only when you need more room to grow.",
   "Share knowledge openly with the community.",
   "Leave a lasting professional legacy.",
 ] as const;
@@ -202,15 +207,16 @@ export function AboutPage() {
         <div className="relative mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-100">
             <Sparkles className="h-3.5 w-3.5" />
-            About UXGuard Studio · Launch
+            About UXGuard Studio · Professionals &amp; employers
           </p>
           <h1 className="mx-auto max-w-4xl font-display text-4xl font-bold leading-[1.1] sm:text-5xl lg:text-6xl">
             Building
             <span className="block text-brand-200">Professional Legacies.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-50/90">
-            Live now: public portfolios, case study studio, projects, research-native templates, UXGuard AI, Discover,
-            and Free → Professional → Team billing — so UX professionals can publish evidence, not just screenshots.
+            Live now: public portfolios, case study studio, UXGuard AI, Discover, billing — plus a separate
+            employer portal where hiring teams register, submit company details, and publish jobs after
+            super-admin approval.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             {BRAND_PILLARS.map((pillar) => (
@@ -227,20 +233,20 @@ export function AboutPage() {
               to="/admin/register"
               className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50"
             >
-              Start free
+              Join as a professional
               <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/admin/employer/register"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
+            >
+              Create employer account
             </Link>
             <Link
               to="/pricing"
               className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
             >
               View pricing
-            </Link>
-            <Link
-              to="/discover"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
-            >
-              Explore the community
             </Link>
           </div>
         </div>
@@ -282,16 +288,17 @@ export function AboutPage() {
                 A Professional Experience Platform for people who create digital products and experiences.
               </p>
               <p className="mt-4 leading-relaxed text-brand-100">
-                Built for UX researchers, product designers, product managers, and digital professionals who want
-                to document how they think — and show the impact of their work.
+                Built for UX researchers, product designers, product managers, and digital professionals — and for
+                hiring teams who need a verified employer workspace to post roles and review applicants.
               </p>
             </div>
             <div className="card p-8 lg:col-span-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">At launch</p>
               <p className="mt-3 font-display text-xl font-bold text-ink-950">What ships today</p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">
-                Professional Profile, Projects, Portfolio Builder, Case Studies, Templates, Media Library, UXGuard AI,
-                Discover, and Billing. Resume Builder, Career Timeline, Achievements, and Analytics come next.
+                Professional portfolios, case studies, UXGuard AI, Discover, billing — plus employer registration,
+                company profiles, and admin-approved job publishing. Resume Builder, Career Timeline, Achievements,
+                and Analytics come next.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3 lg:col-span-12">
@@ -403,8 +410,8 @@ export function AboutPage() {
             <span className="text-white">What&apos;s Live at Launch</span>
           </SectionLabel>
           <p className="-mt-4 mb-10 max-w-2xl text-ink-300">
-            Only the left column is available today. Resume Builder, Career Timeline, Achievement Tracking, and
-            Portfolio Analytics are Phase 2 — listed under Coming next, not as live product.
+            Available today includes portfolios and the employer hiring portal. Resume Builder, Career Timeline,
+            Achievement Tracking, and Portfolio Analytics are Phase 2 — listed under Coming next.
           </p>
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="rounded-2xl border border-brand-500/30 bg-brand-600/20 p-6 lg:col-span-3">
@@ -549,8 +556,9 @@ export function AboutPage() {
                 </p>
                 <p>
                   Today we launch with Professional Profile, Projects, Portfolio Builder, Case Studies, Templates,
-                  Media Library, UXGuard AI, Discover, and Free / Professional / Team billing. Resume Builder, Career
-                  Timeline, Achievements, and Portfolio Analytics are next — not claimed as live today.
+                  Media Library, UXGuard AI, Discover, billing, and a separate employer portal with admin-verified
+                  company profiles before jobs go live. Resume Builder, Career Timeline, Achievements, and Portfolio
+                  Analytics are next — not claimed as live today.
                 </p>
                 <p className="font-medium text-ink-800">
                   Great work deserves to be seen. Great research deserves to be preserved. Great professionals
@@ -565,7 +573,7 @@ export function AboutPage() {
               <div className="rounded-2xl bg-ink-950 p-8 text-white">
                 <p className="font-display text-xl font-bold">Welcome to UXGuard Studio.</p>
                 <p className="mt-2 text-brand-200">
-                  Start free. Build your legacy. Upgrade when you are ready.
+                  Start free as a professional. Hire through a verified employer account when you are ready.
                 </p>
                 <p className="mt-6 text-sm text-ink-400">— Romal Perera, Founder</p>
               </div>
@@ -614,15 +622,22 @@ export function AboutPage() {
           </div>
           <h2 className="mt-12 font-display text-3xl font-bold sm:text-4xl">Building Professional Legacies.</h2>
           <p className="mx-auto mt-4 max-w-xl text-ink-400">
-            Join UXGuard Studio free — no card required. Upgrade when your portfolio outgrows Free.
+            Join free as a professional, or register as an employer — company profiles need admin approval before
+            jobs can be published.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/admin/register"
               className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 font-semibold text-white transition hover:bg-brand-400"
             >
-              Start free
+              Join as a professional
               <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/admin/employer/register"
+              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-white transition hover:border-brand-400 hover:bg-ink-900"
+            >
+              Create employer account
             </Link>
             <Link
               to="/pricing"

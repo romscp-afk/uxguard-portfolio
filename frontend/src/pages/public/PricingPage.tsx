@@ -97,7 +97,18 @@ export function PricingPage() {
             Simple plans for building your professional legacy.
           </h1>
           <p className="mt-4 text-lg text-ink-600">
-            Start free. Upgrade when you need unlimited case studies, more AI, or team tools.
+            Start free as a professional. Upgrade when you need unlimited case studies, more AI, or team tools.
+            Hiring teams use a separate employer registration — company profiles are admin-approved before jobs
+            publish.
+          </p>
+          <p className="mt-3 text-sm text-ink-500">
+            <Link to="/admin/employer/register" className="font-semibold text-brand-600 hover:text-brand-700">
+              Create an employer account
+            </Link>{" "}
+            ·{" "}
+            <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
+              Join as a professional
+            </Link>
           </p>
           <div className="mt-8 inline-flex rounded-full border border-ink-200 bg-white p-1">
             <button

@@ -77,9 +77,9 @@ export function AdminRegisterPage() {
       <div className="w-full max-w-lg">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
-          <h1 className="mt-6 font-display text-2xl font-bold text-white">Join UXGuard Studio</h1>
+          <h1 className="mt-6 font-display text-2xl font-bold text-white">Join as a professional</h1>
           <p className="mt-2 text-sm text-ink-400">
-            Step {step} of 2 — {step === 1 ? "Create your account" : "Choose how you'll use the platform"}
+            Step {step} of 2 — {step === 1 ? "Create your portfolio account" : "Choose how you'll use the platform"}
           </p>
         </div>
 
@@ -246,6 +246,15 @@ export function AdminRegisterPage() {
             Already have an account?{" "}
             <Link to="/admin/login" className="font-semibold text-brand-600 hover:text-brand-700">
               Sign in
+            </Link>
+          </p>
+          <p className="mt-3 text-center text-sm text-ink-500">
+            Hiring team?{" "}
+            <Link
+              to="/admin/employer/register"
+              className="font-semibold text-brand-600 hover:text-brand-700"
+            >
+              Create an employer account
             </Link>
           </p>
         </form>

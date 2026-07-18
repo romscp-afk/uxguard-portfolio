@@ -123,9 +123,9 @@ export function EmployerRegisterPage() {
             </Link>
           </p>
           <p className="mt-3 text-center text-sm text-ink-500">
-            Want a candidate profile instead?{" "}
+            Want a professional portfolio instead?{" "}
             <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
-              Candidate registration
+              Professional registration
             </Link>
           </p>
         </form>

@@ -72,6 +72,12 @@ export function PublicHeader() {
               <Link to="/admin/register" className="btn-secondary py-2 text-xs">
                 Sign up
               </Link>
+              <Link
+                to="/admin/employer/register"
+                className="rounded-lg border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
+              >
+                Employers
+              </Link>
             </>
           )}
         </nav>
@@ -132,12 +138,19 @@ export function PublicHeader() {
                     onClick={close}
                     className="btn-primary flex w-full justify-center py-3"
                   >
-                    Start Your Journey
+                    Join as a professional
+                  </Link>
+                  <Link
+                    to="/admin/employer/register"
+                    onClick={close}
+                    className="btn-secondary flex w-full justify-center py-3"
+                  >
+                    Create employer account
                   </Link>
                   <Link
                     to="/admin/login"
                     onClick={close}
-                    className="btn-secondary flex w-full justify-center py-3"
+                    className="flex w-full justify-center py-3 text-sm font-medium text-ink-600"
                   >
                     Sign in
                   </Link>
@@ -176,7 +189,7 @@ export function PublicFooter() {
           <div className="lg:col-span-4">
             <Logo variant="mark" theme="light" className="h-10 w-auto max-w-[220px]" />
             <p className="mt-4 max-w-sm text-sm text-ink-500">
-              Build your legacy. Showcase your impact.
+              Portfolios for professionals. Hiring tools for employers — after company verification.
             </p>
             <p className="mt-4 text-sm">
               <a href={`mailto:${contactEmail}`} className="font-medium text-brand-600 hover:text-brand-500">
@@ -212,6 +225,16 @@ export function PublicFooter() {
                 <li>
                   <Link to="/pricing#faq" className="hover:text-brand-600">
                     FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/admin/register" className="hover:text-brand-600">
+                    Professional signup
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/admin/employer/register" className="hover:text-brand-600">
+                    Employer signup
                   </Link>
                 </li>
                 <li>

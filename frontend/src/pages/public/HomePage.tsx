@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BarChart3,
+  Briefcase,
   FileText,
   LineChart,
   MessageSquare,
@@ -32,6 +33,7 @@ const BRAND_PILLARS = ["Build", "Showcase", "Measure", "Grow"] as const;
 const PLATFORM_HIGHLIGHTS = [
   { icon: LineChart, label: "Professional identity", desc: "Build your legacy—not just a gallery of screens" },
   { icon: FileText, label: "Impact case studies", desc: "Problem → Research → Decisions → Outcomes" },
+  { icon: Briefcase, label: "Employer hiring", desc: "Verified companies post jobs; admins approve before publish" },
   { icon: Users, label: "Global community", desc: "Follow, comment, search, and get notified" },
 ] as const;
 
@@ -103,7 +105,7 @@ export function HomePage() {
             <div>
               <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
                 <Sparkles className="h-3.5 w-3.5" />
-                Professional Experience Platform
+                Professionals &amp; employers
               </p>
               <h1 className="font-display text-4xl font-bold leading-[1.1] text-ink-950 sm:text-5xl lg:text-6xl">
                 <span className="block text-brand-600">UXGuard Studio</span>
@@ -118,17 +120,19 @@ export function HomePage() {
                   to={user ? "/admin" : "/admin/register"}
                   className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-brand-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
                 >
-                  Start Your Journey
+                  Join as a professional
                   <ArrowRight className="h-5 w-5" />
                 </Link>
-                <a
-                  href="#latest-studies"
+                <Link
+                  to={user?.workspaces?.employer ? "/admin/employer" : "/admin/employer/register"}
                   className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-6 py-4 text-base font-semibold text-ink-700 transition hover:bg-ink-50"
                 >
-                  Explore Case Studies
-                </a>
+                  Hire with UXGuard
+                </Link>
               </div>
-              <p className="mt-4 text-sm text-ink-500">Free to start · No card required</p>
+              <p className="mt-4 text-sm text-ink-500">
+                Free professional accounts · Employer profiles reviewed by admins before jobs go live
+              </p>
               <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-ink-600">
                 <li>UX researchers</li>
                 <li className="text-ink-300">·</li>
@@ -136,7 +140,7 @@ export function HomePage() {
                 <li className="text-ink-300">·</li>
                 <li>Product teams</li>
                 <li className="text-ink-300">·</li>
-                <li>Public portfolios</li>
+                <li>Hiring teams</li>
               </ul>
             </div>
 
@@ -165,9 +169,9 @@ export function HomePage() {
       <section className="border-b border-ink-100 bg-ink-50/80">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3 sm:px-6">
           {[
-            { label: "Built for", value: "UX & product teams" },
-            { label: "Publish", value: "Impact case studies" },
-            { label: "Grow", value: "Audience & credibility" },
+            { label: "Built for", value: "Pros & hiring teams" },
+            { label: "Publish", value: "Case studies & jobs" },
+            { label: "Trust", value: "Admin-verified employers" },
           ].map((item) => (
             <div key={item.label} className="text-center sm:text-left">
               <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">{item.label}</p>
@@ -190,6 +194,7 @@ export function HomePage() {
               <ul className="mt-5 space-y-2 text-sm text-brand-100">
                 <li>· Organize projects & research in one place</li>
                 <li>· Publish impact-focused case studies</li>
+                <li>· Hire through verified employer profiles</li>
                 <li>· Measure views, likes, and engagement</li>
               </ul>
               <Link to="/about" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-200 hover:text-white">
@@ -201,7 +206,7 @@ export function HomePage() {
               {[
                 { icon: MessageSquare, title: "Community", desc: "Follow peers, leave feedback, get alerts on new work" },
                 { icon: Users, title: "Discover", desc: "Explore evidence-driven case studies worldwide" },
-                { icon: FileText, title: "Case studies", desc: "Tell the full story—not just final screens" },
+                { icon: Briefcase, title: "Employer portal", desc: "Register separately, submit company details, publish after approval" },
                 { icon: Sparkles, title: "UXGuard AI", desc: "Draft case studies, research notes, and portfolio reviews" },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="card p-5">
@@ -307,15 +312,21 @@ export function HomePage() {
           </div>
           <h2 className="mt-12 font-display text-3xl font-bold sm:text-4xl">Building Professional Legacies.</h2>
           <p className="mx-auto mt-4 max-w-xl text-ink-400">
-            Publish proof of impact. Get discovered. Grow your practice.
+            Professionals publish proof of impact. Employers hire after company verification.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               to={user ? "/admin" : "/admin/register"}
               className="inline-flex min-h-14 items-center gap-2 rounded-xl bg-brand-500 px-10 py-4 text-base font-semibold text-white transition hover:bg-brand-400"
             >
-              Join UXGuard Studio
+              Join as a professional
               <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link
+              to={user?.workspaces?.employer ? "/admin/employer" : "/admin/employer/register"}
+              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-ink-200 transition hover:border-brand-500 hover:text-white"
+            >
+              Create employer account
             </Link>
             <Link
               to="/contact"

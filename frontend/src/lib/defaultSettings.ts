@@ -6,9 +6,9 @@ export const DEFAULT_PORTFOLIO_SETTINGS: PortfolioSettings = {
   tagline: "Build your professional identity",
   hero_title: "Measure your impact. Showcase your journey.",
   hero_subtitle:
-    "The professional platform for UX researchers, designers, and product teams to document research, prove outcomes, and showcase real impact.",
+    "For UX professionals building evidence-driven portfolios — and for employers hiring with verified company profiles and job posts.",
   about:
-    "UXGuard Studio helps UX researchers, designers, and product teams build more than a gallery—organize work, tell complete case studies, and present impact with confidence.",
+    "UXGuard Studio helps UX researchers, designers, and product teams build lasting professional legacies, while giving hiring teams a separate employer portal to publish jobs after admin approval.",
   contact_email: "uxguardstudio@gmail.com",
   social_links: { linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
 };
