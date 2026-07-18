@@ -25,6 +25,8 @@ const TABS = [
   "defects",
   "schedules",
   "secrets",
+  "baselines",
+  "traceability",
   "recorder",
   "report",
 ] as const;
@@ -60,7 +62,18 @@ export function TestLabProjectPage() {
     accessibility: true,
     performance: false,
     broken_links: false,
+    visual: false,
+    responsive: false,
+    authenticated: false,
   });
+  const [openapiText, setOpenapiText] = useState("");
+  const [builderSteps, setBuilderSteps] = useState(
+    '[{"action":"goto","value":"/","description":"Open"},{"action":"assert_visible","selector":"body","description":"Body visible"}]',
+  );
+  const [dataSetsJson, setDataSetsJson] = useState("[]");
+  const [trace, setTrace] = useState<Awaited<ReturnType<typeof api.getTestLabTraceability>> | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -107,7 +120,7 @@ export function TestLabProjectPage() {
     );
   }
 
-  const { project, targets, requirements, tests, runs, defects, schedules, secrets, execution, stats } =
+  const { project, targets, requirements, tests, runs, defects, schedules, secrets, baselines = [], execution, stats } =
     detail;
   const verifiedTarget = targets.find((t) => t.verification_status === "verified") || targets[0];
 
@@ -392,26 +405,26 @@ export function TestLabProjectPage() {
                 className="rounded-md border border-stone-300 px-4 py-2 text-sm"
                 onClick={() =>
                   void withBusy(async () => {
+                    let steps = [];
+                    let data_sets = [];
+                    try {
+                      steps = JSON.parse(builderSteps);
+                      data_sets = JSON.parse(dataSetsJson || "[]");
+                    } catch {
+                      throw new ApiError(400, "Invalid step or data-set JSON");
+                    }
                     await api.createTestLabTest(projectId, {
-                      title: testTitle || "Manual smoke",
-                      type: "smoke",
-                      steps: [
-                        { id: "1", action: "goto", value: "/", selector: "", assertion: "", description: "Open" },
-                        {
-                          id: "2",
-                          action: "assert_visible",
-                          selector: "body",
-                          value: "",
-                          assertion: "",
-                          description: "Visible",
-                        },
-                      ],
+                      title: testTitle || "Manual test",
+                      type: "functional",
+                      steps,
+                      data_sets,
+                      generated_by: "manual",
                     });
                     setTestTitle("");
                   })
                 }
               >
-                Add manual smoke test
+                Save manual test
               </button>
               <input
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm"
@@ -421,6 +434,52 @@ export function TestLabProjectPage() {
               />
             </div>
 
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="block text-sm">
+                Step builder (JSON)
+                <textarea
+                  className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs"
+                  rows={8}
+                  value={builderSteps}
+                  onChange={(e) => setBuilderSteps(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                Data sets (JSON array, use {"{{FIELD}}"} in steps)
+                <textarea
+                  className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs"
+                  rows={8}
+                  value={dataSetsJson}
+                  onChange={(e) => setDataSetsJson(e.target.value)}
+                  placeholder='[{"name":"us","EMAIL":"a@ex.com"},{"name":"eu","EMAIL":"b@ex.com"}]'
+                />
+              </label>
+            </div>
+
+            <div className="rounded-lg border border-stone-200 p-4">
+              <p className="text-sm font-medium">Import OpenAPI / path list</p>
+              <textarea
+                className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs"
+                rows={5}
+                value={openapiText}
+                onChange={(e) => setOpenapiText(e.target.value)}
+                placeholder='Paste OpenAPI JSON or paths like /api/users'
+              />
+              <button
+                type="button"
+                disabled={busy || !openapiText.trim()}
+                className="mt-2 rounded-md border border-stone-300 px-3 py-1.5 text-sm"
+                onClick={() =>
+                  void withBusy(async () => {
+                    await api.generateTestLabTests(projectId, { openapi: openapiText });
+                    setOpenapiText("");
+                  })
+                }
+              >
+                Generate API tests
+              </button>
+            </div>
+
             <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200">
               {tests.map((t) => (
                 <li key={t.id} className="flex items-start justify-between gap-3 p-4">
@@ -428,6 +487,7 @@ export function TestLabProjectPage() {
                     <p className="font-medium">{t.title}</p>
                     <p className="text-xs uppercase tracking-wide text-stone-500">
                       {t.type} · {t.priority} · {t.generated_by} · {t.steps?.length || 0} steps
+                      {(t.data_sets?.length ?? 0) > 0 ? ` · ${t.data_sets?.length} data sets` : ""}
                     </p>
                   </div>
                   <button
@@ -450,7 +510,16 @@ export function TestLabProjectPage() {
             <div className="rounded-lg border border-stone-200 p-4">
               <p className="text-sm font-medium">Start run</p>
               <div className="mt-3 flex flex-wrap gap-4 text-sm">
-                {(["accessibility", "performance", "broken_links"] as const).map((key) => (
+                {(
+                  [
+                    "accessibility",
+                    "performance",
+                    "broken_links",
+                    "visual",
+                    "responsive",
+                    "authenticated",
+                  ] as const
+                ).map((key) => (
                   <label key={key} className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -461,10 +530,11 @@ export function TestLabProjectPage() {
                   </label>
                 ))}
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={busy || !verifiedTarget || !tests.length}
-                className="mt-4 inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm text-white disabled:opacity-50"
                 onClick={() =>
                   void withBusy(async () => {
                     const { run } = await api.createTestLabRun(projectId, {
@@ -472,8 +542,7 @@ export function TestLabProjectPage() {
                       browsers: project.default_browsers || ["chromium"],
                       options: runOptions,
                     });
-                    // Poll briefly for inline execution
-                    for (let i = 0; i < 20; i++) {
+                    for (let i = 0; i < 30; i++) {
                       await new Promise((r) => setTimeout(r, 1000));
                       const data = await api.getTestLabRun(run.id);
                       setRunDetail(data);
@@ -485,6 +554,27 @@ export function TestLabProjectPage() {
                 <Play className="h-4 w-4" />
                 Run all enabled tests
               </button>
+              <button
+                type="button"
+                disabled={busy || !verifiedTarget}
+                className="rounded-md border border-stone-300 px-4 py-2 text-sm"
+                onClick={() =>
+                  void withBusy(async () => {
+                    const { run } = await api.triggerTestLabCi(projectId, {
+                      target_id: verifiedTarget.id,
+                      visual: runOptions.visual,
+                      responsive: runOptions.responsive,
+                      broken_links: runOptions.broken_links,
+                      performance: runOptions.performance,
+                      authenticated: runOptions.authenticated,
+                    });
+                    setRunDetail(await api.getTestLabRun(run.id));
+                  })
+                }
+              >
+                Queue CI run
+              </button>
+              </div>
               {!verifiedTarget && (
                 <p className="mt-2 text-sm text-amber-800">Add a target before running.</p>
               )}
@@ -697,6 +787,70 @@ export function TestLabProjectPage() {
             <p className="text-xs text-stone-500">
               Values are never returned by the API. Use AUTH_HEADER for authenticated runs.
             </p>
+          </div>
+        )}
+
+        {tab === "baselines" && (
+          <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200">
+            {baselines.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+                <div>
+                  <p className="font-medium">
+                    {b.browser} / {b.viewport_name}
+                  </p>
+                  <p className="text-stone-500">
+                    test {b.test_case_id} · {b.fingerprint.slice(0, 12)}…
+                  </p>
+                </div>
+                {b.data_url ? (
+                  <img src={b.data_url} alt="Baseline" className="max-h-24 rounded border border-stone-200" />
+                ) : null}
+              </li>
+            ))}
+            {!baselines.length && (
+              <li className="p-4 text-sm text-stone-500">
+                No baselines yet. Enable “visual” on a run to create them automatically.
+              </li>
+            )}
+          </ul>
+        )}
+
+        {tab === "traceability" && (
+          <div className="space-y-4">
+            <button
+              type="button"
+              className="rounded-md border border-stone-300 px-3 py-1.5 text-sm"
+              onClick={() =>
+                void api
+                  .getTestLabTraceability(projectId)
+                  .then(setTrace)
+                  .catch((err) =>
+                    setError(err instanceof ApiError ? err.message : "Failed to load traceability"),
+                  )
+              }
+            >
+              Load matrix
+            </button>
+            {trace && (
+              <>
+                <p className="text-sm text-stone-600">
+                  Uncovered requirements: {trace.uncovered_requirements.length} · Orphan tests:{" "}
+                  {trace.orphan_tests.length}
+                </p>
+                <ul className="space-y-3">
+                  {trace.matrix.map((row) => (
+                    <li key={row.requirement.id} className="rounded-lg border border-stone-200 p-4">
+                      <p className="font-medium">{row.requirement.title}</p>
+                      <p className="mt-1 text-sm text-stone-600">
+                        {row.tests.length
+                          ? row.tests.map((t) => t.title).join(" · ")
+                          : "No linked tests"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
 

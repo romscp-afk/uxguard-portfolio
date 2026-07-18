@@ -1183,6 +1183,54 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  listTestLabBaselines: (projectId: string) =>
+    request<{
+      baselines: Array<{
+        id: string;
+        test_case_id: string;
+        browser: string;
+        viewport_name: string;
+        fingerprint: string;
+        data_url?: string;
+        updated_at: string;
+      }>;
+    }>(`/testlab/projects/${projectId}/baselines`),
+
+  acceptTestLabBaseline: (
+    projectId: string,
+    data: {
+      test_case_id: string;
+      data_url: string;
+      browser?: string;
+      viewport_name?: string;
+      fingerprint?: string;
+    },
+  ) =>
+    request<{ baseline: Record<string, unknown> }>(`/testlab/projects/${projectId}/baselines`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  triggerTestLabCi: (
+    projectId: string,
+    data: {
+      target_id?: string;
+      test_case_ids?: string[];
+      browsers?: string[];
+      visual?: boolean;
+      responsive?: boolean;
+      broken_links?: boolean;
+      performance?: boolean;
+      authenticated?: boolean;
+      commit_sha?: string;
+      branch?: string;
+    } = {},
+  ) =>
+    request<{ run: TestLabRun; execution: TestLabExecutionCapabilities }>(
+      `/testlab/projects/${projectId}/ci`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
 };
 
 export { ApiError };

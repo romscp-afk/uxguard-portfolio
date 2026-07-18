@@ -1,7 +1,7 @@
 import { readStore, updateStore } from "../store.js";
 import { assertCanAccessTestLab, assertProjectPermission, resolveProjectRole } from "./authz.js";
 import { resolveExecutionProvider } from "./execution-provider.js";
-import { generateTestsFromOpenApi, generateTestsFromRequirement } from "./generate.js";
+import { generateTestsFromOpenApi, generateTestsFromRequirement, maybeEnrichWithAi } from "./generate.js";
 import { executeRunPayload } from "./runner.js";
 import {
   decodeSecret,
@@ -20,6 +20,9 @@ import {
 } from "./schema.js";
 import { assertUrlSafe } from "./url-safety.js";
 import { buildChallenge, confirmChallenge } from "./verification.js";
+import { baselineKey, normalizeBaseline } from "./visual.js";
+import { createNotification } from "../community.js";
+import { DEFAULT_VIEWPORTS } from "./runner.js";
 
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -144,6 +147,7 @@ export async function getProjectDetail(user, projectId) {
   const defects = store.testlab_defects.filter((d) => d.project_id === projectId);
   const schedules = store.testlab_schedules.filter((s) => s.project_id === projectId);
   const secrets = store.testlab_secrets.filter((s) => s.project_id === projectId).map(publicSecret);
+  const baselines = (store.testlab_baselines || []).filter((b) => b.project_id === projectId);
 
   return {
     project: { ...project, role },
@@ -155,6 +159,7 @@ export async function getProjectDetail(user, projectId) {
     defects,
     schedules,
     secrets,
+    baselines,
     execution: getExecutionCapabilities(),
     stats: {
       targets: targets.length,
@@ -163,6 +168,7 @@ export async function getProjectDetail(user, projectId) {
       tests: tests.length,
       runs: store.testlab_runs.filter((r) => r.project_id === projectId).length,
       open_defects: defects.filter((d) => !["closed", "wont_fix"].includes(d.status)).length,
+      baselines: baselines.length,
     },
   };
 }
@@ -475,7 +481,11 @@ export async function generateTests(user, projectId, payload) {
     );
     if (!requirements.length) throw httpError("No requirements found to generate from");
     for (const req of requirements) {
-      generated.push(...generateTestsFromRequirement(req, projectId));
+      let tests = generateTestsFromRequirement(req, projectId);
+      if (payload?.use_ai !== false) {
+        tests = await maybeEnrichWithAi(req, projectId, tests);
+      }
+      generated.push(...tests);
     }
   }
 
@@ -492,7 +502,7 @@ export async function generateTests(user, projectId, payload) {
         project_id: projectId,
         actor_user_id: user.id,
         action: "tests.generate",
-        meta: { count: saved.length },
+        meta: { count: saved.length, ai: Boolean(process.env.OPENAI_API_KEY) },
       });
       return s;
     },
@@ -619,6 +629,20 @@ export async function createRun(user, projectId, payload) {
           target_id: target.id,
           status: "queued",
           triggered_by: user.id,
+          viewports: payload?.viewports?.length
+            ? payload.viewports
+            : payload?.options?.responsive
+              ? [DEFAULT_VIEWPORTS.desktop, DEFAULT_VIEWPORTS.tablet, DEFAULT_VIEWPORTS.mobile]
+              : undefined,
+          options: {
+            accessibility: Boolean(payload?.options?.accessibility),
+            performance: Boolean(payload?.options?.performance),
+            broken_links: Boolean(payload?.options?.broken_links),
+            visual: Boolean(payload?.options?.visual),
+            responsive: Boolean(payload?.options?.responsive),
+            authenticated: Boolean(payload?.options?.authenticated),
+            ...(payload?.options && typeof payload.options === "object" ? payload.options : {}),
+          },
         },
         projectId,
       );
@@ -684,6 +708,7 @@ export async function processQueuedRun(runId, options = {}) {
   let target = null;
   let testCases = [];
   let secrets = {};
+  let baselines = [];
 
   await updateStore(
     (store) => {
@@ -711,6 +736,7 @@ export async function processQueuedRun(runId, options = {}) {
       for (const sec of store.testlab_secrets.filter((s) => s.project_id === run.project_id)) {
         secrets[sec.key] = decodeSecret(sec.value_enc);
       }
+      baselines = (store.testlab_baselines || []).filter((b) => b.project_id === run.project_id);
       store.testlab_runs[idx] = {
         ...run,
         status: "running",
@@ -728,6 +754,21 @@ export async function processQueuedRun(runId, options = {}) {
     return claimed;
   }
 
+  const cancelCache = { at: 0, value: false };
+  async function refreshCancel() {
+    const now = Date.now();
+    if (now - cancelCache.at < 800) return cancelCache.value;
+    cancelCache.at = now;
+    try {
+      const s = ensureCollections(await readStore({ forceRefresh: true }));
+      const live = s.testlab_runs.find((r) => r.id === runId);
+      cancelCache.value = Boolean(live?.cancel_requested);
+    } catch {
+      /* keep last */
+    }
+    return cancelCache.value;
+  }
+
   let outcome;
   try {
     outcome = await executeRunPayload({
@@ -735,7 +776,14 @@ export async function processQueuedRun(runId, options = {}) {
       target,
       testCases,
       secrets,
-      shouldCancel: () => false,
+      baselines,
+      shouldCancel: () => {
+        void refreshCancel();
+        return cancelCache.value;
+      },
+      onProgress: async () => {
+        await refreshCancel();
+      },
     });
   } catch (err) {
     outcome = {
@@ -743,13 +791,11 @@ export async function processQueuedRun(runId, options = {}) {
       summary: { total: 0, passed: 0, failed: 0, skipped: 0, errors: 1 },
       status: "error",
       error_message: err.message,
+      baselineUpdates: [],
     };
   }
 
-  // Check cancel flag mid-flight
-  const latest = ensureCollections(await readStore());
-  const live = latest.testlab_runs.find((r) => r.id === runId);
-  if (live?.cancel_requested) {
+  if (await refreshCancel()) {
     outcome.status = "cancelled";
   }
 
@@ -762,6 +808,15 @@ export async function processQueuedRun(runId, options = {}) {
       for (const result of outcome.results || []) {
         store.testlab_results.push(normalizeResult(result, runId));
       }
+      for (const baseline of outcome.baselineUpdates || []) {
+        const key = baselineKey(baseline.test_case_id, baseline.browser, baseline.viewport_name);
+        const bIdx = store.testlab_baselines.findIndex(
+          (b) => baselineKey(b.test_case_id, b.browser, b.viewport_name) === key,
+        );
+        const next = normalizeBaseline({ ...baseline, project_id: claimed.project_id });
+        if (bIdx >= 0) store.testlab_baselines[bIdx] = { ...store.testlab_baselines[bIdx], ...next };
+        else store.testlab_baselines.push(next);
+      }
       store.testlab_runs[idx] = {
         ...store.testlab_runs[idx],
         status: outcome.status,
@@ -771,9 +826,15 @@ export async function processQueuedRun(runId, options = {}) {
         updated_at: new Date().toISOString(),
       };
 
-      // Auto-create defects for failures
       for (const result of outcome.results || []) {
         if (result.status !== "failed") continue;
+        const already = store.testlab_defects.some(
+          (d) =>
+            d.run_id === runId &&
+            d.test_case_id === result.test_case_id &&
+            !["closed", "wont_fix"].includes(d.status),
+        );
+        if (already) continue;
         const tc = testCases.find((t) => t.id === result.test_case_id);
         store.testlab_defects.push(
           normalizeDefect(
@@ -794,6 +855,20 @@ export async function processQueuedRun(runId, options = {}) {
     },
     { forceRefresh: true },
   );
+
+  if (claimed.triggered_by) {
+    try {
+      await createNotification({
+        userId: claimed.triggered_by,
+        type: "testlab_run",
+        title: `TestLab run ${outcome.status}`,
+        message: `Run ${runId} finished with status ${outcome.status} (${outcome.summary?.passed || 0} passed / ${outcome.summary?.failed || 0} failed).`,
+        link: `/admin/testlab/${claimed.project_id}`,
+      });
+    } catch (err) {
+      console.warn("[testlab] notification failed", err.message);
+    }
+  }
 
   const storeAfter = ensureCollections(await readStore());
   return storeAfter.testlab_runs.find((r) => r.id === runId) || claimed;
@@ -1051,5 +1126,83 @@ export async function saveRecorderDraft(user, projectId, payload) {
     type: "e2e",
     generated_by: "recorder",
     steps: payload?.steps || [],
+  });
+}
+
+export async function listBaselines(user, projectId) {
+  assertCanAccessTestLab(user);
+  const store = ensureCollections(await readStore());
+  assertProjectPermission(store, projectId, user, "project_read");
+  return (store.testlab_baselines || []).filter((b) => b.project_id === projectId);
+}
+
+export async function acceptBaseline(user, projectId, payload) {
+  assertCanAccessTestLab(user);
+  if (!payload?.test_case_id || !payload?.data_url) {
+    throw httpError("test_case_id and data_url are required");
+  }
+  let saved = null;
+  await updateStore(
+    (store) => {
+      ensureCollections(store);
+      assertProjectPermission(store, projectId, user, "tests_write");
+      const baseline = normalizeBaseline({
+        ...payload,
+        project_id: projectId,
+        browser: payload.browser || "chromium",
+        viewport_name: payload.viewport_name || "desktop",
+        updated_at: new Date().toISOString(),
+      });
+      const key = baselineKey(baseline.test_case_id, baseline.browser, baseline.viewport_name);
+      const idx = store.testlab_baselines.findIndex(
+        (b) => baselineKey(b.test_case_id, b.browser, b.viewport_name) === key,
+      );
+      if (idx >= 0) store.testlab_baselines[idx] = { ...store.testlab_baselines[idx], ...baseline };
+      else store.testlab_baselines.push(baseline);
+      saved = idx >= 0 ? store.testlab_baselines[idx] : baseline;
+      audit(store, {
+        project_id: projectId,
+        actor_user_id: user.id,
+        action: "baseline.accept",
+        meta: { key },
+      });
+      return store;
+    },
+    { forceRefresh: true },
+  );
+  return saved;
+}
+
+/** CI/CD entrypoint: queue a run from an external pipeline. */
+export async function triggerCiRun(user, projectId, payload) {
+  assertCanAccessTestLab(user);
+  const store = ensureCollections(await readStore());
+  assertProjectPermission(store, projectId, user, "runs_trigger");
+
+  const target =
+    (payload?.target_id &&
+      store.testlab_targets.find((t) => t.id === payload.target_id && t.project_id === projectId)) ||
+    store.testlab_targets.find(
+      (t) => t.project_id === projectId && t.verification_status === "verified",
+    ) ||
+    store.testlab_targets.find((t) => t.project_id === projectId);
+
+  if (!target) throw httpError("No target available for CI run");
+
+  return createRun(user, projectId, {
+    target_id: target.id,
+    test_case_ids: payload?.test_case_ids,
+    browsers: payload?.browsers || ["chromium"],
+    options: {
+      accessibility: true,
+      visual: Boolean(payload?.visual),
+      responsive: Boolean(payload?.responsive),
+      broken_links: Boolean(payload?.broken_links),
+      performance: Boolean(payload?.performance),
+      authenticated: Boolean(payload?.authenticated),
+      ci: true,
+      commit_sha: payload?.commit_sha || null,
+      branch: payload?.branch || null,
+    },
   });
 }

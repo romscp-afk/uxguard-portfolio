@@ -1170,6 +1170,7 @@ export interface TestLabTestCase {
   priority: string;
   tags: string[];
   steps: TestLabStep[];
+  data_sets?: Array<Record<string, unknown>>;
   enabled: boolean;
   generated_by: string;
   created_at: string;
@@ -1281,6 +1282,15 @@ export interface TestLabProjectDetail {
   defects: TestLabDefect[];
   schedules: TestLabSchedule[];
   secrets: TestLabSecretMeta[];
+  baselines?: Array<{
+    id: string;
+    test_case_id: string;
+    browser: string;
+    viewport_name: string;
+    fingerprint: string;
+    data_url?: string;
+    updated_at: string;
+  }>;
   execution: TestLabExecutionCapabilities;
   stats: Record<string, number>;
 }

@@ -251,6 +251,7 @@ export function normalizeResult(input, runId) {
     performance: raw.performance || null,
     broken_links: Array.isArray(raw.broken_links) ? raw.broken_links : [],
     visual_diff: raw.visual_diff || null,
+    data_set: asString(raw.data_set) || null,
     error_message: asString(raw.error_message) || null,
     created_at: raw.created_at || now,
   };

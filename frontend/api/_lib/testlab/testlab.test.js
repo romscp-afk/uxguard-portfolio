@@ -3,6 +3,7 @@ import { roleHasPermission, resolveProjectRole } from "./authz.js";
 import { isPrivateOrReservedIp, parseTargetUrl } from "./url-safety.js";
 import { generateTestsFromRequirement } from "./generate.js";
 import { normalizeRequirement } from "./schema.js";
+import { compareScreenshotBuffers, screenshotFingerprint } from "./visual.js";
 
 function test(name, fn) {
   try {
@@ -46,7 +47,7 @@ test("resolveProjectRole prefers owner then member", () => {
   assert.equal(resolveProjectRole(store, "p1", { id: 9, role: "admin" }), "owner");
 });
 
-test("heuristic generation covers smoke + AC + a11y", () => {
+test("heuristic generation covers smoke + AC + a11y + visual", () => {
   const req = normalizeRequirement(
     {
       title: "Checkout",
@@ -56,9 +57,25 @@ test("heuristic generation covers smoke + AC + a11y", () => {
     "p1",
   );
   const tests = generateTestsFromRequirement(req, "p1");
-  assert.ok(tests.length >= 3);
+  assert.ok(tests.length >= 4);
   assert.ok(tests.some((t) => t.type === "smoke"));
   assert.ok(tests.some((t) => t.type === "accessibility"));
+  assert.ok(tests.some((t) => t.type === "visual"));
+});
+
+test("visual compare detects identical buffers", () => {
+  const buf = Buffer.from("PNG-FAKE-BASELINE-CONTENT-1234567890");
+  const cmp = compareScreenshotBuffers(buf, Buffer.from(buf));
+  assert.equal(cmp.match, true);
+  assert.equal(screenshotFingerprint(buf).length, 64);
+});
+
+test("visual compare detects different buffers", () => {
+  const a = Buffer.alloc(200, 1);
+  const b = Buffer.alloc(200, 2);
+  const cmp = compareScreenshotBuffers(a, b, 0.01);
+  assert.equal(cmp.match, false);
+  assert.ok(cmp.diff_ratio > 0);
 });
 
 console.log("testlab tests passed");

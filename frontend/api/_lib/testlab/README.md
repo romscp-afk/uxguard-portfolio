@@ -42,6 +42,19 @@ Methods: DNS TXT, `/.well-known/uxguard-testlab.txt`, or homepage meta tag `uxgu
 
 Production targets default to read-only exploration (no form submit).
 
-## Safety
+## CI integration
 
-URL validation blocks localhost, private/link-local/metadata IPs, and non-allowlisted ports. See `url-safety.js`.
+```bash
+curl -X POST "$HOST/api/v1/testlab/projects/$PROJECT_ID/ci" \\
+  -H "Authorization: Bearer $JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"commit_sha":"abc","branch":"main","visual":true,"responsive":true}'
+```
+
+## Visual baselines
+
+First visual run creates baselines. Later runs compare screenshots (sampled byte diff). Accept/overwrite via `POST .../baselines`.
+
+## Secrets for authenticated runs
+
+Store `LOGIN_USER` / `LOGIN_PASS` (or `AUTH_HEADER`). Enable **authenticated** on the run, or use a `login` step.

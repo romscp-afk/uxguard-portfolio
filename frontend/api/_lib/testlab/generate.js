@@ -2,7 +2,7 @@ import { normalizeTestCase, emptyTestStep } from "./schema.js";
 
 /**
  * Deterministic heuristic test generation from requirements.
- * Optional OpenAI enrichment when OPENAI_API_KEY is set (best-effort).
+ * Optional OpenAI enrichment when OPENAI_API_KEY is set.
  */
 export function generateTestsFromRequirement(requirement, projectId) {
   const title = requirement.title || "Requirement";
@@ -76,7 +76,23 @@ export function generateTestsFromRequirement(requirement, projectId) {
     projectId,
   );
 
-  return [smoke, ...functional, a11y];
+  const visual = normalizeTestCase(
+    {
+      title: `Visual baseline: ${title}`,
+      description: "Capture and compare homepage visual baseline",
+      type: "visual",
+      priority: "medium",
+      requirement_ids: [requirement.id],
+      generated_by: "heuristic",
+      steps: [
+        emptyTestStep({ action: "goto", value: "/", description: "Open app" }),
+        emptyTestStep({ action: "visual_assert", description: "Compare visual baseline" }),
+      ],
+    },
+    projectId,
+  );
+
+  return [smoke, ...functional, a11y, visual];
 }
 
 export function generateTestsFromOpenApi(specText, projectId) {
@@ -85,7 +101,6 @@ export function generateTestsFromOpenApi(specText, projectId) {
     const parsed = JSON.parse(specText);
     paths = parsed.paths || {};
   } catch {
-    // Treat as rough path list
     const matches = String(specText).match(/\/[a-zA-Z0-9_\-{}]+/g) || [];
     for (const p of matches.slice(0, 20)) paths[p] = { get: {} };
   }
@@ -113,8 +128,56 @@ export function generateTestsFromOpenApi(specText, projectId) {
     );
 }
 
-export async function maybeEnrichWithAi(requirement, existingTests) {
+export async function maybeEnrichWithAi(requirement, projectId, existingTests) {
   if (!process.env.OPENAI_API_KEY) return existingTests;
-  // Keep generation deterministic/offline-first; AI is optional future enhancement.
-  return existingTests;
+
+  try {
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const prompt = `You are a QA engineer. Given this requirement, return JSON only:
+{"tests":[{"title":"...","type":"e2e|functional|ui","priority":"high|medium|low","steps":[{"action":"goto|click|fill|assert_visible|assert_text|assert_url|a11y_scan","selector":"","value":"","description":"..."}]}]}
+Requirement title: ${requirement.title}
+Description: ${requirement.description}
+Acceptance criteria: ${(requirement.acceptance_criteria || []).join("; ")}
+Use relative paths for goto. Max 3 tests, max 6 steps each.`;
+
+    const completion = await client.chat.completions.create({
+      model,
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: "Return valid JSON only. No markdown." },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const text = completion.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(text);
+    const aiTests = (parsed.tests || []).slice(0, 3).map((t) =>
+      normalizeTestCase(
+        {
+          title: t.title || `AI: ${requirement.title}`,
+          description: t.description || requirement.description,
+          type: t.type || "e2e",
+          priority: t.priority || "medium",
+          requirement_ids: [requirement.id],
+          generated_by: "ai",
+          steps: (t.steps || []).map((s) =>
+            emptyTestStep({
+              action: s.action || "goto",
+              selector: s.selector || "",
+              value: s.value || "",
+              description: s.description || "",
+            }),
+          ),
+        },
+        projectId,
+      ),
+    );
+    return [...existingTests, ...aiTests];
+  } catch (err) {
+    console.warn("[testlab] AI enrichment skipped:", err.message);
+    return existingTests;
+  }
 }
