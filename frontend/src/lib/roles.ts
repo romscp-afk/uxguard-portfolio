@@ -98,6 +98,7 @@ const CANDIDATE_GROUPS: NavGroup[] = [
     label: "Tools",
     links: [
       { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
+      { to: "/admin/testlab", label: "TestLab", section: "testlab" },
       { to: "/admin/analytics", label: "Analytics", section: "analytics" },
     ],
   },

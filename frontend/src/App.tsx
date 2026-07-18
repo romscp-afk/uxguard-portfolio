@@ -38,6 +38,9 @@ import {
   EmployerApplicationDetailPage,
 } from "./pages/admin/EmployerApplicationsPage";
 import { JobsBrowsePage } from "./pages/admin/JobsBrowsePage";
+import { TestLabDashboardPage } from "./pages/admin/TestLabDashboardPage";
+import { TestLabCreatePage } from "./pages/admin/TestLabCreatePage";
+import { TestLabProjectPage } from "./pages/admin/TestLabProjectPage";
 import { JobDetailPage } from "./pages/admin/JobDetailPage";
 import { MyApplicationsPage } from "./pages/admin/MyApplicationsPage";
 import { ApplicationDetailPage, SavedJobsPage } from "./pages/admin/ApplicationDetailPage";
@@ -113,6 +116,9 @@ export default function App() {
             <Route path="case-studies/new" element={<CaseStudyEditorPage />} />
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="testlab" element={<TestLabDashboardPage />} />
+            <Route path="testlab/new" element={<TestLabCreatePage />} />
+            <Route path="testlab/:projectId" element={<TestLabProjectPage />} />
             <Route path="media" element={<MediaLibraryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />

@@ -1085,3 +1085,212 @@ export interface EmployerDashboard {
     candidate_user_id: number;
   }>;
 }
+
+/** UXGuard TestLab */
+export type TestLabProjectRole =
+  | "owner"
+  | "test_manager"
+  | "tester"
+  | "developer"
+  | "product_reviewer"
+  | "viewer";
+
+export type TestLabTargetEnvironment = "production" | "staging" | "preview" | "development";
+export type TestLabVerificationStatus = "unverified" | "pending" | "verified" | "expired";
+export type TestLabRunStatus =
+  | "queued"
+  | "running"
+  | "passed"
+  | "failed"
+  | "cancelled"
+  | "error"
+  | "timed_out";
+
+export interface TestLabProject {
+  id: string;
+  owner_user_id: number;
+  name: string;
+  description: string;
+  status: "active" | "archived" | "deleted";
+  ownership_confirmed: boolean;
+  default_browsers: string[];
+  tags: string[];
+  role?: TestLabProjectRole;
+  target_count?: number;
+  test_count?: number;
+  open_defects?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabTarget {
+  id: string;
+  project_id: string;
+  label: string;
+  base_url: string;
+  environment: TestLabTargetEnvironment;
+  verification_status: TestLabVerificationStatus;
+  verification_method?: string | null;
+  verified_at?: string | null;
+  safety_settings?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabRequirement {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string;
+  source: string;
+  priority: string;
+  tags: string[];
+  acceptance_criteria: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabStep {
+  id: string;
+  order?: number;
+  action: string;
+  selector: string;
+  value: string;
+  assertion: string;
+  description: string;
+}
+
+export interface TestLabTestCase {
+  id: string;
+  project_id: string;
+  requirement_ids: string[];
+  title: string;
+  description: string;
+  type: string;
+  priority: string;
+  tags: string[];
+  steps: TestLabStep[];
+  enabled: boolean;
+  generated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabRun {
+  id: string;
+  project_id: string;
+  target_id: string;
+  test_case_ids: string[];
+  status: TestLabRunStatus;
+  browsers: string[];
+  cancel_requested?: boolean;
+  summary?: {
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    errors: number;
+    cancelled?: number;
+  };
+  error_message?: string | null;
+  queued_at?: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabResult {
+  id: string;
+  run_id: string;
+  test_case_id: string;
+  browser: string;
+  status: string;
+  duration_ms: number;
+  steps?: unknown[];
+  screenshots?: Array<{ id: string; mime?: string; data_url?: string }>;
+  console_errors?: string[];
+  network_errors?: string[];
+  accessibility?: { violations?: unknown[]; passes?: number } | null;
+  performance?: Record<string, number> | null;
+  broken_links?: Array<{ href: string; status: number }>;
+  error_message?: string | null;
+  created_at: string;
+}
+
+export interface TestLabDefect {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string;
+  severity: string;
+  status: string;
+  test_case_id?: string | null;
+  run_id?: string | null;
+  retest_run_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabSchedule {
+  id: string;
+  project_id: string;
+  name: string;
+  cron: string;
+  timezone: string;
+  target_id: string;
+  test_case_ids: string[];
+  browsers: string[];
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabSecretMeta {
+  id: string;
+  project_id: string;
+  key: string;
+  has_value: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TestLabMember {
+  id: string;
+  project_id: string;
+  user_id: number;
+  email?: string | null;
+  role: TestLabProjectRole;
+  created_at: string;
+}
+
+export interface TestLabExecutionCapabilities {
+  configured: boolean;
+  browsers: string[];
+  inline: boolean;
+  reason: string;
+}
+
+export interface TestLabProjectDetail {
+  project: TestLabProject;
+  targets: TestLabTarget[];
+  members: TestLabMember[];
+  requirements: TestLabRequirement[];
+  tests: TestLabTestCase[];
+  runs: TestLabRun[];
+  defects: TestLabDefect[];
+  schedules: TestLabSchedule[];
+  secrets: TestLabSecretMeta[];
+  execution: TestLabExecutionCapabilities;
+  stats: Record<string, number>;
+}
+
+export interface TestLabVerificationChallenge {
+  id: string;
+  target_id: string;
+  method: string;
+  token: string;
+  status: string;
+  instructions: string;
+  expires_at: string;
+}

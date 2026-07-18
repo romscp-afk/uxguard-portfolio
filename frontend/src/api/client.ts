@@ -50,6 +50,19 @@ import type {
   User,
   UserProfile,
   RegisterPayload,
+  TestLabProject,
+  TestLabProjectDetail,
+  TestLabTarget,
+  TestLabRequirement,
+  TestLabTestCase,
+  TestLabRun,
+  TestLabResult,
+  TestLabDefect,
+  TestLabSchedule,
+  TestLabSecretMeta,
+  TestLabMember,
+  TestLabExecutionCapabilities,
+  TestLabVerificationChallenge,
 } from "../types";
 
 const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -973,6 +986,202 @@ export const api = {
     }>("/billing/checkout", {
       method: "POST",
       body: JSON.stringify({ action: "complete_paypal", ...payload }),
+    }),
+
+  // —— TestLab ——
+  testlabStatus: () =>
+    request<{ product: string; subtitle: string; execution: TestLabExecutionCapabilities }>(
+      "/testlab/status",
+    ),
+
+  listTestLabProjects: () => request<{ projects: TestLabProject[] }>("/testlab/projects"),
+
+  createTestLabProject: (data: {
+    name: string;
+    description?: string;
+    ownership_confirmed: boolean;
+    tags?: string[];
+  }) =>
+    request<{ project: TestLabProject }>("/testlab/projects", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getTestLabProject: (projectId: string) =>
+    request<TestLabProjectDetail>(`/testlab/projects/${projectId}`),
+
+  updateTestLabProject: (projectId: string, data: Partial<TestLabProject>) =>
+    request<{ project: TestLabProject }>(`/testlab/projects/${projectId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteTestLabProject: (projectId: string) =>
+    request<{ ok: boolean }>(`/testlab/projects/${projectId}`, { method: "DELETE" }),
+
+  addTestLabTarget: (
+    projectId: string,
+    data: { base_url: string; label?: string; environment?: string },
+  ) =>
+    request<{ target: TestLabTarget }>(`/testlab/projects/${projectId}/targets`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateTestLabTarget: (targetId: string, data: Partial<TestLabTarget>) =>
+    request<{ target: TestLabTarget }>(`/testlab/targets/${targetId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  startTestLabVerification: (targetId: string, method?: string) =>
+    request<{ challenge: TestLabVerificationChallenge }>(
+      `/testlab/targets/${targetId}/verify/start`,
+      { method: "POST", body: JSON.stringify({ method }) },
+    ),
+
+  confirmTestLabVerification: (targetId: string) =>
+    request<{ target: TestLabTarget }>(`/testlab/targets/${targetId}/verify/confirm`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+
+  listTestLabMembers: (projectId: string) =>
+    request<{ members: TestLabMember[] }>(`/testlab/projects/${projectId}/members`),
+
+  addTestLabMember: (
+    projectId: string,
+    data: { email?: string; user_id?: number; role: string },
+  ) =>
+    request<{ member: TestLabMember }>(`/testlab/projects/${projectId}/members`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  createTestLabRequirement: (projectId: string, data: Partial<TestLabRequirement>) =>
+    request<{ requirement: TestLabRequirement }>(`/testlab/projects/${projectId}/requirements`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  importTestLabRequirements: (projectId: string, text: string) =>
+    request<{ created: TestLabRequirement[]; count: number }>(
+      `/testlab/projects/${projectId}/requirements`,
+      { method: "POST", body: JSON.stringify({ text, import: true }) },
+    ),
+
+  createTestLabTest: (projectId: string, data: Partial<TestLabTestCase>) =>
+    request<{ test: TestLabTestCase }>(`/testlab/projects/${projectId}/tests`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  generateTestLabTests: (
+    projectId: string,
+    data: { requirement_ids?: string[]; openapi?: string },
+  ) =>
+    request<{ tests: TestLabTestCase[]; count: number }>(`/testlab/projects/${projectId}/tests`, {
+      method: "POST",
+      body: JSON.stringify({ ...data, generate: true }),
+    }),
+
+  updateTestLabTest: (testId: string, data: Partial<TestLabTestCase>) =>
+    request<{ test: TestLabTestCase }>(`/testlab/tests/${testId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteTestLabTest: (testId: string) =>
+    request<{ ok: boolean }>(`/testlab/tests/${testId}`, { method: "DELETE" }),
+
+  getTestLabTraceability: (projectId: string) =>
+    request<{
+      matrix: Array<{ requirement: TestLabRequirement; tests: TestLabTestCase[] }>;
+      uncovered_requirements: TestLabRequirement[];
+      orphan_tests: TestLabTestCase[];
+    }>(`/testlab/projects/${projectId}/traceability`),
+
+  createTestLabRun: (
+    projectId: string,
+    data: {
+      target_id: string;
+      test_case_ids?: string[];
+      browsers?: string[];
+      options?: Record<string, boolean>;
+    },
+  ) =>
+    request<{ run: TestLabRun; execution: TestLabExecutionCapabilities }>(
+      `/testlab/projects/${projectId}/runs`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  getTestLabRun: (runId: string) =>
+    request<{ run: TestLabRun; results: TestLabResult[] }>(`/testlab/runs/${runId}`),
+
+  cancelTestLabRun: (runId: string) =>
+    request<{ run: TestLabRun }>(`/testlab/runs/${runId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+
+  upsertTestLabSecret: (projectId: string, data: { key: string; value: string }) =>
+    request<{ secret: TestLabSecretMeta }>(`/testlab/projects/${projectId}/secrets`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  createTestLabDefect: (projectId: string, data: Partial<TestLabDefect>) =>
+    request<{ defect: TestLabDefect }>(`/testlab/projects/${projectId}/defects`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateTestLabDefect: (defectId: string, data: Partial<TestLabDefect>) =>
+    request<{ defect: TestLabDefect }>(`/testlab/defects/${defectId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  retestTestLabDefect: (defectId: string) =>
+    request<{ run: TestLabRun; defect_id: string }>(`/testlab/defects/${defectId}/retest`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+
+  createTestLabSchedule: (projectId: string, data: Partial<TestLabSchedule>) =>
+    request<{ schedule: TestLabSchedule }>(`/testlab/projects/${projectId}/schedules`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateTestLabSchedule: (scheduleId: string, data: Partial<TestLabSchedule>) =>
+    request<{ schedule: TestLabSchedule }>(`/testlab/schedules/${scheduleId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  getTestLabReport: (projectId: string) =>
+    request<{
+      executive: {
+        total_runs: number;
+        pass_rate: number | null;
+        open_defects: number;
+        coverage: number | null;
+      };
+      technical: {
+        recent_runs: TestLabRun[];
+        failing_tests: TestLabResult[];
+        accessibility_hotspots: TestLabResult[];
+      };
+    }>(`/testlab/projects/${projectId}/report`),
+
+  saveTestLabRecorder: (
+    projectId: string,
+    data: { title?: string; description?: string; steps: unknown[] },
+  ) =>
+    request<{ test: TestLabTestCase }>(`/testlab/projects/${projectId}/recorder`, {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 };
 
