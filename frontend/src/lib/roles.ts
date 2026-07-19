@@ -55,6 +55,7 @@ export type NavLink = {
   label: string;
   section: string;
   comingSoon?: boolean;
+  adminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -98,7 +99,8 @@ const CANDIDATE_GROUPS: NavGroup[] = [
     label: "Tools",
     links: [
       { to: "/admin/ai", label: "UXGuard AI", section: "ai" },
-      { to: "/admin/testlab", label: "TestLab", section: "testlab" },
+      // TestLab is admin-only while in private testing (filtered in dashboardLinksForUser)
+      { to: "/admin/testlab", label: "TestLab", section: "testlab", adminOnly: true },
       { to: "/admin/analytics", label: "Analytics", section: "analytics" },
     ],
   },
@@ -145,7 +147,10 @@ export function dashboardLinksForUser(user?: User | null) {
   const groups =
     workspace === "employer"
       ? EMPLOYER_GROUPS.map((g) => ({ ...g, links: [...g.links] }))
-      : CANDIDATE_GROUPS.map((g) => ({ ...g, links: [...g.links] }));
+      : CANDIDATE_GROUPS.map((g) => ({
+          ...g,
+          links: g.links.filter((link) => !link.adminOnly || isAdmin(user)),
+        }));
 
   if (isAdmin(user) && workspace === "candidate") {
     groups.push({

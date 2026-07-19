@@ -55,13 +55,13 @@ export function assertProjectPermission(store, projectId, user, permission) {
 
 export function canAccessPlatformTestLab(user) {
   if (!user) return false;
-  const role = normalizeRole(user.role);
-  return role === "admin" || role === "professional";
+  // Temporarily admin-only while TestLab is in private testing.
+  return normalizeRole(user.role) === "admin";
 }
 
 export function assertCanAccessTestLab(user) {
   if (!canAccessPlatformTestLab(user)) {
-    const err = new Error("TestLab requires a professional or admin account");
+    const err = new Error("TestLab is currently available to admin accounts only");
     err.status = 403;
     throw err;
   }

@@ -490,7 +490,151 @@ async function executeSingleCase({
   }
 }
 
-export async function executeRunPayload({
+export async function executeSmokeRunPayload({
+  run,
+  target,
+  testCases,
+  onProgress,
+  shouldCancel,
+}) {
+  const results = [];
+  const expanded = expandDataDrivenCases(testCases);
+  const browsers = run.browsers?.length ? run.browsers : ["chromium"];
+  const base = String(target?.base_url || "").replace(/\/$/, "");
+
+  for (const browserName of browsers) {
+    for (const testCase of expanded) {
+      if (shouldCancel?.()) {
+        results.push(
+          normalizeResult(
+            {
+              test_case_id: testCase.id,
+              browser: browserName,
+              status: "cancelled",
+              error_message: "Run cancelled",
+            },
+            run.id,
+          ),
+        );
+        continue;
+      }
+
+      const started = Date.now();
+      const gotoStep = (testCase.steps || []).find((s) => s.action === "goto") || {
+        value: "/",
+      };
+      const url = joinUrl(base, interpolate(gotoStep.value || "/", testCase._data_vars || {}));
+      let status = "passed";
+      let errorMessage = null;
+      const stepResults = [];
+
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(url, {
+          method: "GET",
+          redirect: "follow",
+          signal: controller.signal,
+          headers: { "User-Agent": "UXGuard-TestLab-Smoke/1.0" },
+        });
+        clearTimeout(timer);
+        const ok = res.status >= 200 && res.status < 400;
+        stepResults.push({
+          action: "goto",
+          value: url,
+          status: ok ? "passed" : "failed",
+          detail: `HTTP ${res.status}`,
+        });
+        if (!ok) {
+          status = "failed";
+          errorMessage = `Smoke check failed: ${url} returned HTTP ${res.status}`;
+        } else {
+          const assertStep = (testCase.steps || []).find(
+            (s) => s.action === "assert_visible" || s.action === "assert_text",
+          );
+          if (assertStep?.value || assertStep?.selector) {
+            const body = await res.text().catch(() => "");
+            const needle = String(assertStep.value || assertStep.selector || "").trim();
+            if (needle && !body.toLowerCase().includes(needle.toLowerCase())) {
+              status = "failed";
+              errorMessage = `Expected content not found: ${needle}`;
+              stepResults.push({
+                action: assertStep.action,
+                value: needle,
+                status: "failed",
+              });
+            } else {
+              stepResults.push({
+                action: assertStep.action,
+                value: needle || "body",
+                status: "passed",
+              });
+            }
+          }
+        }
+      } catch (err) {
+        status = "error";
+        errorMessage = `Smoke check error for ${url}: ${err.message}`;
+        stepResults.push({ action: "goto", value: url, status: "error", detail: err.message });
+      }
+
+      const result = normalizeResult(
+        {
+          test_case_id: testCase.id,
+          browser: browserName,
+          viewport: { name: "desktop", width: 1280, height: 720 },
+          status,
+          duration_ms: Date.now() - started,
+          steps: stepResults,
+          error_message: errorMessage,
+          data_set: testCase._data_label || null,
+          notes: "Executed via HTTP smoke fallback (Playwright unavailable in this environment)",
+        },
+        run.id,
+      );
+      results.push(result);
+      if (onProgress) await onProgress({ result, results });
+    }
+  }
+
+  const summary = {
+    total: results.length,
+    passed: results.filter((r) => r.status === "passed").length,
+    failed: results.filter((r) => r.status === "failed").length,
+    skipped: results.filter((r) => r.status === "skipped").length,
+    errors: results.filter((r) => r.status === "error").length,
+    cancelled: results.filter((r) => r.status === "cancelled").length,
+  };
+
+  let finalStatus = "passed";
+  if (summary.cancelled && summary.cancelled === summary.total) finalStatus = "cancelled";
+  else if (summary.errors) finalStatus = "error";
+  else if (summary.failed) finalStatus = "failed";
+  else if (summary.cancelled) finalStatus = "cancelled";
+
+  return {
+    results,
+    summary,
+    status: finalStatus,
+    baselineUpdates: [],
+    execution_mode: "smoke",
+  };
+}
+
+export async function executeRunPayload(args) {
+  try {
+    const outcome = await executePlaywrightRunPayload(args);
+    return { ...outcome, execution_mode: "playwright" };
+  } catch (err) {
+    const missing =
+      err?.code === "PLAYWRIGHT_MISSING" ||
+      /Playwright is not installed|Cannot find module ['"]playwright['"]/i.test(err?.message || "");
+    if (!missing) throw err;
+    return executeSmokeRunPayload(args);
+  }
+}
+
+async function executePlaywrightRunPayload({
   run,
   target,
   testCases,
@@ -531,18 +675,8 @@ export async function executeRunPayload({
     try {
       browser = await launcher.launch({ headless: true });
     } catch (err) {
-      results.push(
-        normalizeResult(
-          {
-            test_case_id: expanded[0]?.id || "none",
-            browser: browserName,
-            status: "error",
-            error_message: `Failed to launch ${browserName}: ${err.message}. Run: npx playwright install ${browserName}`,
-          },
-          run.id,
-        ),
-      );
-      continue;
+      // Browser binaries often missing on serverless — fall back to smoke checks.
+      return executeSmokeRunPayload({ run, target, testCases, onProgress, shouldCancel });
     }
 
     try {

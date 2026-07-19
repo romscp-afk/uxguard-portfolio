@@ -31,7 +31,7 @@ import { NotificationBell } from "../community/NotificationBell";
 import { AssistantFab, AssistantPanel } from "../assistant/AssistantPanel";
 import { AssistantProvider } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
-import { dashboardLinksForUser } from "../../lib/roles";
+import { dashboardLinksForUser, isAdmin } from "../../lib/roles";
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   profile: UserCircle,
@@ -143,6 +143,11 @@ export function AdminLayout() {
       return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/admin/employer/login" replace />;
+  }
+
+  // TestLab is admin-only while in private testing
+  if (location.pathname.startsWith("/admin/testlab") && !isAdmin(user)) {
+    return <Navigate to="/admin" replace />;
   }
 
   const dashboardTo = isEmployerPortal ? "/admin/employer" : "/admin";

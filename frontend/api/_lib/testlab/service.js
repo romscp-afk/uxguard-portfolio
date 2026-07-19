@@ -169,7 +169,7 @@ export async function getProjectDetail(user, projectId) {
   let lastError = null;
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      const store = await readProjectStore(attempt > 0);
+      const store = await readProjectStore(true);
       const project = getProjectOrThrow(store, projectId);
       const role = assertProjectPermission(store, projectId, user, "project_read");
       const targets = store.testlab_targets.filter((t) => sameProjectId(t.project_id, projectId));
@@ -542,7 +542,9 @@ export async function generateTests(user, projectId, payload) {
   } else {
     const requirementIds = payload?.requirement_ids || [];
     const requirements = store.testlab_requirements.filter(
-      (r) => r.project_id === projectId && (requirementIds.length ? requirementIds.includes(r.id) : true),
+      (r) =>
+        sameProjectId(r.project_id, projectId) &&
+        (requirementIds.length ? requirementIds.includes(r.id) : true),
     );
     if (!requirements.length) throw httpError("No requirements found to generate from");
     for (const req of requirements) {
@@ -636,8 +638,10 @@ export async function getTraceability(user, projectId) {
   assertCanAccessTestLab(user);
   const store = ensureCollections(await readStore());
   assertProjectPermission(store, projectId, user, "project_read");
-  const requirements = store.testlab_requirements.filter((r) => r.project_id === projectId);
-  const tests = store.testlab_test_cases.filter((t) => t.project_id === projectId);
+  const requirements = store.testlab_requirements.filter((r) =>
+    sameProjectId(r.project_id, projectId),
+  );
+  const tests = store.testlab_test_cases.filter((t) => sameProjectId(t.project_id, projectId));
   return {
     matrix: requirements.map((req) => ({
       requirement: req,
@@ -652,13 +656,14 @@ export async function getTraceability(user, projectId) {
 
 async function maybeInlineExecute(runId) {
   const caps = getExecutionCapabilities();
-  if (!caps.inline || !caps.configured) return;
-  // Fire-and-forget inline execution for local/dev
-  setTimeout(() => {
-    processQueuedRun(runId).catch((err) => {
-      console.error("[testlab] inline run failed", runId, err.message);
-    });
-  }, 10);
+  if (!caps.inline || !caps.configured) return null;
+  // Must await on serverless — fire-and-forget setTimeout is killed after the response.
+  try {
+    return await processQueuedRun(runId);
+  } catch (err) {
+    console.error("[testlab] inline run failed", runId, err.message);
+    return null;
+  }
 }
 
 export async function createRun(user, projectId, payload) {
@@ -673,7 +678,9 @@ export async function createRun(user, projectId, payload) {
     (store) => {
       ensureCollections(store);
       assertProjectPermission(store, projectId, user, "runs_trigger");
-      const target = store.testlab_targets.find((t) => t.id === payload?.target_id && t.project_id === projectId);
+      const target = store.testlab_targets.find(
+        (t) => sameProjectId(t.id, payload?.target_id) && sameProjectId(t.project_id, projectId),
+      );
       if (!target) throw httpError("Target not found", 404);
       if (target.verification_status !== "verified" && target.environment === "production") {
         throw httpError("Production targets must be verified before running tests");
@@ -682,7 +689,7 @@ export async function createRun(user, projectId, payload) {
       let testIds = payload?.test_case_ids || [];
       if (!testIds.length) {
         testIds = store.testlab_test_cases
-          .filter((t) => t.project_id === projectId && t.enabled !== false)
+          .filter((t) => sameProjectId(t.project_id, projectId) && t.enabled !== false)
           .map((t) => t.id);
       }
       if (!testIds.length) throw httpError("No test cases to run");
@@ -724,8 +731,11 @@ export async function createRun(user, projectId, payload) {
     { forceRefresh: true },
   );
 
-  await maybeInlineExecute(saved.id);
-  return { run: saved, execution: provider.getCapabilities() };
+  const processed = await maybeInlineExecute(saved.id);
+  return {
+    run: processed || saved,
+    execution: provider.getCapabilities(),
+  };
 }
 
 export async function cancelRun(user, runId) {

@@ -6,6 +6,7 @@ export default {
       colors: {
         /* Logo teal: #0eb5bd · Logo navy: #001334 */
         brand: {
+          DEFAULT: "#0eb5bd",
           50: "#eefcfd",
           100: "#d5f7f8",
           200: "#aeeef0",
@@ -19,6 +20,7 @@ export default {
           950: "#033638",
         },
         ink: {
+          DEFAULT: "#001334",
           50: "#f4f7fb",
           100: "#e8eef6",
           200: "#d1dbe8",

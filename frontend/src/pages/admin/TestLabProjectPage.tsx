@@ -13,15 +13,13 @@ import type {
   TestLabProjectDetail,
   TestLabResult,
   TestLabRun,
+  TestLabStep,
   TestLabVerificationChallenge,
 } from "../../types";
 
-const TABS = [
-  "overview",
-  "targets",
+const PRIMARY_TABS = ["overview", "targets", "tests", "runs"] as const;
+const ADVANCED_TABS = [
   "requirements",
-  "tests",
-  "runs",
   "defects",
   "schedules",
   "secrets",
@@ -30,8 +28,17 @@ const TABS = [
   "recorder",
   "report",
 ] as const;
+const TABS = [...PRIMARY_TABS, ...ADVANCED_TABS] as const;
 
 type Tab = (typeof TABS)[number];
+
+const btnPrimary =
+  "inline-flex items-center justify-center gap-2 rounded-lg bg-ink-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-50";
+const btnSecondary =
+  "inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 shadow-sm transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50";
+const card = "rounded-xl border border-ink-200 bg-white p-5 shadow-sm";
+const field =
+  "mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
 export function TestLabProjectPage() {
   const { projectId = "" } = useParams();
@@ -52,6 +59,9 @@ export function TestLabProjectPage() {
   const [reqBody, setReqBody] = useState("");
   const [importText, setImportText] = useState("");
   const [testTitle, setTestTitle] = useState("");
+  const [testPath, setTestPath] = useState("/");
+  const [testAssert, setTestAssert] = useState("");
+  const [showAdvancedBuilder, setShowAdvancedBuilder] = useState(false);
   const [secretKey, setSecretKey] = useState("");
   const [secretValue, setSecretValue] = useState("");
   const [scheduleName, setScheduleName] = useState("Weekday regression");
@@ -136,84 +146,189 @@ export function TestLabProjectPage() {
 
   const { project, targets, requirements, tests, runs, defects, schedules, secrets, baselines = [], execution, stats } =
     detail;
-  const verifiedTarget = targets.find((t) => t.verification_status === "verified") || targets[0];
+  const stagingOrVerified =
+    targets.find((t) => t.verification_status === "verified") ||
+    targets.find((t) => t.environment !== "production") ||
+    targets[0];
+  const enabledTests = tests.filter((t) => t.enabled !== false);
+  const step1Done = targets.length > 0;
+  const step2Done = tests.length > 0;
+  const step3Done = runs.some((r) => !["queued", "running"].includes(r.status));
+  const canRun =
+    Boolean(stagingOrVerified) &&
+    enabledTests.length > 0 &&
+    !(stagingOrVerified?.environment === "production" && stagingOrVerified.verification_status !== "verified");
 
   return (
-    <div>
+    <div className="text-ink-900">
       <ReadOnlyNotice />
-      <Link to="/admin/testlab" className="text-sm text-stone-500 hover:text-ink">
+      <Link
+        to="/admin/testlab"
+        className="inline-flex text-sm font-medium text-ink-600 underline-offset-2 hover:text-ink-950 hover:underline"
+      >
         ← TestLab
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-            QA Autopilot
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+            QA Autopilot · Admin testing
           </p>
-          <h1 className="font-display text-3xl text-ink">{project.name}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-stone-600">{project.description}</p>
+          <h1 className="font-display text-3xl text-ink-950">{project.name}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-600">{project.description}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="inline-flex items-center gap-2 rounded-md border border-stone-300 px-3 py-2 text-sm"
-        >
+        <button type="button" onClick={() => void load()} className={btnSecondary}>
           <RefreshCw className="h-4 w-4" />
           Refresh
         </button>
       </div>
 
       <div
-        className={`mt-4 rounded-md border px-4 py-3 text-sm ${
+        className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
           execution.configured
-            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-950"
             : "border-amber-200 bg-amber-50 text-amber-950"
         }`}
       >
         {execution.configured ? (
           <span className="inline-flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             {execution.reason}
           </span>
         ) : (
           <span className="inline-flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4 shrink-0" />
             {execution.reason}
           </span>
         )}
       </div>
 
+      <div className={`${card} mt-4`}>
+        <p className="text-sm font-semibold text-ink-950">Guided flow</p>
+        <ol className="mt-3 grid gap-3 sm:grid-cols-3">
+          {[
+            {
+              n: 1,
+              label: "Add a target URL",
+              done: step1Done,
+              tab: "targets" as Tab,
+              hint: "Prefer staging for first runs",
+            },
+            {
+              n: 2,
+              label: "Add test cases",
+              done: step2Done,
+              tab: "tests" as Tab,
+              hint: "Quick check or generate from requirements",
+            },
+            {
+              n: 3,
+              label: "Run tests",
+              done: step3Done,
+              tab: "runs" as Tab,
+              hint: canRun ? "Ready to run" : "Needs target + tests",
+            },
+          ].map((s) => (
+            <button
+              key={s.n}
+              type="button"
+              onClick={() => setTab(s.tab)}
+              className={`rounded-lg border px-4 py-3 text-left transition ${
+                s.done
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-ink-200 bg-ink-50 hover:border-brand-300"
+              }`}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Step {s.n}</p>
+              <p className="mt-1 font-medium text-ink-950">
+                {s.done ? "✓ " : ""}
+                {s.label}
+              </p>
+              <p className="mt-1 text-xs text-ink-600">{s.hint}</p>
+            </button>
+          ))}
+        </ol>
+      </div>
+
       {error && (
-        <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-2 border-b border-stone-200 pb-2">
-        {TABS.map((id) => (
+      <div className="mt-6 flex flex-wrap gap-2 border-b border-ink-200 pb-2">
+        {PRIMARY_TABS.map((id) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`rounded-md px-3 py-1.5 text-sm capitalize ${
-              tab === id ? "bg-ink text-white" : "text-stone-600 hover:bg-stone-100"
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize ${
+              tab === id
+                ? "bg-ink-950 text-white"
+                : "bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50"
             }`}
           >
             {id}
           </button>
         ))}
+        <details className="relative">
+          <summary
+            className={`cursor-pointer list-none rounded-lg px-3 py-1.5 text-sm font-medium ${
+              ADVANCED_TABS.includes(tab as (typeof ADVANCED_TABS)[number])
+                ? "bg-ink-950 text-white"
+                : "bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50"
+            }`}
+          >
+            More ▾
+          </summary>
+          <div className="absolute z-10 mt-1 flex min-w-[12rem] flex-col gap-1 rounded-xl border border-ink-200 bg-white p-2 shadow-lg">
+            {ADVANCED_TABS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`rounded-md px-3 py-1.5 text-left text-sm capitalize ${
+                  tab === id ? "bg-ink-100 font-semibold text-ink-950" : "text-ink-700 hover:bg-ink-50"
+                }`}
+              >
+                {id}
+              </button>
+            ))}
+          </div>
+        </details>
       </div>
 
       <div className="mt-6">
         {tab === "overview" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(stats).map(([key, value]) => (
-              <div key={key} className="rounded-lg border border-stone-200 p-4">
-                <p className="text-xs uppercase tracking-wide text-stone-500">
+              <div key={key} className={card}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
                   {key.replace(/_/g, " ")}
                 </p>
-                <p className="mt-1 font-display text-3xl text-ink">{value}</p>
+                <p className="mt-1 font-display text-3xl text-ink-950">{value}</p>
               </div>
             ))}
+            <div className={`${card} sm:col-span-2 lg:col-span-3`}>
+              <p className="font-semibold text-ink-950">Next action</p>
+              <p className="mt-1 text-sm text-ink-600">
+                {!step1Done
+                  ? "Add a staging target URL, then create a quick page check."
+                  : !step2Done
+                    ? "Add at least one test case, then run."
+                    : canRun
+                      ? "Everything looks ready — open Runs and start a run."
+                      : "Verify production targets before running against them."}
+              </p>
+              <button
+                type="button"
+                className={`${btnPrimary} mt-4`}
+                onClick={() =>
+                  setTab(!step1Done ? "targets" : !step2Done ? "tests" : "runs")
+                }
+              >
+                Continue setup
+              </button>
+            </div>
           </div>
         )}
 
@@ -398,132 +513,242 @@ export function TestLabProjectPage() {
 
         {tab === "tests" && (
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={busy || !requirements.length}
-                className="rounded-md bg-ink px-4 py-2 text-sm text-white disabled:opacity-50"
-                onClick={() =>
-                  void withBusy(async () => {
-                    await api.generateTestLabTests(projectId, {
-                      requirement_ids: requirements.map((r) => r.id),
-                    });
-                  })
-                }
-              >
-                Generate from requirements
-              </button>
+            <div className={card}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-ink-950">Add a quick page check</h2>
+                  <p className="mt-1 text-sm text-ink-600">
+                    Opens a path on your target and optionally checks for text on the page.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy || !requirements.length}
+                  className={btnSecondary}
+                  title={
+                    requirements.length
+                      ? "Generate tests from requirements"
+                      : "Add requirements in More → requirements first"
+                  }
+                  onClick={() =>
+                    void withBusy(async () => {
+                      await api.generateTestLabTests(projectId, {
+                        requirement_ids: requirements.map((r) => r.id),
+                      });
+                    })
+                  }
+                >
+                  Generate from requirements
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-medium text-ink-800 sm:col-span-2">
+                  Test title
+                  <input
+                    className={field}
+                    placeholder="Home page loads"
+                    value={testTitle}
+                    onChange={(e) => setTestTitle(e.target.value)}
+                  />
+                </label>
+                <label className="text-sm font-medium text-ink-800">
+                  Path
+                  <input
+                    className={field}
+                    placeholder="/"
+                    value={testPath}
+                    onChange={(e) => setTestPath(e.target.value)}
+                  />
+                </label>
+                <label className="text-sm font-medium text-ink-800">
+                  Must contain text (optional)
+                  <input
+                    className={field}
+                    placeholder="Welcome"
+                    value={testAssert}
+                    onChange={(e) => setTestAssert(e.target.value)}
+                  />
+                </label>
+              </div>
+
               <button
                 type="button"
                 disabled={busy}
-                className="rounded-md border border-stone-300 px-4 py-2 text-sm"
+                className={`${btnPrimary} mt-4`}
                 onClick={() =>
                   void withBusy(async () => {
-                    let steps = [];
-                    let data_sets = [];
-                    try {
-                      steps = JSON.parse(builderSteps);
-                      data_sets = JSON.parse(dataSetsJson || "[]");
-                    } catch {
-                      throw new ApiError(400, "Invalid step or data-set JSON");
+                    const path = testPath.trim() || "/";
+                    const steps: Partial<TestLabStep>[] = [
+                      { action: "goto", value: path, description: `Open ${path}` },
+                      {
+                        action: "assert_visible",
+                        selector: "body",
+                        description: "Page body visible",
+                      },
+                    ];
+                    if (testAssert.trim()) {
+                      steps.push({
+                        action: "assert_text",
+                        value: testAssert.trim(),
+                        description: `Contains “${testAssert.trim()}”`,
+                      });
                     }
                     await api.createTestLabTest(projectId, {
-                      title: testTitle || "Manual test",
+                      title: testTitle.trim() || `Check ${path}`,
                       type: "functional",
-                      steps,
-                      data_sets,
+                      steps: steps as TestLabStep[],
+                      data_sets: [],
                       generated_by: "manual",
+                      enabled: true,
                     });
                     setTestTitle("");
+                    setTestPath("/");
+                    setTestAssert("");
                   })
                 }
               >
-                Save manual test
+                Save test case
               </button>
-              <input
-                className="rounded-md border border-stone-300 px-3 py-2 text-sm"
-                placeholder="Manual test title"
-                value={testTitle}
-                onChange={(e) => setTestTitle(e.target.value)}
-              />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <label className="block text-sm">
-                Step builder (JSON)
-                <textarea
-                  className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs"
-                  rows={8}
-                  value={builderSteps}
-                  onChange={(e) => setBuilderSteps(e.target.value)}
-                />
-              </label>
-              <label className="block text-sm">
-                Data sets (JSON array, use {"{{FIELD}}"} in steps)
-                <textarea
-                  className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs"
-                  rows={8}
-                  value={dataSetsJson}
-                  onChange={(e) => setDataSetsJson(e.target.value)}
-                  placeholder='[{"name":"us","EMAIL":"a@ex.com"},{"name":"eu","EMAIL":"b@ex.com"}]'
-                />
-              </label>
-            </div>
-
-            <div className="rounded-lg border border-stone-200 p-4">
-              <p className="text-sm font-medium">Import OpenAPI / path list</p>
-              <textarea
-                className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs"
-                rows={5}
-                value={openapiText}
-                onChange={(e) => setOpenapiText(e.target.value)}
-                placeholder='Paste OpenAPI JSON or paths like /api/users'
-              />
+            <div className={card}>
               <button
                 type="button"
-                disabled={busy || !openapiText.trim()}
-                className="mt-2 rounded-md border border-stone-300 px-3 py-1.5 text-sm"
-                onClick={() =>
-                  void withBusy(async () => {
-                    await api.generateTestLabTests(projectId, { openapi: openapiText });
-                    setOpenapiText("");
-                  })
-                }
+                className="text-sm font-semibold text-ink-800 underline-offset-2 hover:underline"
+                onClick={() => setShowAdvancedBuilder((v) => !v)}
               >
-                Generate API tests
+                {showAdvancedBuilder ? "Hide" : "Show"} advanced JSON builder
               </button>
+              {showAdvancedBuilder ? (
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <label className="block text-sm font-medium text-ink-800">
+                      Steps (JSON)
+                      <textarea
+                        className={`${field} font-mono text-xs`}
+                        rows={8}
+                        value={builderSteps}
+                        onChange={(e) => setBuilderSteps(e.target.value)}
+                      />
+                    </label>
+                    <label className="block text-sm font-medium text-ink-800">
+                      Data sets (JSON)
+                      <textarea
+                        className={`${field} font-mono text-xs`}
+                        rows={8}
+                        value={dataSetsJson}
+                        onChange={(e) => setDataSetsJson(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className={btnSecondary}
+                    onClick={() =>
+                      void withBusy(async () => {
+                        let steps = [];
+                        let data_sets = [];
+                        try {
+                          steps = JSON.parse(builderSteps);
+                          data_sets = JSON.parse(dataSetsJson || "[]");
+                        } catch {
+                          throw new ApiError(400, "Invalid step or data-set JSON");
+                        }
+                        await api.createTestLabTest(projectId, {
+                          title: testTitle || "Manual test",
+                          type: "functional",
+                          steps,
+                          data_sets,
+                          generated_by: "manual",
+                        });
+                        setTestTitle("");
+                      })
+                    }
+                  >
+                    Save from JSON
+                  </button>
+                  <div>
+                    <p className="text-sm font-medium text-ink-800">OpenAPI / path list</p>
+                    <textarea
+                      className={`${field} font-mono text-xs`}
+                      rows={4}
+                      value={openapiText}
+                      onChange={(e) => setOpenapiText(e.target.value)}
+                      placeholder="Paste OpenAPI JSON or paths like /api/users"
+                    />
+                    <button
+                      type="button"
+                      disabled={busy || !openapiText.trim()}
+                      className={`${btnSecondary} mt-2`}
+                      onClick={() =>
+                        void withBusy(async () => {
+                          await api.generateTestLabTests(projectId, { openapi: openapiText });
+                          setOpenapiText("");
+                        })
+                      }
+                    >
+                      Generate API tests
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
-            <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200">
+            <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
               {tests.map((t) => (
                 <li key={t.id} className="flex items-start justify-between gap-3 p-4">
                   <div>
-                    <p className="font-medium">{t.title}</p>
-                    <p className="text-xs uppercase tracking-wide text-stone-500">
+                    <p className="font-semibold text-ink-950">{t.title}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
                       {t.type} · {t.priority} · {t.generated_by} · {t.steps?.length || 0} steps
+                      {t.enabled === false ? " · disabled" : ""}
                       {(t.data_sets?.length ?? 0) > 0 ? ` · ${t.data_sets?.length} data sets` : ""}
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="text-sm text-red-700"
+                    className="text-sm font-semibold text-red-700 hover:underline"
                     disabled={busy}
-                    onClick={() => void withBusy(() => api.deleteTestLabTest(t.id).then(() => undefined))}
+                    onClick={() =>
+                      void withBusy(() => api.deleteTestLabTest(t.id).then(() => undefined))
+                    }
                   >
                     Delete
                   </button>
                 </li>
               ))}
-              {!tests.length && <li className="p-4 text-sm text-stone-500">No tests yet.</li>}
+              {!tests.length && (
+                <li className="p-6 text-sm text-ink-500">
+                  No tests yet. Save a quick page check above — it will appear here immediately.
+                </li>
+              )}
             </ul>
+
+            {tests.length > 0 ? (
+              <button type="button" className={btnPrimary} onClick={() => setTab("runs")}>
+                Continue to Runs
+              </button>
+            ) : null}
           </div>
         )}
 
         {tab === "runs" && (
           <div className="space-y-6">
-            <div className="rounded-lg border border-stone-200 p-4">
-              <p className="text-sm font-medium">Start run</p>
-              <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            <div className={card}>
+              <h2 className="font-semibold text-ink-950">Start run</h2>
+              <p className="mt-1 text-sm text-ink-600">
+                Target:{" "}
+                <strong className="text-ink-900">
+                  {stagingOrVerified
+                    ? `${stagingOrVerified.label} (${stagingOrVerified.base_url})`
+                    : "none"}
+                </strong>
+                {" · "}
+                {enabledTests.length} enabled test{enabledTests.length === 1 ? "" : "s"}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-4 text-sm text-ink-800">
                 {(
                   [
                     "accessibility",
@@ -544,66 +769,80 @@ export function TestLabProjectPage() {
                   </label>
                 ))}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={busy || !verifiedTarget || !tests.length}
-                className="inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm text-white disabled:opacity-50"
-                onClick={() =>
-                  void withBusy(async () => {
-                    const { run } = await api.createTestLabRun(projectId, {
-                      target_id: verifiedTarget.id,
-                      browsers: project.default_browsers || ["chromium"],
-                      options: runOptions,
-                    });
-                    for (let i = 0; i < 30; i++) {
-                      await new Promise((r) => setTimeout(r, 1000));
-                      const data = await api.getTestLabRun(run.id);
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy || !canRun}
+                  className={btnPrimary}
+                  onClick={() =>
+                    void withBusy(async () => {
+                      if (!stagingOrVerified) return;
+                      const { run } = await api.createTestLabRun(projectId, {
+                        target_id: stagingOrVerified.id,
+                        browsers: project.default_browsers || ["chromium"],
+                        options: runOptions,
+                      });
+                      let data = await api.getTestLabRun(run.id);
                       setRunDetail(data);
-                      if (!["queued", "running"].includes(data.run.status)) break;
-                    }
-                  })
-                }
-              >
-                <Play className="h-4 w-4" />
-                Run all enabled tests
-              </button>
-              <button
-                type="button"
-                disabled={busy || !verifiedTarget}
-                className="rounded-md border border-stone-300 px-4 py-2 text-sm"
-                onClick={() =>
-                  void withBusy(async () => {
-                    const { run } = await api.triggerTestLabCi(projectId, {
-                      target_id: verifiedTarget.id,
-                      visual: runOptions.visual,
-                      responsive: runOptions.responsive,
-                      broken_links: runOptions.broken_links,
-                      performance: runOptions.performance,
-                      authenticated: runOptions.authenticated,
-                    });
-                    setRunDetail(await api.getTestLabRun(run.id));
-                  })
-                }
-              >
-                Queue CI run
-              </button>
+                      for (let i = 0; i < 45; i++) {
+                        if (!["queued", "running"].includes(data.run.status)) break;
+                        await new Promise((r) => setTimeout(r, 1000));
+                        data = await api.getTestLabRun(run.id);
+                        setRunDetail(data);
+                      }
+                    })
+                  }
+                >
+                  <Play className="h-4 w-4" />
+                  Run all enabled tests
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !stagingOrVerified}
+                  className={btnSecondary}
+                  onClick={() =>
+                    void withBusy(async () => {
+                      if (!stagingOrVerified) return;
+                      const { run } = await api.triggerTestLabCi(projectId, {
+                        target_id: stagingOrVerified.id,
+                        visual: runOptions.visual,
+                        responsive: runOptions.responsive,
+                        broken_links: runOptions.broken_links,
+                        performance: runOptions.performance,
+                        authenticated: runOptions.authenticated,
+                      });
+                      setRunDetail(await api.getTestLabRun(run.id));
+                    })
+                  }
+                >
+                  Queue CI run
+                </button>
               </div>
-              {!verifiedTarget && (
-                <p className="mt-2 text-sm text-amber-800">Add a target before running.</p>
+              {!canRun && (
+                <p className="mt-3 text-sm text-amber-900">
+                  {!stagingOrVerified
+                    ? "Add a target before running."
+                    : !enabledTests.length
+                      ? "Add at least one test case before running."
+                      : stagingOrVerified.environment === "production" &&
+                          stagingOrVerified.verification_status !== "verified"
+                        ? "Production targets must be verified before running."
+                        : "Cannot run yet."}
+                </p>
               )}
             </div>
 
             {runDetail && (
-              <div className="rounded-lg border border-stone-200 p-4">
+              <div className={card}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium">
-                    Run {runDetail.run.id} · {runDetail.run.status}
+                  <p className="font-semibold text-ink-950">
+                    Run {runDetail.run.id} ·{" "}
+                    <span className="capitalize">{runDetail.run.status}</span>
                   </p>
                   {["queued", "running"].includes(runDetail.run.status) && (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm"
+                      className={btnSecondary}
                       onClick={() =>
                         void withBusy(async () => {
                           await api.cancelTestLabRun(runDetail.run.id);
@@ -616,47 +855,56 @@ export function TestLabProjectPage() {
                     </button>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-stone-600">
+                <p className="mt-1 text-sm text-ink-600">
                   passed {runDetail.run.summary?.passed ?? 0} / failed{" "}
                   {runDetail.run.summary?.failed ?? 0} / total {runDetail.run.summary?.total ?? 0}
                 </p>
-                <ul className="mt-3 space-y-2 text-sm">
+                <ul className="mt-3 space-y-2 text-sm text-ink-800">
                   {runDetail.results.map((r) => (
-                    <li key={r.id} className="rounded border border-stone-100 px-3 py-2">
-                      <span className="font-medium">{r.status}</span> · {r.browser} ·{" "}
-                      {r.duration_ms}ms
+                    <li key={r.id} className="rounded-lg border border-ink-100 bg-ink-50 px-3 py-2">
+                      <span className="font-semibold capitalize text-ink-950">{r.status}</span> ·{" "}
+                      {r.browser} · {r.duration_ms}ms
                       {r.error_message ? ` — ${r.error_message}` : ""}
                       {r.screenshots?.[0]?.data_url ? (
                         <img
                           src={r.screenshots[0].data_url}
                           alt="Screenshot"
-                          className="mt-2 max-h-40 rounded border border-stone-200"
+                          className="mt-2 max-h-40 rounded border border-ink-200"
                         />
                       ) : null}
                     </li>
                   ))}
+                  {!runDetail.results.length && (
+                    <li className="text-ink-500">No result rows yet for this run.</li>
+                  )}
                 </ul>
               </div>
             )}
 
-            <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200">
+            <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
               {runs.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 p-4 text-sm">
                   <button
                     type="button"
-                    className="text-left"
+                    className="text-left font-medium text-ink-900 hover:underline"
                     onClick={() =>
-                      void api.getTestLabRun(r.id).then(setRunDetail).catch((err) => {
-                        setError(err instanceof ApiError ? err.message : "Failed to load run");
-                      })
+                      void api
+                        .getTestLabRun(r.id)
+                        .then(setRunDetail)
+                        .catch((err) => {
+                          setError(err instanceof ApiError ? err.message : "Failed to load run");
+                        })
                     }
                   >
-                    <span className="font-medium">{r.status}</span>
-                    <span className="text-stone-500"> · {r.id}</span>
+                    <span className="capitalize">{r.status}</span>
+                    <span className="text-ink-500"> · {r.id}</span>
                   </button>
-                  <span className="text-stone-500">{r.created_at?.slice(0, 19)}</span>
+                  <span className="text-ink-500">{r.created_at?.slice(0, 19)}</span>
                 </li>
               ))}
+              {!runs.length && (
+                <li className="p-6 text-sm text-ink-500">No runs yet.</li>
+              )}
             </ul>
           </div>
         )}
@@ -709,12 +957,12 @@ export function TestLabProjectPage() {
               className="flex flex-wrap items-end gap-3 rounded-lg border border-stone-200 p-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!verifiedTarget) return;
+                if (!stagingOrVerified) return;
                 void withBusy(async () => {
                   await api.createTestLabSchedule(projectId, {
                     name: scheduleName,
                     cron: "0 9 * * 1-5",
-                    target_id: verifiedTarget.id,
+                    target_id: stagingOrVerified.id,
                     test_case_ids: tests.map((t) => t.id),
                   });
                 });
@@ -725,7 +973,7 @@ export function TestLabProjectPage() {
                 value={scheduleName}
                 onChange={(e) => setScheduleName(e.target.value)}
               />
-              <button type="submit" disabled={busy || !verifiedTarget} className="rounded-md bg-ink px-4 py-2 text-sm text-white">
+              <button type="submit" disabled={busy || !stagingOrVerified} className="rounded-md bg-ink px-4 py-2 text-sm text-white">
                 Add weekday 09:00 UTC schedule
               </button>
             </form>
