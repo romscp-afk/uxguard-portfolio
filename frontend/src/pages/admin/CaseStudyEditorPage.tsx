@@ -2,6 +2,11 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Eye, FileText, Plus, Save, Sparkles, Trash2, Upload } from "lucide-react";
 import { UrlOrUploadField } from "../../components/ui/UrlOrUploadField";
+import {
+  RichTextEditor,
+  type RichTextEditorHandle,
+} from "../../components/ui/RichTextEditor";
+import { richTextHint } from "../../components/ui/RichText";
 import { LimitReachedDialog } from "../../components/billing/LimitReachedDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useAssistant, useAssistantDraft, useAssistantPage } from "../../context/AssistantContext";
@@ -14,6 +19,7 @@ import {
 } from "../../lib/caseStudyStore";
 import { trackBillingEvent } from "../../lib/analytics";
 import { COVER_HELP_TEXT, validateCoverImageUrl } from "../../lib/coverImage";
+import { isEmptyHtml } from "../../lib/htmlContent";
 import type { CaseStudy, ContentBlock, MetricItem, Project } from "../../types";
 
 const RESEARCH_METHODS = [
@@ -87,11 +93,11 @@ function validateForm(
   }
 
   if (publish) {
-    if (!form.summary?.trim()) errors.summary = "Summary is required to publish.";
+    if (isEmptyHtml(form.summary)) errors.summary = "Summary is required to publish.";
     if (!form.cover_image?.trim()) errors.cover_image = "Cover image is required to publish.";
-    if (!form.challenge?.trim()) errors.challenge = "Challenge is required to publish.";
-    if (!form.methodology?.trim()) errors.methodology = "Methodology is required to publish.";
-    if (!form.impact?.trim()) errors.impact = "Impact is required to publish.";
+    if (isEmptyHtml(form.challenge)) errors.challenge = "Challenge is required to publish.";
+    if (isEmptyHtml(form.methodology)) errors.methodology = "Methodology is required to publish.";
+    if (isEmptyHtml(form.impact)) errors.impact = "Impact is required to publish.";
     const methods = methodsInput
       .split(",")
       .map((m) => m.trim())
@@ -137,6 +143,7 @@ export function CaseStudyEditorPage() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const fieldRefs = useRef<Partial<Record<FieldKey, HTMLElement | null>>>({});
+  const editorRefs = useRef<Partial<Record<FieldKey, RichTextEditorHandle | null>>>({});
 
   useEffect(() => {
     api.listProjects().then(setProjects).catch(() => setProjects([]));
@@ -176,9 +183,16 @@ export function CaseStudyEditorPage() {
     setMessage(`Please fix ${count} required field${count === 1 ? "" : "s"} highlighted below.`);
 
     const firstKey = Object.keys(errors)[0] as FieldKey | undefined;
-    const firstEl = firstKey ? fieldRefs.current[firstKey] : null;
-    firstEl?.scrollIntoView({ behavior: "smooth", block: "center" });
-    firstEl?.focus();
+    if (!firstKey) return;
+    const firstEditor = editorRefs.current[firstKey];
+    if (firstEditor) {
+      const section = document.querySelector(`[data-rte-field="${firstKey}"]`);
+      section?.scrollIntoView({ behavior: "smooth", block: "center" });
+      firstEditor.focus();
+      return;
+    }
+    fieldRefs.current[firstKey]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    fieldRefs.current[firstKey]?.focus();
   }
 
   function updateField<K extends keyof CaseStudy>(key: K, value: CaseStudy[K]) {
@@ -855,17 +869,22 @@ export function CaseStudyEditorPage() {
                 <label className={fieldLabelClass(Boolean(fieldErrors.summary))}>
                   Summary{fieldErrors.summary ? " *" : ""}
                 </label>
-                <textarea
-                  ref={(el) => {
-                    fieldRefs.current.summary = el;
-                  }}
-                  className={`${fieldInputClass(Boolean(fieldErrors.summary))} min-h-[80px]`}
-                  value={form.summary || ""}
-                  onChange={(e) => {
-                    updateField("summary", e.target.value);
-                    clearFieldError("summary");
-                  }}
-                />
+                <div data-rte-field="summary">
+                  <RichTextEditor
+                    ref={(el) => {
+                      editorRefs.current.summary = el;
+                    }}
+                    hasError={Boolean(fieldErrors.summary)}
+                    minHeightClass="min-h-[96px]"
+                    placeholder="Short overview of the study…"
+                    value={form.summary || ""}
+                    onChange={(html) => {
+                      updateField("summary", html);
+                      clearFieldError("summary");
+                    }}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-ink-400">{richTextHint()}</p>
                 {fieldErrors.summary ? (
                   <p className="mt-1 text-xs text-red-600">{fieldErrors.summary}</p>
                 ) : null}
@@ -883,19 +902,24 @@ export function CaseStudyEditorPage() {
                 {field}
                 {field !== "reflections" && fieldErrors[field as FieldKey] ? " *" : ""}
               </h2>
-              <textarea
-                ref={(el) => {
-                  if (field !== "reflections") {
-                    fieldRefs.current[field as FieldKey] = el;
-                  }
-                }}
-                className={`${fieldInputClass(Boolean(fieldErrors[field as FieldKey]))} min-h-[120px]`}
-                value={form[field] || ""}
-                onChange={(e) => {
-                  updateField(field, e.target.value);
-                  if (field !== "reflections") clearFieldError(field as FieldKey);
-                }}
-              />
+              <div data-rte-field={field}>
+                <RichTextEditor
+                  ref={(el) => {
+                    if (field !== "reflections") {
+                      editorRefs.current[field as FieldKey] = el;
+                    }
+                  }}
+                  hasError={Boolean(fieldErrors[field as FieldKey])}
+                  minHeightClass="min-h-[160px]"
+                  placeholder={`Write the ${field}…`}
+                  value={form[field] || ""}
+                  onChange={(html) => {
+                    updateField(field, html);
+                    if (field !== "reflections") clearFieldError(field as FieldKey);
+                  }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-ink-400">{richTextHint()}</p>
               {fieldErrors[field as FieldKey] ? (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors[field as FieldKey]}</p>
               ) : null}
@@ -943,27 +967,23 @@ export function CaseStudyEditorPage() {
                         value={String(block.data.heading || "")}
                         onChange={(e) => updateBlock(index, { heading: e.target.value })}
                       />
-                      <textarea
-                        className="input-field min-h-[120px]"
-                        placeholder={"Body text\n- First bullet point\n- Second bullet point"}
+                      <RichTextEditor
+                        minHeightClass="min-h-[140px]"
+                        placeholder="Body text…"
                         value={String(block.data.body || "")}
-                        onChange={(e) => updateBlock(index, { body: e.target.value })}
+                        onChange={(html) => updateBlock(index, { body: html })}
                       />
-                      <p className="text-xs text-ink-400">
-                        Tip: start a line with <code className="rounded bg-ink-100 px-1">-</code> or{" "}
-                        <code className="rounded bg-ink-100 px-1">*</code> for bullet points on the
-                        public page.
-                      </p>
+                      <p className="text-xs text-ink-400">{richTextHint()}</p>
                     </div>
                   ) : null}
 
                   {block.type === "quote" ? (
                     <div className="space-y-2">
-                      <textarea
-                        className="input-field"
+                      <RichTextEditor
+                        minHeightClass="min-h-[96px]"
                         placeholder="Quote text"
                         value={String(block.data.text || "")}
-                        onChange={(e) => updateBlock(index, { text: e.target.value })}
+                        onChange={(html) => updateBlock(index, { text: html })}
                       />
                       <input
                         className="input-field"

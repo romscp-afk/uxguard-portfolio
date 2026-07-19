@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Heart } from "lucide-react";
 import { resolveAssetUrl } from "../../api/client";
+import { stripHtml } from "../../lib/htmlContent";
 import { AuthorBadge } from "./AuthorBadge";
 import type { AuthorSummary, CaseStudyListItem } from "../../types";
 
@@ -69,7 +70,9 @@ export function CaseStudyCard({
             <p className="mt-2 line-clamp-2 text-sm font-medium text-ink-600">{study.subtitle}</p>
           ) : null}
           {showSummary && study.summary ? (
-            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink-500">{study.summary}</p>
+            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink-500">
+              {stripHtml(study.summary)}
+            </p>
           ) : null}
           {study.author?.title || study.author?.bio ? (
             <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-ink-400">

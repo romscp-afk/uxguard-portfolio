@@ -8,10 +8,11 @@ import {
   PrototypeViewerDialog,
 } from "../../components/case-study/PrototypeViewerDialog";
 import { RichText } from "../ui/RichText";
+import { isEmptyHtml } from "../../lib/htmlContent";
 import type { CaseStudy, UserProfile } from "../../types";
 
 function Section({ title, children }: { title: string; children?: string | null }) {
-  if (!children?.trim()) return null;
+  if (!children?.trim() || isEmptyHtml(children)) return null;
   return (
     <section className="space-y-3">
       <h2 className="font-display text-2xl font-semibold text-ink-900">{title}</h2>
@@ -131,8 +132,10 @@ export function CaseStudyArticle({
           ) : null}
         </header>
 
-        {study.summary ? (
-          <p className="mt-10 text-lg leading-relaxed text-ink-700">{study.summary}</p>
+        {study.summary && !isEmptyHtml(study.summary) ? (
+          <div className="mt-10 text-lg leading-relaxed text-ink-700">
+            <RichText text={study.summary} className="leading-relaxed text-ink-700" />
+          </div>
         ) : null}
 
         {study.metrics.length > 0 ? (

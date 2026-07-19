@@ -12,6 +12,7 @@ import { ShareBar } from "../../components/community/ShareBar";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { DocumentMeta } from "../../components/seo/DocumentMeta";
 import { getCaseStudyFromCache, listCachedCaseStudies } from "../../lib/caseStudyStore";
+import { stripHtml } from "../../lib/htmlContent";
 import { getUserFromRegistry } from "../../lib/platformRegistry";
 import { getOrCreateViewerKey, sessionViewGuardKey } from "../../lib/viewerKey";
 import type { CaseStudy, CaseStudyListItem, UserProfile } from "../../types";
@@ -197,7 +198,8 @@ export function CaseStudyDetailPage() {
     : null;
 
   const sharePath = `/u/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`;
-  const shareSummary = study.summary || study.subtitle || study.title;
+  const shareSummary =
+    stripHtml(study.summary || "") || study.subtitle || study.title;
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}${sharePath}` : sharePath;
   const shareImage = study.cover_image ? resolveAssetUrl(study.cover_image) : undefined;

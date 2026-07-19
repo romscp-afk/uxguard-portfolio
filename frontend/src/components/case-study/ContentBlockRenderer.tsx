@@ -1,6 +1,7 @@
 import type { ContentBlock } from "../../types";
 import { resolveAssetUrl } from "../../api/client";
 import { RichText } from "../ui/RichText";
+import { isEmptyHtml, looksLikeHtml } from "../../lib/htmlContent";
 
 function TextBlock({ data }: { data: Record<string, unknown> }) {
   return (
@@ -14,9 +15,17 @@ function TextBlock({ data }: { data: Record<string, unknown> }) {
 }
 
 function QuoteBlock({ data }: { data: Record<string, unknown> }) {
+  const text = String(data.text || "");
+  if (!text.trim() || isEmptyHtml(text)) return null;
   return (
     <blockquote className="rounded-2xl border-l-4 border-brand-500 bg-brand-50/50 px-6 py-5">
-      <p className="text-lg italic leading-relaxed text-ink-800">&ldquo;{String(data.text)}&rdquo;</p>
+      {looksLikeHtml(text) ? (
+        <div className="text-lg italic leading-relaxed text-ink-800">
+          <RichText text={text} className="leading-relaxed text-ink-800" />
+        </div>
+      ) : (
+        <p className="text-lg italic leading-relaxed text-ink-800">&ldquo;{text}&rdquo;</p>
+      )}
       {data.attribution ? (
         <footer className="mt-3 text-sm font-medium text-ink-500">— {String(data.attribution)}</footer>
       ) : null}

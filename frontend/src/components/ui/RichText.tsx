@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { isEmptyHtml, looksLikeHtml, sanitizeHtml } from "../../lib/htmlContent";
 
 /**
- * Renders plain text with paragraphs and bullet/numbered lists.
- * Bullets: lines starting with -, *, or •
- * Numbers: lines starting with 1. 2. etc.
+ * Renders case study narrative content.
+ * HTML from the rich text editor is sanitized and shown with the same formatting.
+ * Legacy plain text still supports paragraphs and bullet/numbered lists.
  */
 export function RichText({
   text,
@@ -12,7 +13,16 @@ export function RichText({
   text: string;
   className?: string;
 }) {
-  if (!text?.trim()) return null;
+  if (!text?.trim() || isEmptyHtml(text)) return null;
+
+  if (looksLikeHtml(text)) {
+    return (
+      <div
+        className={`rich-text-content ${className}`}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }}
+      />
+    );
+  }
 
   const blocks = parseRichText(text);
 
@@ -110,8 +120,8 @@ function parseRichText(text: string): RichBlock[] {
 export function richTextHint(): ReactNode {
   return (
     <span>
-      Tip: start a line with <code className="rounded bg-ink-100 px-1">-</code> or{" "}
-      <code className="rounded bg-ink-100 px-1">*</code> for bullet points.
+      Use the toolbar for bold, lists, colors, fonts, and links. Formatting is preserved on your
+      public case study page.
     </span>
   );
 }
