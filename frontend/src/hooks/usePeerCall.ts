@@ -257,10 +257,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         if (isCaller && ["accepted", "connected"].includes(snapshot.call.status)) {
           if (!signal.offer) {
             if (!pc.localDescription || pc.localDescription.type !== "offer") {
-              const offer = await pc.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: Boolean(snapshot.call.media.video),
-              });
+              const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
             }
             await api.callAction(call.id, "signal", {

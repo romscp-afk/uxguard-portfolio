@@ -352,11 +352,10 @@ export async function createInternalThread(user, payload = {}) {
       };
 
       if (existing) {
-        // Restore if previously hidden for either side
-        existing.deleted_for = deletedForSet(existing.deleted_for);
-        existing.deleted_for.delete(Number(user.id));
-        existing.deleted_for.delete(Number(recipientId));
-        existing.deleted_for = [...existing.deleted_for];
+        // Only the sender re-opens a chat they hid. Never un-hide for the other user.
+        const hidden = deletedForSet(existing.deleted_for);
+        hidden.delete(Number(user.id));
+        existing.deleted_for = [...hidden];
         message.thread_id = existing.id;
         store.internal_messages.push(message);
         existing.last_message_at = now;
@@ -414,9 +413,9 @@ export async function replyInternalThread(user, threadId, payload = {}) {
         (candidate) => String(candidate.id) === String(threadId),
       );
       assertThreadAccess(thread, user);
-      // Restore for other participants if they had deleted the chat for themselves
+      // Only the sender un-hides their own copy. Recipients who hid stay hidden.
       const deletedFor = deletedForSet(thread.deleted_for);
-      for (const id of otherParticipants(thread, user.id)) deletedFor.delete(id);
+      deletedFor.delete(Number(user.id));
       thread.deleted_for = [...deletedFor];
 
       const now = new Date().toISOString();

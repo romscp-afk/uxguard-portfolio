@@ -4,6 +4,7 @@ import { readStore, resetMemoryStoreForTests } from "../store.js";
 import {
   createInternalThread,
   deleteInternalMessage,
+  deleteInternalThreadForMe,
   editInternalMessage,
   getInternalThread,
   listInternalThreads,
@@ -94,6 +95,42 @@ test("sender can edit and delete for everyone; receiver can hide only for self",
   const both = await getInternalThread(b, created.thread.id);
   const deleted = both.messages.find((m) => m.id === messageId);
   assert.ok(deleted?.deleted);
+});
+
+test("hidden chat stays hidden for that user after others message", async () => {
+  resetMemoryStoreForTests();
+  const initial = await readStore();
+  const members = initial.users.filter((user) => user.email);
+  const a = members[0];
+  const b = members[1];
+
+  const created = await createInternalThread(a, {
+    recipient_user_id: b.id,
+    body: "hello",
+  });
+
+  await deleteInternalThreadForMe(a, created.thread.id);
+  const aList = await listInternalThreads(a);
+  assert.equal(
+    aList.threads.some((thread) => thread.id === created.thread.id),
+    false,
+  );
+
+  await replyInternalThread(b, created.thread.id, { body: "still here" });
+  const aListAfter = await listInternalThreads(a);
+  assert.equal(
+    aListAfter.threads.some((thread) => thread.id === created.thread.id),
+    false,
+  );
+
+  // Sender can reopen their own hidden chat by messaging again.
+  const reopened = await createInternalThread(a, {
+    recipient_user_id: b.id,
+    body: "i'm back",
+  });
+  assert.equal(reopened.thread.id, created.thread.id);
+  const aListReopened = await listInternalThreads(a);
+  assert.ok(aListReopened.threads.some((thread) => thread.id === created.thread.id));
 });
 
 test("chat image attachments persist via dedicated chat file urls", async () => {

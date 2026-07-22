@@ -605,7 +605,15 @@ function mergeByStringId(remoteList = [], localList = [], deletedIds = []) {
     }
     const prevT = Date.parse(String(prev.updated_at || prev.created_at || 0)) || 0;
     const nextT = Date.parse(String(item.updated_at || item.created_at || 0)) || 0;
-    if (nextT >= prevT) byId.set(id, item);
+    if (nextT > prevT) {
+      byId.set(id, item);
+      return;
+    }
+    if (nextT < prevT) return;
+    // Equal timestamps: prefer the row that still has hide markers so deletes aren't lost.
+    const prevHidden = Array.isArray(prev.deleted_for) ? prev.deleted_for.length : 0;
+    const nextHidden = Array.isArray(item.deleted_for) ? item.deleted_for.length : 0;
+    if (nextHidden >= prevHidden) byId.set(id, item);
   }
 
   for (const item of remoteList || []) consider(item);
