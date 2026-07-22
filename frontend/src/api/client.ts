@@ -72,7 +72,7 @@ const API_ROOT = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_BASE = `${API_ROOT}/api/v1`;
 const AI_API_BASE = `${API_ROOT}/api/ai`;
 /** Bump when media serving strategy changes so CDN/browser drop bad cached redirects. */
-const MEDIA_CACHE_BUST = "5";
+const MEDIA_CACHE_BUST = "6";
 
 export function resolveAssetUrl(url: string): string {
   if (!url) return url;
@@ -80,6 +80,11 @@ export function resolveAssetUrl(url: string): string {
   const root =
     API_ROOT ||
     (typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "");
+
+  const chatMatch = String(url).match(/\/api\/v1\/internal-messages\/file\/([^/?#]+)/);
+  if (chatMatch) {
+    return `${root}/api/v1/internal-messages/file/${chatMatch[1]}?v=${MEDIA_CACHE_BUST}`;
+  }
 
   const mediaMatch = String(url).match(/\/api\/v1\/media\/file\/(\d+)/);
   if (mediaMatch) {
@@ -89,6 +94,10 @@ export function resolveAssetUrl(url: string): string {
   if (url.startsWith("http://") || url.startsWith("https://")) {
     try {
       const parsed = new URL(url);
+      const hostedChat = parsed.pathname.match(/\/api\/v1\/internal-messages\/file\/([^/]+)/);
+      if (hostedChat) {
+        return `${root}/api/v1/internal-messages/file/${hostedChat[1]}?v=${MEDIA_CACHE_BUST}`;
+      }
       const hostedMedia = parsed.pathname.match(/\/api\/v1\/media\/file\/(\d+)/);
       if (hostedMedia) {
         return `${root}/api/v1/media/file/${hostedMedia[1]}?v=${MEDIA_CACHE_BUST}`;
@@ -106,6 +115,8 @@ export function resolveAssetUrl(url: string): string {
 /** Store media refs as stable relative paths so images keep working across deploys. */
 export function toStoredAssetUrl(url: string | null | undefined): string | null {
   if (!url?.trim()) return null;
+  const chatMatch = String(url).match(/\/api\/v1\/internal-messages\/file\/([^/?#]+)/);
+  if (chatMatch) return `/api/v1/internal-messages/file/${chatMatch[1]}`;
   const mediaMatch = String(url).match(/\/api\/v1\/media\/file\/(\d+)/);
   if (mediaMatch) return `/api/v1/media/file/${mediaMatch[1]}`;
   return url.trim();
@@ -909,12 +920,28 @@ export const api = {
       `/internal-messages/${encodeURIComponent(threadId)}`,
     ),
 
+  uploadChatAttachment: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<{
+      url: string;
+      pathname: string;
+      mime_type: string;
+      size_bytes: number;
+      name: string;
+    }>("/internal-messages/upload", {
+      method: "POST",
+      body: form,
+    });
+  },
+
   createInternalMessageThread: (payload: {
     subject?: string;
     body?: string;
     recipient_user_id: number;
     attachments?: Array<{
       url: string;
+      pathname?: string | null;
       mime_type: string;
       size_bytes: number;
       name: string;
@@ -933,6 +960,7 @@ export const api = {
       body?: string;
       attachments?: Array<{
         url: string;
+        pathname?: string | null;
         mime_type: string;
         size_bytes: number;
         name: string;

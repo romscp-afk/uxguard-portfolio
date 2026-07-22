@@ -225,8 +225,15 @@ export async function streamMediaAsset(assetId) {
   const asset = await getMediaAssetById(assetId, { forceRefresh: true });
   if (!asset?.pathname) return null;
 
-  const result = await get(asset.pathname, { access: "private", useCache: true });
-  if (!result || result.statusCode !== 200 || !result.stream) return null;
+  // Blob get can lag briefly after put — same class of bug as profile image saves.
+  let result = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    result = await get(asset.pathname, { access: "private", useCache: attempt === 0 });
+    if (result && result.statusCode === 200 && result.stream) break;
+    result = null;
+    await new Promise((resolve) => setTimeout(resolve, 60 * (attempt + 1)));
+  }
+  if (!result) return null;
 
   return {
     asset,

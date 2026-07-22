@@ -743,11 +743,14 @@ export interface InternalMessageUser {
 
 export interface InternalMessageAttachment {
   url: string;
+  pathname?: string | null;
   mime_type: string;
   size_bytes: number;
   name: string;
   width?: number | null;
   height?: number | null;
+  /** Local-only preview while composing (object URL). */
+  preview_url?: string;
 }
 
 export interface InternalMessageThread {

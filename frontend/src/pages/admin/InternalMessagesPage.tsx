@@ -169,9 +169,32 @@ export function InternalMessagesPage() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, selected?.id]);
 
+  function clearPendingAttachments() {
+    setPendingAttachments((prev) => {
+      for (const attachment of prev) {
+        if (attachment.preview_url?.startsWith("blob:")) {
+          URL.revokeObjectURL(attachment.preview_url);
+        }
+      }
+      return [];
+    });
+  }
+
+  function attachmentsForApi(list: InternalMessageAttachment[]) {
+    return list.map(({ url, pathname, mime_type, size_bytes, name, width, height }) => ({
+      url,
+      pathname,
+      mime_type,
+      size_bytes,
+      name,
+      width,
+      height,
+    }));
+  }
+
   function selectThread(thread: InternalMessageThread) {
     setComposeOpen(false);
-    setPendingAttachments([]);
+    clearPendingAttachments();
     setSearchParams({ thread: thread.id });
     if (selected?.id === thread.id) void openThread(thread.id);
   }
@@ -184,24 +207,24 @@ export function InternalMessagesPage() {
     setSubject("");
     setComposeBody("");
     setRecipientId("");
-    setPendingAttachments([]);
+    clearPendingAttachments();
     setUserQuery("");
   }
 
   async function uploadChatImage(file: File) {
     const { file: compressed, width, height, compressed: didCompress } =
       await compressImageForChat(file);
-    const asset = await api.uploadMedia(compressed, {
-      purpose: "media",
-      altText: file.name,
-    });
+    const asset = await api.uploadChatAttachment(compressed);
+    const previewUrl = URL.createObjectURL(compressed);
     return {
       url: asset.url,
+      pathname: asset.pathname,
       mime_type: asset.mime_type || compressed.type,
       size_bytes: asset.size_bytes || compressed.size,
-      name: asset.original_name || compressed.name,
+      name: asset.name || compressed.name,
       width,
       height,
+      preview_url: previewUrl,
       _notice: didCompress ? "Image compressed to under 500 KB." : undefined,
     } as InternalMessageAttachment & { _notice?: string };
   }
@@ -234,7 +257,7 @@ export function InternalMessagesPage() {
         subject: subject.trim() || undefined,
         body: composeBody.trim(),
         recipient_user_id: Number(recipientId),
-        attachments: pendingAttachments,
+        attachments: attachmentsForApi(pendingAttachments),
       });
       setComposeOpen(false);
       setSelected(result.thread);
@@ -243,7 +266,7 @@ export function InternalMessagesPage() {
       setSubject("");
       setComposeBody("");
       setRecipientId("");
-      setPendingAttachments([]);
+      clearPendingAttachments();
       await loadThreads();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not send message.");
@@ -260,12 +283,12 @@ export function InternalMessagesPage() {
     try {
       const result = await api.replyInternalMessageThread(selected.id, {
         body: replyBody.trim(),
-        attachments: pendingAttachments,
+        attachments: attachmentsForApi(pendingAttachments),
       });
       setSelected(result.thread);
       setMessages(result.messages);
       setReplyBody("");
-      setPendingAttachments([]);
+      clearPendingAttachments();
       setEmojiOpen(false);
       await loadThreads();
     } catch (err) {
@@ -484,7 +507,13 @@ export function InternalMessagesPage() {
               <AttachmentStrip
                 attachments={pendingAttachments}
                 onRemove={(index) =>
-                  setPendingAttachments((prev) => prev.filter((_, i) => i !== index))
+                  setPendingAttachments((prev) => {
+                    const target = prev[index];
+                    if (target?.preview_url?.startsWith("blob:")) {
+                      URL.revokeObjectURL(target.preview_url);
+                    }
+                    return prev.filter((_, i) => i !== index);
+                  })
                 }
               />
               <div className="flex flex-wrap items-center gap-2 border-t border-ink-100 p-4">
@@ -622,7 +651,7 @@ export function InternalMessagesPage() {
                                 className="mt-2 block overflow-hidden rounded-xl"
                                 onClick={() => setLightbox(resolveAssetUrl(attachment.url))}
                               >
-                                <img
+                                <ChatImage
                                   src={resolveAssetUrl(attachment.url)}
                                   alt={attachment.name}
                                   className="max-h-56 max-w-full object-cover"
@@ -682,7 +711,13 @@ export function InternalMessagesPage() {
               <AttachmentStrip
                 attachments={pendingAttachments}
                 onRemove={(index) =>
-                  setPendingAttachments((prev) => prev.filter((_, i) => i !== index))
+                  setPendingAttachments((prev) => {
+                    const target = prev[index];
+                    if (target?.preview_url?.startsWith("blob:")) {
+                      URL.revokeObjectURL(target.preview_url);
+                    }
+                    return prev.filter((_, i) => i !== index);
+                  })
                 }
               />
               <form onSubmit={sendReply} className="border-t border-ink-100 bg-white p-4">
@@ -762,6 +797,41 @@ export function InternalMessagesPage() {
   );
 }
 
+function ChatImage({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const [current, setCurrent] = useState(src);
+  const [attempts, setAttempts] = useState(0);
+
+  useEffect(() => {
+    setCurrent(src);
+    setAttempts(0);
+  }, [src]);
+
+  return (
+    <img
+      src={current}
+      alt={alt}
+      className={className}
+      onError={() => {
+        if (attempts >= 4) return;
+        const next = attempts + 1;
+        setAttempts(next);
+        const base = src.split("?")[0];
+        window.setTimeout(() => {
+          setCurrent(`${base}?v=${Date.now()}&r=${next}`);
+        }, 200 * next);
+      }}
+    />
+  );
+}
+
 function AttachmentStrip({
   attachments,
   onRemove,
@@ -774,8 +844,8 @@ function AttachmentStrip({
     <div className="flex flex-wrap gap-2 border-t border-ink-100 bg-white px-4 py-3">
       {attachments.map((attachment, index) => (
         <div key={`${attachment.url}-${index}`} className="relative">
-          <img
-            src={resolveAssetUrl(attachment.url)}
+          <ChatImage
+            src={attachment.preview_url || resolveAssetUrl(attachment.url)}
             alt={attachment.name}
             className="h-16 w-16 rounded-lg object-cover"
           />

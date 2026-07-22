@@ -106,8 +106,18 @@ function normalizeAttachment(raw) {
   if (size > MAX_ATTACHMENT_BYTES) {
     throw httpError("Images must be 500 KB or smaller after compression.", 400, "ATTACHMENT_TOO_LARGE");
   }
+  const pathname = cleanText(raw.pathname, 500) || null;
+  const isChatPath =
+    pathname && pathname.startsWith("uxguard/chat/") && !pathname.includes("..");
+  const isChatUrl = url.includes("/internal-messages/file/");
+  const isMediaUrl = url.includes("/api/v1/media/file/") || url.startsWith("/api/v1/media/file/");
+  if (!isChatUrl && !isMediaUrl && !isChatPath) {
+    // Reject arbitrary remote URLs — chat images must come from our upload endpoints.
+    return null;
+  }
   return {
     url,
+    pathname: isChatPath ? pathname : null,
     mime_type: mime,
     size_bytes: size || 0,
     name: cleanText(raw.name || "image", 200) || "image",

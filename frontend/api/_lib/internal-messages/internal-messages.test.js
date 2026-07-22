@@ -95,3 +95,49 @@ test("sender can edit and delete for everyone; receiver can hide only for self",
   const deleted = both.messages.find((m) => m.id === messageId);
   assert.ok(deleted?.deleted);
 });
+
+test("chat image attachments persist via dedicated chat file urls", async () => {
+  resetMemoryStoreForTests();
+  const initial = await readStore();
+  const members = initial.users.filter((user) => user.email);
+  const a = members[0];
+  const b = members[1];
+
+  const attachment = {
+    url: "/api/v1/internal-messages/file/dXhndWFyZC9jaGF0LzEvZGVtby5qcGc",
+    pathname: "uxguard/chat/1/demo.jpg",
+    mime_type: "image/jpeg",
+    size_bytes: 12000,
+    name: "demo.jpg",
+    width: 800,
+    height: 600,
+  };
+
+  const created = await createInternalThread(a, {
+    recipient_user_id: b.id,
+    body: "",
+    attachments: [attachment],
+  });
+  assert.equal(created.messages[0].attachments?.length, 1);
+  assert.equal(created.messages[0].attachments[0].url, attachment.url);
+  assert.equal(created.messages[0].attachments[0].pathname, attachment.pathname);
+
+  const bView = await getInternalThread(b, created.thread.id);
+  assert.equal(bView.messages[0].attachments?.[0]?.url, attachment.url);
+
+  await assert.rejects(
+    () =>
+      createInternalThread(a, {
+        recipient_user_id: b.id,
+        attachments: [
+          {
+            url: "https://evil.example/x.jpg",
+            mime_type: "image/jpeg",
+            size_bytes: 100,
+            name: "x.jpg",
+          },
+        ],
+      }),
+    (error) => error?.message?.includes("required") || error?.status === 400,
+  );
+});
