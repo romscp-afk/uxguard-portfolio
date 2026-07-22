@@ -237,6 +237,7 @@ function normalizeLoadedStore(data) {
     contact_messages: data.contact_messages || [],
     internal_message_threads: data.internal_message_threads || [],
     internal_messages: data.internal_messages || [],
+    internal_call_sessions: data.internal_call_sessions || [],
     projects: data.projects || [],
     resumes: data.resumes || [],
     career_profiles: data.career_profiles || [],
@@ -337,6 +338,7 @@ function seedStore() {
     contact_messages: [],
     internal_message_threads: [],
     internal_messages: [],
+    internal_call_sessions: [],
     projects: [
       {
         id: 1,
@@ -857,6 +859,7 @@ function takeDeletionMarkers(store) {
     case_study_views: markers.case_study_views || [],
     internal_message_threads: markers.internal_message_threads || [],
     internal_messages: markers.internal_messages || [],
+    internal_call_sessions: markers.internal_call_sessions || [],
     testlab_projects: markers.testlab_projects || [],
     testlab_targets: markers.testlab_targets || [],
     testlab_project_members: markers.testlab_project_members || [],
@@ -966,6 +969,11 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       localStore.internal_messages || [],
       deleted.internal_messages,
     ),
+    internal_call_sessions: mergeByStringId(
+      remote.internal_call_sessions || [],
+      localStore.internal_call_sessions || [],
+      deleted.internal_call_sessions,
+    ),
     case_study_views: mergeCaseStudyViews(
       remote.case_study_views || [],
       localStore.case_study_views || [],
@@ -1010,6 +1018,11 @@ export async function writeStore(store) {
         store.internal_messages || [],
         [],
         deleted.internal_messages,
+      ),
+      internal_call_sessions: mergeByStringId(
+        store.internal_call_sessions || [],
+        [],
+        deleted.internal_call_sessions,
       ),
       case_study_views: mergeCaseStudyViews(
         store.case_study_views || [],

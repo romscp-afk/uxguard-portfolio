@@ -20,6 +20,7 @@ import type {
   InternalMessage,
   InternalMessageThread,
   InternalMessageUser,
+  InternalCallSession,
   AdminUserSummary,
   AnalyticsSummary,
   FeedCaseStudyItem,
@@ -999,6 +1000,48 @@ export const api = {
       `/internal-messages/${encodeURIComponent(threadId)}`,
       { method: "DELETE" },
     ),
+
+  listActiveCalls: () =>
+    request<{ calls: InternalCallSession[]; ice_servers: RTCIceServer[] }>(
+      "/internal-messages/calls",
+    ),
+
+  startCall: (payload: { thread_id: string; video?: boolean; audio?: boolean }) =>
+    request<{ call: InternalCallSession; ice_servers: RTCIceServer[] }>(
+      "/internal-messages/calls",
+      { method: "POST", body: JSON.stringify(payload) },
+    ),
+
+  getCall: (callId: string, since = 0) =>
+    request<{
+      call: InternalCallSession;
+      signal: {
+        version: number;
+        offer: { type: RTCSdpType; sdp: string; from_user_id: number; version: number } | null;
+        answer: { type: RTCSdpType; sdp: string; from_user_id: number; version: number } | null;
+        ice: Array<{
+          id: string;
+          from_user_id: number;
+          candidate: RTCIceCandidateInit;
+          version: number;
+        }>;
+      };
+      ice_servers: RTCIceServer[];
+    }>(`/internal-messages/calls/${encodeURIComponent(callId)}?since=${since}`),
+
+  callAction: (
+    callId: string,
+    action: "accept" | "reject" | "hangup" | "connected" | "signal",
+    body: Record<string, unknown> = {},
+  ) =>
+    request<{
+      call?: InternalCallSession;
+      version?: number;
+      ice_servers?: RTCIceServer[];
+    }>(`/internal-messages/calls/${encodeURIComponent(callId)}`, {
+      method: "POST",
+      body: JSON.stringify({ action, ...body }),
+    }),
 
   getLikeStats: (caseStudyId: number) =>
     request<LikeStats>(`/case-studies/${caseStudyId}/like`),

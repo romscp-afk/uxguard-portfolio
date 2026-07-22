@@ -675,7 +675,8 @@ export interface Notification {
     | "follow"
     | "like"
     | "contact_message"
-    | "internal_message";
+    | "internal_message"
+    | "incoming_call";
   title: string;
   message: string;
   link?: string | null;
@@ -782,6 +783,22 @@ export interface InternalMessage {
   edited_at?: string | null;
   created_at: string;
   updated_at?: string;
+}
+
+export interface InternalCallSession {
+  id: string;
+  thread_id: string;
+  caller_user_id: number;
+  callee_user_id: number;
+  caller?: InternalMessageUser | null;
+  callee?: InternalMessageUser | null;
+  media: { audio: boolean; video: boolean };
+  status: "ringing" | "accepted" | "connected" | "rejected" | "ended" | "missed" | "failed";
+  created_at: string;
+  accepted_at?: string | null;
+  ended_at?: string | null;
+  ended_by?: number | null;
+  end_reason?: string | null;
 }
 
 export type AssistantContextType = "general" | "case_study" | "project" | "profile" | "portfolio";

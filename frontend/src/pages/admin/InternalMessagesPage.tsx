@@ -5,13 +5,17 @@ import {
   MailPlus,
   MessageCircle,
   Pencil,
+  Phone,
   Send,
   Smile,
   Trash2,
+  Video,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { api, ApiError, resolveAssetUrl } from "../../api/client";
+import { CallOverlay } from "../../components/messages/CallOverlay";
 import { useAuth } from "../../context/AuthContext";
+import { usePeerCall } from "../../hooks/usePeerCall";
 import { compressImageForChat } from "../../lib/compressChatImage";
 import type {
   InternalMessage,
@@ -89,8 +93,30 @@ export function InternalMessagesPage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const seenIncomingRef = useRef<Set<string>>(new Set());
+
+  const {
+    phase: callPhase,
+    activeCall,
+    muted,
+    cameraOff,
+    elapsedSec,
+    localVideoRef,
+    remoteVideoRef,
+    startCall,
+    acceptIncoming,
+    rejectIncoming,
+    hangup,
+    attachIncoming,
+    toggleMute,
+    toggleCamera,
+  } = usePeerCall({
+    selfId: user?.id,
+    onError: (message) => setError(message),
+  });
 
   const selectedId = searchParams.get("thread");
+  const callIdParam = searchParams.get("call");
   const unread = useMemo(
     () => threads.reduce((sum, thread) => sum + (thread.unread_count || 0), 0),
     [threads],
@@ -168,6 +194,49 @@ export function InternalMessagesPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, selected?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function pollCalls() {
+      try {
+        const result = await api.listActiveCalls();
+        if (cancelled) return;
+        const incoming = result.calls.find(
+          (item) =>
+            item.status === "ringing" &&
+            Number(item.callee_user_id) === Number(user?.id) &&
+            !seenIncomingRef.current.has(item.id),
+        );
+        if (incoming && callPhase === "idle") {
+          seenIncomingRef.current.add(incoming.id);
+          attachIncoming(incoming, result.ice_servers);
+          if (!selectedId || selectedId !== incoming.thread_id) {
+            setSearchParams({ thread: incoming.thread_id, call: incoming.id });
+          }
+        }
+        if (callIdParam && callPhase === "idle") {
+          const match = result.calls.find((item) => item.id === callIdParam);
+          if (
+            match &&
+            Number(match.callee_user_id) === Number(user?.id) &&
+            match.status === "ringing" &&
+            !seenIncomingRef.current.has(match.id)
+          ) {
+            seenIncomingRef.current.add(match.id);
+            attachIncoming(match, result.ice_servers);
+          }
+        }
+      } catch {
+        // best effort
+      }
+    }
+    void pollCalls();
+    const timer = window.setInterval(() => void pollCalls(), 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [user?.id, callPhase, callIdParam, selectedId, setSearchParams, attachIncoming]);
 
   function clearPendingAttachments() {
     setPendingAttachments((prev) => {
@@ -569,14 +638,36 @@ export function InternalMessagesPage() {
                     {selected.counterpart?.email || selected.user?.email || selected.subject}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="btn-secondary px-3 py-2 text-xs"
-                  onClick={() => void removeThread(selected.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Hide chat
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary px-3 py-2 text-xs"
+                    disabled={busy || callPhase !== "idle"}
+                    onClick={() => void startCall(selected.id, false)}
+                    title="Voice call"
+                  >
+                    <Phone className="h-4 w-4" />
+                    <span className="hidden sm:inline">Call</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary px-3 py-2 text-xs"
+                    disabled={busy || callPhase !== "idle"}
+                    onClick={() => void startCall(selected.id, true)}
+                    title="Video call"
+                  >
+                    <Video className="h-4 w-4" />
+                    <span className="hidden sm:inline">Video</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary px-3 py-2 text-xs"
+                    onClick={() => void removeThread(selected.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Hide chat
+                  </button>
+                </div>
               </div>
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
                 {threadLoading ? (
@@ -793,6 +884,22 @@ export function InternalMessagesPage() {
           <img src={lightbox} alt="Attachment preview" className="max-h-full max-w-full rounded-xl" />
         </button>
       ) : null}
+
+      <CallOverlay
+        phase={callPhase}
+        call={activeCall}
+        selfId={user?.id}
+        muted={muted}
+        cameraOff={cameraOff}
+        elapsedSec={elapsedSec}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        onAccept={() => void acceptIncoming()}
+        onReject={() => void rejectIncoming()}
+        onHangup={() => void hangup()}
+        onToggleMute={toggleMute}
+        onToggleCamera={toggleCamera}
+      />
     </div>
   );
 }
