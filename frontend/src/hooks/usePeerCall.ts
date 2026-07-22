@@ -23,7 +23,6 @@ async function getMediaStream(wantVideo: boolean) {
     });
   } catch (err) {
     if (wantVideo) {
-      // Fall back to voice-only if camera is missing/blocked.
       return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     }
     throw err;
@@ -50,8 +49,10 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const isCallerRef = useRef(false);
   const signalVersionRef = useRef(0);
   const appliedCandidatesRef = useRef(new Set<string>());
+  const pendingRemoteIceRef = useRef<RTCIceCandidateInit[]>([]);
   const offerSentRef = useRef(false);
   const answerSentRef = useRef(false);
+  const syncingRef = useRef(false);
   const pollRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
   const iceServersRef = useRef<RTCIceServer[]>([
@@ -97,8 +98,10 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     acceptingRef.current = false;
     signalVersionRef.current = 0;
     appliedCandidatesRef.current.clear();
+    pendingRemoteIceRef.current = [];
     offerSentRef.current = false;
     answerSentRef.current = false;
+    syncingRef.current = false;
   }, [stopPolling, stopTimer]);
 
   const attachLocalVideo = useCallback(() => {
@@ -111,6 +114,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const attachRemoteVideo = useCallback(() => {
     if (remoteVideoRef.current && remoteStreamRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.muted = false;
       void remoteVideoRef.current.play().catch(() => undefined);
     }
   }, []);
@@ -128,12 +132,25 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     [onError],
   );
 
+  const flushPendingIce = useCallback(async (pc: RTCPeerConnection) => {
+    if (!pc.remoteDescription) return;
+    const queued = pendingRemoteIceRef.current.splice(0);
+    for (const candidate of queued) {
+      try {
+        await pc.addIceCandidate(candidate);
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const ensurePeer = useCallback(
     async (call: InternalCallSession, iceServers?: RTCIceServer[]) => {
       if (iceServers?.length) iceServersRef.current = iceServers;
       callIdRef.current = call.id;
       if (pcRef.current) {
         attachLocalVideo();
+        attachRemoteVideo();
         return pcRef.current;
       }
 
@@ -155,11 +172,18 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       }
 
       pc.ontrack = (event) => {
+        if (!remoteStreamRef.current) {
+          remoteStreamRef.current = new MediaStream();
+        }
         const inbound = event.streams[0];
         if (inbound) {
-          remoteStreamRef.current = inbound;
+          for (const track of inbound.getTracks()) {
+            const already = remoteStreamRef.current.getTracks().some((t) => t.id === track.id);
+            if (!already) remoteStreamRef.current.addTrack(track);
+          }
         } else if (event.track) {
-          remoteStreamRef.current?.addTrack(event.track);
+          const already = remoteStreamRef.current.getTracks().some((t) => t.id === event.track.id);
+          if (!already) remoteStreamRef.current.addTrack(event.track);
         }
         attachRemoteVideo();
       };
@@ -167,6 +191,8 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       pc.onicecandidate = (event) => {
         const id = callIdRef.current;
         if (!event.candidate || !id) return;
+        // Wait until we have a local description so candidates belong to the SDP.
+        if (!pc.localDescription) return;
         void api
           .callAction(id, "signal", { candidate: event.candidate.toJSON() })
           .catch(() => undefined);
@@ -183,6 +209,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
               setElapsedSec((value) => value + 1);
             }, 1000);
           }
+          attachRemoteVideo();
         }
       };
 
@@ -193,83 +220,139 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
   const applySignals = useCallback(
     async (call: InternalCallSession, isCaller: boolean) => {
-      const snapshot = await api.getCall(call.id, signalVersionRef.current);
-      if (snapshot.ice_servers?.length) iceServersRef.current = snapshot.ice_servers;
-      setActiveCallSafe(snapshot.call);
+      if (syncingRef.current) return activeCallRef.current || call;
+      syncingRef.current = true;
+      try {
+        const snapshot = await api.getCall(call.id, signalVersionRef.current);
+        if (snapshot.ice_servers?.length) iceServersRef.current = snapshot.ice_servers;
+        setActiveCallSafe(snapshot.call);
 
-      if (["ended", "rejected", "missed", "failed"].includes(snapshot.call.status)) {
-        // Don't tear down while the user is mid-accept.
-        if (acceptingRef.current) return snapshot.call;
-        setPhaseSafe("ended");
-        cleanupMedia();
-        window.setTimeout(() => {
-          setPhaseSafe("idle");
-          setActiveCallSafe(null);
-        }, 1200);
-        return snapshot.call;
-      }
-
-      // During ring, callee only watches status — no media/WebRTC yet.
-      if (!isCaller && snapshot.call.status === "ringing") {
-        return snapshot.call;
-      }
-
-      if (snapshot.call.status === "accepted" || snapshot.call.status === "connected") {
-        setPhaseSafe(phaseRef.current === "connected" ? "connected" : "connecting");
-      }
-
-      const pc = await ensurePeer(snapshot.call, snapshot.ice_servers);
-      const { signal } = snapshot;
-      signalVersionRef.current = Math.max(signalVersionRef.current, signal.version || 0);
-
-      if (
-        isCaller &&
-        snapshot.call.status === "accepted" &&
-        !offerSentRef.current &&
-        !pc.localDescription
-      ) {
-        offerSentRef.current = true;
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await api.callAction(call.id, "signal", {
-          offer: { type: offer.type, sdp: offer.sdp },
-        });
-      }
-
-      if (!isCaller && signal.offer && !pc.currentRemoteDescription) {
-        await pc.setRemoteDescription({ type: signal.offer.type, sdp: signal.offer.sdp });
-        if (!answerSentRef.current) {
-          answerSentRef.current = true;
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          await api.callAction(call.id, "signal", {
-            answer: { type: answer.type, sdp: answer.sdp },
-          });
+        if (["ended", "rejected", "missed", "failed"].includes(snapshot.call.status)) {
+          if (acceptingRef.current) return snapshot.call;
+          setPhaseSafe("ended");
+          cleanupMedia();
+          window.setTimeout(() => {
+            setPhaseSafe("idle");
+            setActiveCallSafe(null);
+          }, 1200);
+          return snapshot.call;
         }
-      }
 
-      if (isCaller && signal.answer && !pc.currentRemoteDescription) {
-        await pc.setRemoteDescription({ type: signal.answer.type, sdp: signal.answer.sdp });
-      }
-
-      for (const item of signal.ice || []) {
-        if (Number(item.from_user_id) === Number(selfId)) continue;
-        if (appliedCandidatesRef.current.has(item.id)) continue;
-        appliedCandidatesRef.current.add(item.id);
-        try {
-          await pc.addIceCandidate(item.candidate);
-        } catch {
-          // ignore stale candidates
+        if (!isCaller && snapshot.call.status === "ringing") {
+          return snapshot.call;
         }
-      }
 
-      return snapshot.call;
+        if (snapshot.call.status === "accepted" || snapshot.call.status === "connected") {
+          if (phaseRef.current === "incoming" || phaseRef.current === "outgoing") {
+            setPhaseSafe("connecting");
+          } else if (phaseRef.current !== "connected") {
+            setPhaseSafe("connecting");
+          }
+        }
+
+        const pc = await ensurePeer(snapshot.call, snapshot.ice_servers);
+        const { signal } = snapshot;
+
+        // Caller: keep publishing offer until the server has it.
+        if (isCaller && ["accepted", "connected"].includes(snapshot.call.status)) {
+          if (!signal.offer) {
+            if (!pc.localDescription || pc.localDescription.type !== "offer") {
+              const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: Boolean(snapshot.call.media.video),
+              });
+              await pc.setLocalDescription(offer);
+            }
+            await api.callAction(call.id, "signal", {
+              offer: {
+                type: pc.localDescription!.type,
+                sdp: pc.localDescription!.sdp,
+              },
+            });
+            offerSentRef.current = true;
+          } else {
+            offerSentRef.current = true;
+          }
+        }
+
+        // Callee: apply offer and publish answer until server has it.
+        if (!isCaller && signal.offer) {
+          const needRemote =
+            !pc.currentRemoteDescription ||
+            pc.currentRemoteDescription.sdp !== signal.offer.sdp;
+          if (needRemote) {
+            await pc.setRemoteDescription({
+              type: signal.offer.type,
+              sdp: signal.offer.sdp,
+            });
+            await flushPendingIce(pc);
+          }
+          if (!signal.answer) {
+            if (!pc.localDescription || pc.localDescription.type !== "answer") {
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+            }
+            await api.callAction(call.id, "signal", {
+              answer: {
+                type: pc.localDescription!.type,
+                sdp: pc.localDescription!.sdp,
+              },
+            });
+            answerSentRef.current = true;
+          } else {
+            answerSentRef.current = true;
+          }
+        }
+
+        // Caller: apply answer.
+        if (isCaller && signal.answer) {
+          const needRemote =
+            !pc.currentRemoteDescription ||
+            pc.currentRemoteDescription.sdp !== signal.answer.sdp;
+          if (needRemote) {
+            await pc.setRemoteDescription({
+              type: signal.answer.type,
+              sdp: signal.answer.sdp,
+            });
+            await flushPendingIce(pc);
+          }
+        }
+
+        for (const item of signal.ice || []) {
+          if (Number(item.from_user_id) === Number(selfId)) continue;
+          if (appliedCandidatesRef.current.has(item.id)) continue;
+          appliedCandidatesRef.current.add(item.id);
+          if (!pc.remoteDescription) {
+            pendingRemoteIceRef.current.push(item.candidate);
+            continue;
+          }
+          try {
+            await pc.addIceCandidate(item.candidate);
+          } catch {
+            // ignore stale candidates
+          }
+        }
+
+        signalVersionRef.current = Math.max(signalVersionRef.current, signal.version || 0);
+        attachRemoteVideo();
+        return snapshot.call;
+      } finally {
+        syncingRef.current = false;
+      }
     },
-    [cleanupMedia, ensurePeer, selfId, setActiveCallSafe, setPhaseSafe],
+    [
+      attachRemoteVideo,
+      cleanupMedia,
+      ensurePeer,
+      flushPendingIce,
+      selfId,
+      setActiveCallSafe,
+      setPhaseSafe,
+    ],
   );
 
   const startPolling = useCallback(
-    (call: InternalCallSession, isCaller: boolean) => {
+    (call: InternalCallSession, isCaller: boolean, intervalMs = 800) => {
       stopPolling();
       isCallerRef.current = isCaller;
       const tick = () => {
@@ -279,7 +362,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         );
       };
       tick();
-      pollRef.current = window.setInterval(tick, 1000);
+      pollRef.current = window.setInterval(tick, intervalMs);
     },
     [applySignals, reportError, stopPolling],
   );
@@ -289,7 +372,6 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       try {
         setBusyAction(true);
         cleanupMedia();
-        // Capture media on the click gesture first — more reliable on mobile Safari.
         const preview = await getMediaStream(video);
         localStreamRef.current = preview;
         setCameraOff(preview.getVideoTracks().length === 0);
@@ -301,7 +383,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         setPhaseSafe("outgoing");
         setMuted(false);
         await ensurePeer(result.call, result.ice_servers);
-        startPolling(result.call, true);
+        startPolling(result.call, true, 800);
       } catch (err) {
         cleanupMedia();
         setPhaseSafe("idle");
@@ -327,28 +409,36 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       acceptingRef.current = true;
       setPhaseSafe("connecting");
 
-      // Keep the user-gesture alive for getUserMedia before any awaits that might lose it.
       await ensurePeer(call, iceServersRef.current);
 
       const result = await api.callAction(call.id, "accept");
-      const next = result.call || call;
+      const next = result.call || { ...call, status: "accepted" as const };
       callIdRef.current = next.id;
       setActiveCallSafe(next);
       setCameraOff(!next.media.video || !localStreamRef.current?.getVideoTracks().length);
       if (result.ice_servers?.length) iceServersRef.current = result.ice_servers;
-      startPolling(next, false);
+      startPolling(next, false, 500);
       acceptingRef.current = false;
+      // Kick an immediate sync so we can answer the offer ASAP.
+      void applySignals(next, false).catch(() => undefined);
     } catch (err) {
       acceptingRef.current = false;
-      // If accept API failed after media started, stay on incoming when still ringing.
-      if (phaseRef.current === "connecting" && activeCallRef.current?.status === "ringing") {
+      if (activeCallRef.current?.status === "ringing") {
         setPhaseSafe("incoming");
       }
       reportError(err, "Could not accept call. Check microphone permission and try again.");
     } finally {
       setBusyAction(false);
     }
-  }, [busyAction, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling]);
+  }, [
+    applySignals,
+    busyAction,
+    ensurePeer,
+    reportError,
+    setActiveCallSafe,
+    setPhaseSafe,
+    startPolling,
+  ]);
 
   const rejectIncoming = useCallback(async () => {
     const callId = callIdRef.current || activeCallRef.current?.id;
@@ -379,13 +469,13 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
   const attachIncoming = useCallback(
     (call: InternalCallSession, iceServers?: RTCIceServer[]) => {
+      if (phaseRef.current !== "idle" && phaseRef.current !== "incoming") return;
       if (iceServers?.length) iceServersRef.current = iceServers;
       callIdRef.current = call.id;
       setActiveCallSafe(call);
       setPhaseSafe("incoming");
       setCameraOff(!call.media.video);
-      // Status-only polling until accept (no getUserMedia yet).
-      startPolling(call, false);
+      startPolling(call, false, 1000);
     },
     [setActiveCallSafe, setPhaseSafe, startPolling],
   );

@@ -47,18 +47,19 @@ export function CallOverlay({
   const other = isCaller ? call.callee : call.caller;
   const title = other?.name || other?.email || "UXGuard member";
   const videoEnabled = Boolean(call.media.video);
+  const showAccept = phase === "incoming" && call.status === "ringing";
   const statusLabel =
-    phase === "incoming"
+    showAccept
       ? videoEnabled
         ? "Incoming video call"
         : "Incoming voice call"
-      : phase === "outgoing"
+      : phase === "outgoing" && call.status === "ringing"
         ? "Calling…"
-        : phase === "connecting"
-          ? "Connecting…"
-          : phase === "connected"
-            ? formatElapsed(elapsedSec)
-            : "Call ended";
+        : phase === "connected" || call.status === "connected"
+          ? formatElapsed(elapsedSec)
+          : phase === "ended"
+            ? "Call ended"
+            : "Connecting…";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-950/90 p-4 backdrop-blur-sm">
@@ -66,7 +67,7 @@ export function CallOverlay({
         <div className="relative aspect-video bg-ink-900">
           <video
             ref={remoteVideoRef as RefObject<HTMLVideoElement>}
-            className={`h-full w-full object-cover ${videoEnabled ? "" : "opacity-0"}`}
+            className={`h-full w-full bg-ink-900 object-cover ${videoEnabled ? "" : "opacity-0"}`}
             autoPlay
             playsInline
           />
@@ -83,7 +84,9 @@ export function CallOverlay({
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-500/20 text-3xl font-semibold text-brand-300">
                 {(title || "?").slice(0, 1).toUpperCase()}
               </div>
-              <p className="text-sm text-white/70">Voice call</p>
+              <p className="text-sm text-white/70">
+                {showAccept ? "Voice call" : statusLabel}
+              </p>
             </div>
           )}
           {!videoEnabled ? (
@@ -101,7 +104,7 @@ export function CallOverlay({
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-5">
-          {phase === "incoming" ? (
+          {showAccept ? (
             <>
               <button
                 type="button"

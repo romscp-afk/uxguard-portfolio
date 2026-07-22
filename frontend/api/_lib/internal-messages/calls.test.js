@@ -55,6 +55,19 @@ test("caller and callee can ring, accept, exchange signals, and hang up", async 
   assert.ok(snapshot.signal.answer);
   assert.ok(snapshot.signal.ice.length >= 1);
 
+  // Concurrent ICE must not wipe SDP
+  await Promise.all([
+    postCallSignal(a, started.call.id, {
+      candidate: { candidate: "candidate:2 1 UDP 1 1.1.1.1 1111 typ host", sdpMid: "0" },
+    }),
+    postCallSignal(b, started.call.id, {
+      candidate: { candidate: "candidate:3 1 UDP 1 2.2.2.2 2222 typ host", sdpMid: "0" },
+    }),
+  ]);
+  const afterIce = await getCall(a, started.call.id, { since: 0 });
+  assert.ok(afterIce.signal.offer?.sdp);
+  assert.ok(afterIce.signal.answer?.sdp);
+
   const ended = await endCall(a, started.call.id, { reason: "hangup" });
   assert.equal(ended.call.status, "ended");
 

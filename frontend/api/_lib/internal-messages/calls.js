@@ -124,6 +124,81 @@ async function writeSignal(callId, signal) {
   return next;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function mergeIce(existing = [], additions = []) {
+  const byId = new Map();
+  for (const item of existing) {
+    if (item?.id) byId.set(String(item.id), item);
+  }
+  for (const item of additions) {
+    if (item?.id) byId.set(String(item.id), item);
+  }
+  return [...byId.values()]
+    .sort((a, b) => Number(a.version || 0) - Number(b.version || 0))
+    .slice(-100);
+}
+
+/**
+ * Merge-write signaling state with retries so concurrent ICE updates
+ * cannot wipe an offer/answer (last-write-wins race).
+ */
+async function mergeWriteSignal(callId, buildPatch) {
+  let last = emptySignal(callId);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const current = await readSignal(callId);
+    const draft = {
+      ...current,
+      offer: current.offer || null,
+      answer: current.answer || null,
+      ice: [...(current.ice || [])],
+      version: Number(current.version) || 0,
+    };
+    const patch = buildPatch(draft) || {};
+    const next = {
+      call_id: callId,
+      version: (Number(draft.version) || 0) + 1,
+      offer: patch.offer !== undefined ? patch.offer : draft.offer,
+      answer: patch.answer !== undefined ? patch.answer : draft.answer,
+      ice: mergeIce(
+        draft.ice,
+        (patch.iceAdd || []).map((item) => ({
+          ...item,
+          version: (Number(draft.version) || 0) + 1,
+        })),
+      ),
+      updated_at: new Date().toISOString(),
+    };
+    await writeSignal(callId, next);
+    const verify = await readSignal(callId);
+    last = verify;
+
+    const offerOk =
+      patch.offer === undefined ||
+      (verify.offer && verify.offer.sdp === patch.offer.sdp && verify.offer.type === patch.offer.type);
+    const answerOk =
+      patch.answer === undefined ||
+      (verify.answer &&
+        verify.answer.sdp === patch.answer.sdp &&
+        verify.answer.type === patch.answer.type);
+    const preservedOffer = !draft.offer || Boolean(verify.offer);
+    const preservedAnswer = !draft.answer || Boolean(verify.answer);
+    const iceOk =
+      !(patch.iceAdd || []).length ||
+      (patch.iceAdd || []).every((item) =>
+        (verify.ice || []).some((row) => String(row.id) === String(item.id)),
+      );
+
+    if (offerOk && answerOk && preservedOffer && preservedAnswer && iceOk) {
+      return verify;
+    }
+    await sleep(30 * (attempt + 1));
+  }
+  return last;
+}
+
 export function resetCallSignalsForTests() {
   if (process.env.UXGUARD_TEST !== "1") {
     throw new Error("resetCallSignalsForTests requires UXGUARD_TEST=1");
@@ -421,60 +496,53 @@ export async function postCallSignal(user, callId, payload = {}) {
     throw httpError("Call has ended.", 409, "CALL_ENDED");
   }
 
-  const signal = await readSignal(callId);
-  const next = {
-    ...signal,
-    ice: [...(signal.ice || [])],
-  };
-  let bumped = false;
+  const hasOffer = payload.offer && typeof payload.offer === "object";
+  const hasAnswer = payload.answer && typeof payload.answer === "object";
+  const hasCandidate = payload.candidate && typeof payload.candidate === "object";
+  if (!hasOffer && !hasAnswer && !hasCandidate) {
+    throw httpError("Signal payload must include offer, answer, or candidate.");
+  }
+  if (hasOffer && !sameId(call.caller_user_id, user.id)) {
+    throw httpError("Only the caller can send the offer.", 403, "CALL_FORBIDDEN");
+  }
+  if (hasAnswer && !sameId(call.callee_user_id, user.id)) {
+    throw httpError("Only the callee can send the answer.", 403, "CALL_FORBIDDEN");
+  }
 
-  if (payload.offer && typeof payload.offer === "object") {
-    if (!sameId(call.caller_user_id, user.id)) {
-      throw httpError("Only the caller can send the offer.", 403, "CALL_FORBIDDEN");
+  const iceItem = hasCandidate
+    ? {
+        id: randomUUID(),
+        from_user_id: Number(user.id),
+        candidate: payload.candidate,
+        version: Date.now(),
+        created_at: new Date().toISOString(),
+      }
+    : null;
+
+  const saved = await mergeWriteSignal(callId, () => {
+    const patch = {};
+    if (hasOffer) {
+      patch.offer = {
+        type: payload.offer.type,
+        sdp: payload.offer.sdp,
+        from_user_id: Number(user.id),
+        version: Date.now(),
+        created_at: new Date().toISOString(),
+      };
     }
-    next.version = (Number(next.version) || 0) + 1;
-    next.offer = {
-      type: payload.offer.type,
-      sdp: payload.offer.sdp,
-      from_user_id: Number(user.id),
-      version: next.version,
-      created_at: new Date().toISOString(),
-    };
-    bumped = true;
-  }
-
-  if (payload.answer && typeof payload.answer === "object") {
-    if (!sameId(call.callee_user_id, user.id)) {
-      throw httpError("Only the callee can send the answer.", 403, "CALL_FORBIDDEN");
+    if (hasAnswer) {
+      patch.answer = {
+        type: payload.answer.type,
+        sdp: payload.answer.sdp,
+        from_user_id: Number(user.id),
+        version: Date.now(),
+        created_at: new Date().toISOString(),
+      };
     }
-    next.version = (Number(next.version) || 0) + 1;
-    next.answer = {
-      type: payload.answer.type,
-      sdp: payload.answer.sdp,
-      from_user_id: Number(user.id),
-      version: next.version,
-      created_at: new Date().toISOString(),
-    };
-    bumped = true;
-  }
+    if (iceItem) patch.iceAdd = [iceItem];
+    return patch;
+  });
 
-  if (payload.candidate && typeof payload.candidate === "object") {
-    next.version = (Number(next.version) || 0) + 1;
-    next.ice.push({
-      id: randomUUID(),
-      from_user_id: Number(user.id),
-      candidate: payload.candidate,
-      version: next.version,
-      created_at: new Date().toISOString(),
-    });
-    // Keep the signal doc small
-    if (next.ice.length > 80) next.ice = next.ice.slice(-80);
-    bumped = true;
-  }
-
-  if (!bumped) throw httpError("Signal payload must include offer, answer, or candidate.");
-
-  const saved = await writeSignal(callId, next);
   return {
     version: saved.version,
     offer: saved.offer,
