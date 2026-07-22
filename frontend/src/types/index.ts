@@ -738,15 +738,29 @@ export interface InternalMessageUser {
   name: string;
   email: string;
   role: string;
+  avatar_url?: string | null;
+}
+
+export interface InternalMessageAttachment {
+  url: string;
+  mime_type: string;
+  size_bytes: number;
+  name: string;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface InternalMessageThread {
   id: string;
+  participant_ids?: number[];
+  participants?: InternalMessageUser[];
+  counterpart?: InternalMessageUser | null;
   user_id: number;
   user: InternalMessageUser | null;
   subject: string;
   created_by: number;
   last_message_at: string;
+  unread_count?: number;
   unread_user: number;
   unread_admin: number;
   created_at: string;
@@ -760,7 +774,11 @@ export interface InternalMessage {
   sender: InternalMessageUser | null;
   sender_role: "admin" | "user";
   body: string;
+  attachments?: InternalMessageAttachment[];
+  deleted?: boolean;
+  edited_at?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export type AssistantContextType = "general" | "case_study" | "project" | "profile" | "portfolio";

@@ -3,6 +3,8 @@ import test from "node:test";
 import { readStore, resetMemoryStoreForTests } from "../store.js";
 import {
   createInternalThread,
+  deleteInternalMessage,
+  editInternalMessage,
   getInternalThread,
   listInternalThreads,
   replyInternalThread,
@@ -11,38 +13,36 @@ import {
 process.env.UXGUARD_TEST = "1";
 process.env.INTERNAL_MESSAGE_ENCRYPTION_KEY = "internal-message-test-key";
 
-test("private messages are encrypted and isolated to their user and admins", async () => {
+test("any user can chat with another user and outsiders are blocked", async () => {
   resetMemoryStoreForTests();
   const initial = await readStore();
-  const admin = initial.users.find((user) => user.role === "admin");
-  const members = initial.users.filter((user) => user.role !== "admin");
-  assert.ok(admin);
-  assert.ok(members[0]);
-
-  const owner = members[0];
-  const outsider = members[1] || {
+  const members = initial.users.filter((user) => user.email);
+  assert.ok(members.length >= 2);
+  const a = members[0];
+  const b = members[1];
+  const outsider = members[2] || {
     id: 987654,
     role: "professional",
     name: "Outsider",
     email: "outsider@example.com",
   };
-  const created = await createInternalThread(owner, {
-    subject: "Private support request",
-    body: "User-only sensitive content",
+
+  const created = await createInternalThread(a, {
+    recipient_user_id: b.id,
+    subject: "Hello peer",
+    body: "Peer-to-peer sensitive content",
   });
+  assert.ok(created.thread.participant_ids.includes(Number(a.id)));
+  assert.ok(created.thread.participant_ids.includes(Number(b.id)));
 
-  const adminList = await listInternalThreads(admin);
-  assert.ok(adminList.threads.some((thread) => thread.id === created.thread.id));
+  const bList = await listInternalThreads(b);
+  assert.ok(bList.threads.some((thread) => thread.id === created.thread.id));
+  assert.ok(bList.users.some((user) => Number(user.id) === Number(a.id)));
 
-  const adminView = await getInternalThread(admin, created.thread.id);
-  assert.equal(adminView.messages[0].body, "User-only sensitive content");
-
-  await replyInternalThread(admin, created.thread.id, {
-    body: "Admin-only private response",
-  });
-  const ownerView = await getInternalThread(owner, created.thread.id);
-  assert.equal(ownerView.messages.length, 2);
-  assert.equal(ownerView.messages[1].body, "Admin-only private response");
+  await replyInternalThread(b, created.thread.id, { body: "Got it 👍" });
+  const aView = await getInternalThread(a, created.thread.id);
+  assert.equal(aView.messages.length, 2);
+  assert.equal(aView.messages[1].body, "Got it 👍");
 
   await assert.rejects(
     () => getInternalThread(outsider, created.thread.id),
@@ -54,31 +54,44 @@ test("private messages are encrypted and isolated to their user and admins", asy
     threads: raw.internal_message_threads,
     messages: raw.internal_messages,
   });
-  assert.equal(serialized.includes("Private support request"), false);
-  assert.equal(serialized.includes("User-only sensitive content"), false);
-  assert.equal(serialized.includes("Admin-only private response"), false);
+  assert.equal(serialized.includes("Peer-to-peer sensitive content"), false);
+  assert.equal(serialized.includes("Got it"), false);
 });
 
-test("admin-created conversation targets exactly one user", async () => {
+test("sender can edit and delete for everyone; receiver can hide only for self", async () => {
   resetMemoryStoreForTests();
   const initial = await readStore();
-  const admin = initial.users.find((user) => user.role === "admin");
-  const members = initial.users.filter((user) => user.role !== "admin");
-  assert.ok(admin);
-  assert.ok(members[0]);
+  const members = initial.users.filter((user) => user.email);
+  const a = members[0];
+  const b = members[1];
+  assert.ok(a && b);
 
-  const created = await createInternalThread(admin, {
-    recipient_user_id: members[0].id,
-    subject: "Account message",
-    body: "This is only for the selected account.",
+  const created = await createInternalThread(a, {
+    recipient_user_id: b.id,
+    body: "Original text",
   });
-  assert.equal(created.thread.user_id, Number(members[0].id));
+  const messageId = created.messages[0].id;
 
-  const ownerList = await listInternalThreads(members[0]);
-  assert.ok(ownerList.threads.some((thread) => thread.id === created.thread.id));
+  const edited = await editInternalMessage(a, messageId, { body: "Edited text" });
+  assert.equal(edited.body, "Edited text");
+  assert.ok(edited.edited_at);
 
-  if (members[1]) {
-    const otherList = await listInternalThreads(members[1]);
-    assert.equal(otherList.threads.some((thread) => thread.id === created.thread.id), false);
-  }
+  await replyInternalThread(b, created.thread.id, { body: "Receiver message" });
+  const bView = await getInternalThread(b, created.thread.id);
+  const receiverMessage = bView.messages.find((m) => m.body === "Receiver message");
+  assert.ok(receiverMessage);
+
+  await deleteInternalMessage(a, receiverMessage.id, { scope: "me" });
+  const aAfterHide = await getInternalThread(a, created.thread.id);
+  assert.equal(
+    aAfterHide.messages.some((m) => m.id === receiverMessage.id),
+    false,
+  );
+  const bAfterHide = await getInternalThread(b, created.thread.id);
+  assert.ok(bAfterHide.messages.some((m) => m.id === receiverMessage.id));
+
+  await deleteInternalMessage(a, messageId, { scope: "all" });
+  const both = await getInternalThread(b, created.thread.id);
+  const deleted = both.messages.find((m) => m.id === messageId);
+  assert.ok(deleted?.deleted);
 });

@@ -1,7 +1,10 @@
 import { requireAuthUser } from "../../_lib/auth.js";
 import {
+  deleteInternalMessage,
+  editInternalMessage,
   getInternalThread,
   replyInternalThread,
+  deleteInternalThreadForMe,
 } from "../../_lib/internal-messages/service.js";
 import { withApi } from "../../_lib/withApi.js";
 
@@ -35,6 +38,12 @@ export default withApi(async (req, res) => {
         message,
         ...(await getInternalThread(user, threadId, { markRead: false })),
       });
+      return;
+    }
+
+    if (req.method === "DELETE") {
+      const result = await deleteInternalThreadForMe(user, threadId);
+      res.status(200).json(result);
       return;
     }
   } catch (error) {

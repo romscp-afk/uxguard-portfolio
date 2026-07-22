@@ -1,13 +1,51 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { LockKeyhole, MailPlus, MessageCircle, Send, ShieldCheck } from "lucide-react";
+import {
+  ImagePlus,
+  LockKeyhole,
+  MailPlus,
+  MessageCircle,
+  Pencil,
+  Send,
+  Smile,
+  Trash2,
+} from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import { api, ApiError } from "../../api/client";
+import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { compressImageForChat } from "../../lib/compressChatImage";
 import type {
   InternalMessage,
+  InternalMessageAttachment,
   InternalMessageThread,
   InternalMessageUser,
 } from "../../types";
+
+const EMOJIS = [
+  "😀",
+  "😁",
+  "😂",
+  "🤣",
+  "😊",
+  "😍",
+  "😘",
+  "😎",
+  "🤔",
+  "😮",
+  "😢",
+  "😭",
+  "😡",
+  "👍",
+  "👎",
+  "👏",
+  "🙏",
+  "🔥",
+  "✨",
+  "🎉",
+  "❤️",
+  "✅",
+  "📌",
+  "📷",
+];
 
 function formatWhen(value: string) {
   return new Date(value).toLocaleString([], {
@@ -18,12 +56,20 @@ function formatWhen(value: string) {
   });
 }
 
+function threadTitle(thread: InternalMessageThread, selfId?: number) {
+  const other =
+    thread.counterpart ||
+    thread.participants?.find((p) => Number(p.id) !== Number(selfId)) ||
+    thread.user;
+  return other?.name || other?.email || thread.subject || "Chat";
+}
+
 export function InternalMessagesPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [searchParams, setSearchParams] = useSearchParams();
   const [threads, setThreads] = useState<InternalMessageThread[]>([]);
   const [availableUsers, setAvailableUsers] = useState<InternalMessageUser[]>([]);
+  const [userQuery, setUserQuery] = useState("");
   const [selected, setSelected] = useState<InternalMessageThread | null>(null);
   const [messages, setMessages] = useState<InternalMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,17 +81,31 @@ export function InternalMessagesPage() {
   const [subject, setSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [replyBody, setReplyBody] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [composeEmojiOpen, setComposeEmojiOpen] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<InternalMessageAttachment[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const selectedId = searchParams.get("thread");
   const unread = useMemo(
-    () =>
-      threads.reduce(
-        (sum, thread) => sum + (isAdmin ? thread.unread_admin : thread.unread_user),
-        0,
-      ),
-    [isAdmin, threads],
+    () => threads.reduce((sum, thread) => sum + (thread.unread_count || 0), 0),
+    [threads],
   );
+  const filteredUsers = useMemo(() => {
+    const needle = userQuery.trim().toLowerCase();
+    if (!needle) return availableUsers.slice(0, 40);
+    return availableUsers
+      .filter(
+        (candidate) =>
+          candidate.name.toLowerCase().includes(needle) ||
+          candidate.email.toLowerCase().includes(needle),
+      )
+      .slice(0, 40);
+  }, [availableUsers, userQuery]);
 
   async function loadThreads() {
     try {
@@ -54,7 +114,7 @@ export function InternalMessagesPage() {
       setAvailableUsers(result.users || []);
       return result.threads || [];
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load private messages.");
+      setError(err instanceof ApiError ? err.message : "Could not load messages.");
       return [];
     } finally {
       setLoading(false);
@@ -70,13 +130,7 @@ export function InternalMessagesPage() {
       setMessages(result.messages || []);
       setThreads((current) =>
         current.map((thread) =>
-          thread.id === result.thread.id
-            ? {
-                ...result.thread,
-                unread_admin: isAdmin ? 0 : result.thread.unread_admin,
-                unread_user: isAdmin ? result.thread.unread_user : 0,
-              }
-            : thread,
+          thread.id === result.thread.id ? { ...result.thread, unread_count: 0 } : thread,
         ),
       );
     } catch (err) {
@@ -117,6 +171,7 @@ export function InternalMessagesPage() {
 
   function selectThread(thread: InternalMessageThread) {
     setComposeOpen(false);
+    setPendingAttachments([]);
     setSearchParams({ thread: thread.id });
     if (selected?.id === thread.id) void openThread(thread.id);
   }
@@ -129,6 +184,45 @@ export function InternalMessagesPage() {
     setSubject("");
     setComposeBody("");
     setRecipientId("");
+    setPendingAttachments([]);
+    setUserQuery("");
+  }
+
+  async function uploadChatImage(file: File) {
+    const { file: compressed, width, height, compressed: didCompress } =
+      await compressImageForChat(file);
+    const asset = await api.uploadMedia(compressed, {
+      purpose: "media",
+      altText: file.name,
+    });
+    return {
+      url: asset.url,
+      mime_type: asset.mime_type || compressed.type,
+      size_bytes: asset.size_bytes || compressed.size,
+      name: asset.original_name || compressed.name,
+      width,
+      height,
+      _notice: didCompress ? "Image compressed to under 500 KB." : undefined,
+    } as InternalMessageAttachment & { _notice?: string };
+  }
+
+  async function onPickImage(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      const attachment = await uploadChatImage(file);
+      setPendingAttachments((prev) => [...prev, attachment].slice(0, 4));
+      if ((attachment as { _notice?: string })._notice) {
+        setError((attachment as { _notice?: string })._notice || "");
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : (err as Error).message || "Upload failed.");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   async function createThread(event: FormEvent) {
@@ -137,9 +231,10 @@ export function InternalMessagesPage() {
     setError("");
     try {
       const result = await api.createInternalMessageThread({
-        subject: subject.trim(),
+        subject: subject.trim() || undefined,
         body: composeBody.trim(),
-        ...(isAdmin ? { recipient_user_id: Number(recipientId) } : {}),
+        recipient_user_id: Number(recipientId),
+        attachments: pendingAttachments,
       });
       setComposeOpen(false);
       setSelected(result.thread);
@@ -148,9 +243,10 @@ export function InternalMessagesPage() {
       setSubject("");
       setComposeBody("");
       setRecipientId("");
+      setPendingAttachments([]);
       await loadThreads();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not send private message.");
+      setError(err instanceof ApiError ? err.message : "Could not send message.");
     } finally {
       setBusy(false);
     }
@@ -158,14 +254,19 @@ export function InternalMessagesPage() {
 
   async function sendReply(event: FormEvent) {
     event.preventDefault();
-    if (!selected || !replyBody.trim()) return;
+    if (!selected || (!replyBody.trim() && !pendingAttachments.length)) return;
     setBusy(true);
     setError("");
     try {
-      const result = await api.replyInternalMessageThread(selected.id, replyBody.trim());
+      const result = await api.replyInternalMessageThread(selected.id, {
+        body: replyBody.trim(),
+        attachments: pendingAttachments,
+      });
       setSelected(result.thread);
       setMessages(result.messages);
       setReplyBody("");
+      setPendingAttachments([]);
+      setEmojiOpen(false);
       await loadThreads();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not send reply.");
@@ -174,12 +275,64 @@ export function InternalMessagesPage() {
     }
   }
 
+  async function saveEdit(messageId: string) {
+    if (!editBody.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api.editInternalMessage(messageId, editBody.trim());
+      setMessages(result.messages);
+      setSelected(result.thread);
+      setEditingId(null);
+      setEditBody("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not edit message.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeMessage(message: InternalMessage, scope: "me" | "all") {
+    setBusy(true);
+    setError("");
+    try {
+      await api.deleteInternalMessage(message.id, scope);
+      if (selected) await openThread(selected.id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not delete message.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeThread(threadId: string) {
+    if (!window.confirm("Hide this conversation for you? Others keep their copy.")) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.deleteInternalMessageThread(threadId);
+      setSelected(null);
+      setMessages([]);
+      setSearchParams({});
+      await loadThreads();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not delete chat.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function insertEmoji(emoji: string, target: "reply" | "compose") {
+    if (target === "reply") setReplyBody((value) => `${value}${emoji}`);
+    else setComposeBody((value) => `${value}${emoji}`);
+  }
+
   return (
     <div className="-mx-1 flex h-[calc(100vh-2rem)] min-h-[600px] flex-col text-ink-900">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-display text-3xl font-bold text-ink-950">Private messages</h1>
+            <h1 className="font-display text-3xl font-bold text-ink-950">Messages</h1>
             {unread > 0 ? (
               <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">
                 {unread}
@@ -187,18 +340,18 @@ export function InternalMessagesPage() {
             ) : null}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-ink-500">
-            Direct user–admin conversations. Content is AES-256-GCM encrypted at rest and sent over
-            TLS; notification emails never include message text.
+            Chat with any UXGuard member. Share emojis and images (auto-compressed under 500 KB).
+            Edit your sent messages, or hide any message just for you.
           </p>
         </div>
         <button type="button" className="btn-primary" onClick={startCompose}>
           <MailPlus className="h-4 w-4" />
-          New message
+          New chat
         </button>
       </div>
 
       {error ? (
-        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           {error}
         </div>
       ) : null}
@@ -221,41 +374,51 @@ export function InternalMessagesPage() {
               <div className="p-8 text-center">
                 <MessageCircle className="mx-auto h-8 w-8 text-ink-300" />
                 <p className="mt-3 text-sm font-medium text-ink-700">No conversations yet</p>
-                <p className="mt-1 text-xs text-ink-500">
-                  {isAdmin
-                    ? "Start a private conversation with a specific user."
-                    : "Send a private message to the admin team."}
-                </p>
+                <p className="mt-1 text-xs text-ink-500">Start a chat with any member.</p>
               </div>
             ) : (
               threads.map((thread) => {
-                const count = isAdmin ? thread.unread_admin : thread.unread_user;
+                const count = thread.unread_count || 0;
                 return (
-                  <button
+                  <div
                     key={thread.id}
-                    type="button"
-                    onClick={() => selectThread(thread)}
-                    className={`block w-full border-b border-ink-50 px-4 py-3 text-left transition hover:bg-ink-50 ${
-                      selected?.id === thread.id ? "bg-brand-50" : ""
+                    className={`flex items-stretch border-b border-ink-50 ${
+                      selected?.id === thread.id ? "bg-brand-50" : "hover:bg-ink-50"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`truncate text-sm text-ink-950 ${count ? "font-bold" : "font-medium"}`}>
-                        {thread.subject}
+                    <button
+                      type="button"
+                      onClick={() => selectThread(thread)}
+                      className="min-w-0 flex-1 px-4 py-3 text-left"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className={`truncate text-sm text-ink-950 ${
+                            count ? "font-bold" : "font-medium"
+                          }`}
+                        >
+                          {threadTitle(thread, user?.id)}
+                        </p>
+                        {count ? (
+                          <span className="rounded-full bg-brand-600 px-1.5 text-[10px] font-bold text-white">
+                            {count}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-ink-500">{thread.subject}</p>
+                      <p className="mt-1 text-[11px] text-ink-400">
+                        {formatWhen(thread.last_message_at)}
                       </p>
-                      {count ? (
-                        <span className="rounded-full bg-brand-600 px-1.5 text-[10px] font-bold text-white">
-                          {count}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 truncate text-xs text-ink-500">
-                      {isAdmin ? thread.user?.name || thread.user?.email : "UXGuard Admin"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-ink-400">
-                      {formatWhen(thread.last_message_at)}
-                    </p>
-                  </button>
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 text-ink-400 hover:text-red-600"
+                      title="Hide chat for me"
+                      onClick={() => void removeThread(thread.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -277,36 +440,35 @@ export function InternalMessagesPage() {
                 >
                   ← Conversations
                 </button>
-                <h2 className="font-display text-xl font-bold text-ink-950">New private message</h2>
+                <h2 className="font-display text-xl font-bold text-ink-950">New chat</h2>
                 <div className="mt-2 flex items-center gap-2 text-xs text-ink-500">
                   <LockKeyhole className="h-3.5 w-3.5" />
-                  Stored encrypted; email notifications contain no message body.
+                  Encrypted at rest · images auto-compressed under 500 KB
                 </div>
               </div>
               <div className="space-y-3 border-b border-ink-100 p-5">
-                {isAdmin ? (
-                  <select
-                    className="input-field"
-                    required
-                    value={recipientId}
-                    onChange={(event) => setRecipientId(event.target.value)}
-                  >
-                    <option value="">Choose a user…</option>
-                    {availableUsers.map((candidate) => (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidate.name} · {candidate.email}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-700">
-                    To: UXGuard Admin
-                  </div>
-                )}
                 <input
                   className="input-field"
-                  placeholder="Subject"
+                  placeholder="Search people by name or email"
+                  value={userQuery}
+                  onChange={(event) => setUserQuery(event.target.value)}
+                />
+                <select
+                  className="input-field"
                   required
+                  value={recipientId}
+                  onChange={(event) => setRecipientId(event.target.value)}
+                >
+                  <option value="">Choose a member…</option>
+                  {filteredUsers.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.name} · {candidate.email}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="input-field"
+                  placeholder="Subject (optional)"
                   maxLength={200}
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
@@ -315,24 +477,42 @@ export function InternalMessagesPage() {
               <textarea
                 className="min-h-0 flex-1 resize-none border-0 bg-white p-5 text-sm leading-relaxed text-ink-900 outline-none"
                 placeholder="Write your message…"
-                required
                 maxLength={20000}
                 value={composeBody}
                 onChange={(event) => setComposeBody(event.target.value)}
               />
-              <div className="flex gap-2 border-t border-ink-100 p-4">
+              <AttachmentStrip
+                attachments={pendingAttachments}
+                onRemove={(index) =>
+                  setPendingAttachments((prev) => prev.filter((_, i) => i !== index))
+                }
+              />
+              <div className="flex flex-wrap items-center gap-2 border-t border-ink-100 p-4">
+                <EmojiMenu
+                  open={composeEmojiOpen}
+                  onToggle={() => setComposeEmojiOpen((v) => !v)}
+                  onPick={(emoji) => insertEmoji(emoji, "compose")}
+                />
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={busy || pendingAttachments.length >= 4}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  Image
+                </button>
                 <button
                   type="submit"
                   className="btn-primary"
                   disabled={
                     busy ||
-                    !subject.trim() ||
-                    !composeBody.trim() ||
-                    (isAdmin && !recipientId)
+                    !recipientId ||
+                    (!composeBody.trim() && !pendingAttachments.length)
                   }
                 >
                   <Send className="h-4 w-4" />
-                  {busy ? "Sending…" : "Send privately"}
+                  {busy ? "Sending…" : "Send"}
                 </button>
                 <button type="button" className="btn-secondary" onClick={() => setComposeOpen(false)}>
                   Cancel
@@ -341,23 +521,33 @@ export function InternalMessagesPage() {
             </form>
           ) : selected ? (
             <>
-              <div className="border-b border-ink-100 bg-white px-5 py-4">
+              <div className="flex items-start justify-between gap-3 border-b border-ink-100 bg-white px-5 py-4">
+                <div>
+                  <button
+                    type="button"
+                    className="mb-2 text-xs font-semibold text-brand-700 md:hidden"
+                    onClick={() => {
+                      setSelected(null);
+                      setSearchParams({});
+                    }}
+                  >
+                    ← Conversations
+                  </button>
+                  <h2 className="font-display text-xl font-bold text-ink-950">
+                    {threadTitle(selected, user?.id)}
+                  </h2>
+                  <p className="mt-1 text-xs text-ink-500">
+                    {selected.counterpart?.email || selected.user?.email || selected.subject}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  className="mb-2 text-xs font-semibold text-brand-700 md:hidden"
-                  onClick={() => {
-                    setSelected(null);
-                    setSearchParams({});
-                  }}
+                  className="btn-secondary px-3 py-2 text-xs"
+                  onClick={() => void removeThread(selected.id)}
                 >
-                  ← Conversations
+                  <Trash2 className="h-4 w-4" />
+                  Hide chat
                 </button>
-                <h2 className="font-display text-xl font-bold text-ink-950">{selected.subject}</h2>
-                <p className="mt-1 text-xs text-ink-500">
-                  {isAdmin
-                    ? `${selected.user?.name || "User"} · ${selected.user?.email || ""}`
-                    : "Private conversation with UXGuard Admin"}
-                </p>
               </div>
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5">
                 {threadLoading ? (
@@ -365,6 +555,18 @@ export function InternalMessagesPage() {
                 ) : (
                   messages.map((message) => {
                     const mine = Number(message.sender_user_id) === Number(user?.id);
+                    if (message.deleted) {
+                      return (
+                        <article
+                          key={message.id}
+                          className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm italic text-ink-400 ${
+                            mine ? "ml-auto bg-ink-100" : "bg-white"
+                          }`}
+                        >
+                          Message deleted
+                        </article>
+                      );
+                    }
                     return (
                       <article
                         key={message.id}
@@ -375,41 +577,150 @@ export function InternalMessagesPage() {
                         }`}
                       >
                         <p className={`text-xs font-semibold ${mine ? "text-ink-200" : "text-ink-500"}`}>
-                          {mine
-                            ? "You"
-                            : message.sender?.name ||
-                              (message.sender_role === "admin" ? "UXGuard Admin" : "User")}
+                          {mine ? "You" : message.sender?.name || "Member"}
                         </p>
-                        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
-                        <p className={`mt-2 text-[10px] ${mine ? "text-ink-300" : "text-ink-400"}`}>
-                          {formatWhen(message.created_at)}
-                        </p>
+                        {editingId === message.id ? (
+                          <div className="mt-2 space-y-2">
+                            <textarea
+                              className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
+                              rows={3}
+                              value={editBody}
+                              onChange={(event) => setEditBody(event.target.value)}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="btn-primary px-3 py-1.5 text-xs"
+                                disabled={busy}
+                                onClick={() => void saveEdit(message.id)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-secondary px-3 py-1.5 text-xs"
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditBody("");
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {message.body ? (
+                              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                                {message.body}
+                              </p>
+                            ) : null}
+                            {(message.attachments || []).map((attachment) => (
+                              <button
+                                key={attachment.url}
+                                type="button"
+                                className="mt-2 block overflow-hidden rounded-xl"
+                                onClick={() => setLightbox(resolveAssetUrl(attachment.url))}
+                              >
+                                <img
+                                  src={resolveAssetUrl(attachment.url)}
+                                  alt={attachment.name}
+                                  className="max-h-56 max-w-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </>
+                        )}
+                        <div
+                          className={`mt-2 flex flex-wrap items-center gap-2 text-[10px] ${
+                            mine ? "text-ink-300" : "text-ink-400"
+                          }`}
+                        >
+                          <span>
+                            {formatWhen(message.created_at)}
+                            {message.edited_at ? " · edited" : ""}
+                          </span>
+                          {mine ? (
+                            <>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 hover:underline"
+                                onClick={() => {
+                                  setEditingId(message.id);
+                                  setEditBody(message.body);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 hover:underline"
+                                onClick={() => void removeMessage(message, "all")}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 hover:underline"
+                              onClick={() => void removeMessage(message, "me")}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Hide for me
+                            </button>
+                          )}
+                        </div>
                       </article>
                     );
                   })
                 )}
                 <div ref={endRef} />
               </div>
+              <AttachmentStrip
+                attachments={pendingAttachments}
+                onRemove={(index) =>
+                  setPendingAttachments((prev) => prev.filter((_, i) => i !== index))
+                }
+              />
               <form onSubmit={sendReply} className="border-t border-ink-100 bg-white p-4">
                 <div className="flex items-end gap-2">
+                  <EmojiMenu
+                    open={emojiOpen}
+                    onToggle={() => setEmojiOpen((v) => !v)}
+                    onPick={(emoji) => insertEmoji(emoji, "reply")}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary h-12 px-3"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={busy || pendingAttachments.length >= 4}
+                    aria-label="Attach image"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </button>
                   <textarea
                     className="input-field min-h-[48px] flex-1 resize-y"
                     rows={2}
                     maxLength={20000}
-                    placeholder="Write a private reply…"
+                    placeholder="Write a message… (emoji & images welcome)"
                     value={replyBody}
                     onChange={(event) => setReplyBody(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
-                        if (replyBody.trim() && !busy) event.currentTarget.form?.requestSubmit();
+                        if ((replyBody.trim() || pendingAttachments.length) && !busy) {
+                          event.currentTarget.form?.requestSubmit();
+                        }
                       }
                     }}
                   />
                   <button
                     type="submit"
                     className="btn-primary h-12 px-4"
-                    disabled={busy || !replyBody.trim()}
+                    disabled={busy || (!replyBody.trim() && !pendingAttachments.length)}
                     aria-label="Send reply"
                   >
                     <Send className="h-4 w-4" />
@@ -420,16 +731,98 @@ export function InternalMessagesPage() {
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
-              <ShieldCheck className="h-10 w-10 text-brand-500" />
-              <p className="mt-4 font-semibold text-ink-800">Private user–admin messaging</p>
+              <MessageCircle className="h-10 w-10 text-brand-500" />
+              <p className="mt-4 font-semibold text-ink-800">Member-to-member messaging</p>
               <p className="mt-1 max-w-sm text-sm text-ink-500">
-                Select a conversation or start a new one. Each thread is restricted to its user and
-                platform admins.
+                Pick a conversation or start a new chat with anyone on UXGuard Studio.
               </p>
             </div>
           )}
         </main>
       </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(event) => void onPickImage(event.target.files)}
+      />
+
+      {lightbox ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/80 p-6"
+          onClick={() => setLightbox(null)}
+        >
+          <img src={lightbox} alt="Attachment preview" className="max-h-full max-w-full rounded-xl" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function AttachmentStrip({
+  attachments,
+  onRemove,
+}: {
+  attachments: InternalMessageAttachment[];
+  onRemove: (index: number) => void;
+}) {
+  if (!attachments.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2 border-t border-ink-100 bg-white px-4 py-3">
+      {attachments.map((attachment, index) => (
+        <div key={`${attachment.url}-${index}`} className="relative">
+          <img
+            src={resolveAssetUrl(attachment.url)}
+            alt={attachment.name}
+            className="h-16 w-16 rounded-lg object-cover"
+          />
+          <button
+            type="button"
+            className="absolute -right-1 -top-1 rounded-full bg-ink-950 px-1.5 text-[10px] text-white"
+            onClick={() => onRemove(index)}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmojiMenu({
+  open,
+  onToggle,
+  onPick,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  onPick: (emoji: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <button type="button" className="btn-secondary h-12 px-3" onClick={onToggle} aria-label="Emoji">
+        <Smile className="h-4 w-4" />
+      </button>
+      {open ? (
+        <div className="absolute bottom-14 left-0 z-20 grid w-56 grid-cols-6 gap-1 rounded-xl border border-ink-200 bg-white p-2 shadow-lg">
+          {EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="rounded-md p-1 text-lg hover:bg-ink-50"
+              onClick={() => {
+                onPick(emoji);
+                onToggle();
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

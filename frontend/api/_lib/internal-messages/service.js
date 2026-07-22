@@ -1,9 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { readStore, updateStore } from "../store.js";
 import { createNotification } from "../community.js";
-import { isAdmin } from "../roles.js";
 import { sendInternalMessageNotificationEmail } from "../mail.js";
 import { decryptInternalText, encryptInternalText } from "./crypto.js";
+
+const MAX_ATTACHMENT_BYTES = 500 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 function httpError(message, status = 400, code = "INTERNAL_MESSAGE_ERROR") {
   const error = new Error(message);
@@ -22,33 +30,113 @@ function cleanText(value, max) {
   return String(value || "").trim().slice(0, max);
 }
 
+function sameId(a, b) {
+  return Number(a) === Number(b);
+}
+
 function publicUser(user) {
+  if (!user) return null;
   return {
     id: Number(user.id),
     name: user.name || user.email || "User",
     email: user.email || "",
     role: user.role || "professional",
+    avatar_url: user.avatar_url || null,
   };
 }
 
-function assertThreadAccess(thread, user) {
-  if (!thread || thread.deleted_at) {
-    throw httpError("Conversation not found.", 404, "THREAD_NOT_FOUND");
+function normalizeParticipants(thread) {
+  if (Array.isArray(thread.participant_ids) && thread.participant_ids.length) {
+    return [...new Set(thread.participant_ids.map(Number).filter(Number.isFinite))];
   }
-  if (!isAdmin(user) && Number(thread.user_id) !== Number(user.id)) {
+  // Legacy admin↔user threads
+  const ids = [];
+  if (thread.user_id != null) ids.push(Number(thread.user_id));
+  if (thread.created_by != null) ids.push(Number(thread.created_by));
+  return [...new Set(ids.filter(Number.isFinite))];
+}
+
+function isParticipant(thread, userId) {
+  return normalizeParticipants(thread).includes(Number(userId));
+}
+
+function unreadMap(thread) {
+  if (thread.unread && typeof thread.unread === "object") {
+    const out = {};
+    for (const [key, value] of Object.entries(thread.unread)) {
+      out[String(key)] = Number(value) || 0;
+    }
+    return out;
+  }
+  // Legacy unread fields
+  const out = {};
+  if (thread.user_id != null) out[String(thread.user_id)] = Number(thread.unread_user) || 0;
+  if (thread.created_by != null && !sameId(thread.created_by, thread.user_id)) {
+    out[String(thread.created_by)] = Number(thread.unread_admin) || 0;
+  }
+  return out;
+}
+
+function deletedForSet(value) {
+  if (Array.isArray(value)) return new Set(value.map(Number).filter(Number.isFinite));
+  return new Set();
+}
+
+function assertThreadAccess(thread, user) {
+  if (!thread) throw httpError("Conversation not found.", 404, "THREAD_NOT_FOUND");
+  if (!isParticipant(thread, user.id)) {
     throw httpError("You cannot access this conversation.", 403, "THREAD_FORBIDDEN");
+  }
+  const deletedFor = deletedForSet(thread.deleted_for);
+  if (deletedFor.has(Number(user.id))) {
+    throw httpError("Conversation not found.", 404, "THREAD_NOT_FOUND");
   }
 }
 
-function decryptThread(thread, users) {
-  const owner = users.find((u) => Number(u.id) === Number(thread.user_id));
+function otherParticipants(thread, userId) {
+  return normalizeParticipants(thread).filter((id) => !sameId(id, userId));
+}
+
+function normalizeAttachment(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const url = cleanText(raw.url, 2000);
+  const mime = cleanText(raw.mime_type || raw.mimeType || "image/jpeg", 100).toLowerCase();
+  if (!url || !ALLOWED_ATTACHMENT_TYPES.has(mime)) return null;
+  const size = Number(raw.size_bytes || raw.sizeBytes || 0);
+  if (size > MAX_ATTACHMENT_BYTES) {
+    throw httpError("Images must be 500 KB or smaller after compression.", 400, "ATTACHMENT_TOO_LARGE");
+  }
+  return {
+    url,
+    mime_type: mime,
+    size_bytes: size || 0,
+    name: cleanText(raw.name || "image", 200) || "image",
+    width: Number(raw.width) || null,
+    height: Number(raw.height) || null,
+  };
+}
+
+function decryptThread(thread, users, viewerId) {
+  const participants = normalizeParticipants(thread)
+    .map((id) => publicUser(users.find((u) => sameId(u.id, id))))
+    .filter(Boolean);
+  const counterpart =
+    participants.find((p) => !sameId(p.id, viewerId)) ||
+    participants[0] ||
+    null;
+  const unread = unreadMap(thread);
   return {
     id: thread.id,
-    user_id: Number(thread.user_id),
-    user: owner ? publicUser(owner) : null,
+    participant_ids: normalizeParticipants(thread),
+    participants,
+    counterpart,
+    user_id: Number(thread.user_id) || Number(counterpart?.id) || null,
+    user: counterpart,
     subject: decryptInternalText(thread.subject_enc, `thread:${thread.id}:subject`),
     created_by: Number(thread.created_by),
     last_message_at: thread.last_message_at,
+    unread_count: Number(unread[String(viewerId)]) || 0,
+    // Back-compat fields used by older clients
     unread_user: Number(thread.unread_user) || 0,
     unread_admin: Number(thread.unread_admin) || 0,
     created_at: thread.created_at,
@@ -56,31 +144,65 @@ function decryptThread(thread, users) {
   };
 }
 
-function decryptMessage(message, users) {
-  const sender = users.find((u) => Number(u.id) === Number(message.sender_user_id));
+function decryptMessage(message, users, viewerId) {
+  const deletedFor = deletedForSet(message.deleted_for);
+  if (deletedFor.has(Number(viewerId))) return null;
+  if (message.deleted_for_all) {
+    return {
+      id: message.id,
+      thread_id: message.thread_id,
+      sender_user_id: Number(message.sender_user_id),
+      sender: publicUser(users.find((u) => sameId(u.id, message.sender_user_id))),
+      sender_role: message.sender_role || "user",
+      body: "",
+      attachments: [],
+      deleted: true,
+      edited_at: message.edited_at || null,
+      created_at: message.created_at,
+      updated_at: message.updated_at || message.created_at,
+    };
+  }
+  const attachments = Array.isArray(message.attachments)
+    ? message.attachments.map(normalizeAttachment).filter(Boolean)
+    : [];
   return {
     id: message.id,
     thread_id: message.thread_id,
     sender_user_id: Number(message.sender_user_id),
-    sender: sender ? publicUser(sender) : null,
-    sender_role: message.sender_role,
+    sender: publicUser(users.find((u) => sameId(u.id, message.sender_user_id))),
+    sender_role: message.sender_role || "user",
     body: decryptInternalText(message.body_enc, `message:${message.id}:body`),
+    attachments,
+    deleted: false,
+    edited_at: message.edited_at || null,
     created_at: message.created_at,
+    updated_at: message.updated_at || message.created_at,
   };
 }
 
-function threadDetail(store, thread) {
+function threadDetail(store, thread, viewerId) {
   return {
-    thread: decryptThread(thread, store.users || []),
+    thread: decryptThread(thread, store.users || [], viewerId),
     messages: store.internal_messages
       .filter((message) => String(message.thread_id) === String(thread.id))
       .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
-      .map((message) => decryptMessage(message, store.users || [])),
+      .map((message) => decryptMessage(message, store.users || [], viewerId))
+      .filter(Boolean),
   };
 }
 
-function adminUsers(store) {
-  return (store.users || []).filter((user) => isAdmin(user));
+function findExistingDm(store, a, b) {
+  return store.internal_message_threads.find((thread) => {
+    if (deletedForSet(thread.deleted_for).has(Number(a)) || deletedForSet(thread.deleted_for).has(Number(b))) {
+      // Still reuse the underlying conversation if both were participants.
+    }
+    const participants = normalizeParticipants(thread);
+    return (
+      participants.length === 2 &&
+      participants.includes(Number(a)) &&
+      participants.includes(Number(b))
+    );
+  });
 }
 
 async function notifyRecipients({ threadId, sender, recipients }) {
@@ -96,7 +218,7 @@ async function notifyRecipients({ threadId, sender, recipients }) {
         link,
       });
     } catch {
-      // Message is already saved; notifications are best effort.
+      // best effort
     }
     if (recipient.email) {
       try {
@@ -109,35 +231,40 @@ async function notifyRecipients({ threadId, sender, recipients }) {
           ).replace(/\/$/, "")}${link}`,
         });
       } catch {
-        // Never fail private message delivery because external email is unavailable.
+        // best effort
       }
     }
   }
 }
 
+function bumpUnread(thread, recipientIds, senderId) {
+  const unread = unreadMap(thread);
+  for (const id of recipientIds) {
+    unread[String(id)] = (Number(unread[String(id)]) || 0) + 1;
+  }
+  unread[String(senderId)] = 0;
+  thread.unread = unread;
+}
+
 export async function listInternalThreads(user) {
   const store = ensureCollections(await readStore({ forceRefresh: true }));
+  const uid = Number(user.id);
   const threads = store.internal_message_threads
-    .filter(
-      (thread) =>
-        !thread.deleted_at &&
-        (isAdmin(user) || Number(thread.user_id) === Number(user.id)),
-    )
+    .filter((thread) => {
+      if (!isParticipant(thread, uid)) return false;
+      if (deletedForSet(thread.deleted_for).has(uid)) return false;
+      return true;
+    })
     .sort((a, b) => String(b.last_message_at).localeCompare(String(a.last_message_at)))
-    .map((thread) => decryptThread(thread, store.users || []));
+    .map((thread) => decryptThread(thread, store.users || [], uid));
 
   return {
     threads,
-    unread_count: threads.reduce(
-      (sum, thread) => sum + (isAdmin(user) ? thread.unread_admin : thread.unread_user),
-      0,
-    ),
-    users: isAdmin(user)
-      ? (store.users || [])
-          .filter((candidate) => !isAdmin(candidate) && candidate.email)
-          .map(publicUser)
-          .sort((a, b) => a.name.localeCompare(b.name))
-      : undefined,
+    unread_count: threads.reduce((sum, thread) => sum + (thread.unread_count || 0), 0),
+    users: (store.users || [])
+      .filter((candidate) => candidate.email && !sameId(candidate.id, uid))
+      .map(publicUser)
+      .sort((a, b) => a.name.localeCompare(b.name)),
   };
 }
 
@@ -147,9 +274,9 @@ export async function getInternalThread(user, threadId, { markRead = true } = {}
     (candidate) => String(candidate.id) === String(threadId),
   );
   assertThreadAccess(currentThread, user);
-  const unread = isAdmin(user) ? currentThread.unread_admin : currentThread.unread_user;
-  if (!markRead || !Number(unread)) {
-    return threadDetail(currentStore, currentThread);
+  const unread = unreadMap(currentThread);
+  if (!markRead || !Number(unread[String(user.id)])) {
+    return threadDetail(currentStore, currentThread, user.id);
   }
 
   let result = null;
@@ -160,12 +287,11 @@ export async function getInternalThread(user, threadId, { markRead = true } = {}
         (candidate) => String(candidate.id) === String(threadId),
       );
       assertThreadAccess(thread, user);
-      if (markRead) {
-        if (isAdmin(user)) thread.unread_admin = 0;
-        else thread.unread_user = 0;
-        thread.updated_at = new Date().toISOString();
-      }
-      result = threadDetail(store, thread);
+      const nextUnread = unreadMap(thread);
+      nextUnread[String(user.id)] = 0;
+      thread.unread = nextUnread;
+      thread.updated_at = new Date().toISOString();
+      result = threadDetail(store, thread, user.id);
       return store;
     },
     { forceRefresh: true },
@@ -174,10 +300,18 @@ export async function getInternalThread(user, threadId, { markRead = true } = {}
 }
 
 export async function createInternalThread(user, payload = {}) {
-  const subject = cleanText(payload.subject, 200);
+  const subject = cleanText(payload.subject, 200) || "Chat";
   const body = cleanText(payload.body || payload.message, 20000);
-  if (!subject || !body) {
-    throw httpError("Subject and message are required.");
+  const attachments = Array.isArray(payload.attachments)
+    ? payload.attachments.map(normalizeAttachment).filter(Boolean).slice(0, 4)
+    : [];
+  if (!body && !attachments.length) {
+    throw httpError("Message text or an image is required.");
+  }
+
+  const recipientId = Number(payload.recipient_user_id);
+  if (!Number.isFinite(recipientId) || sameId(recipientId, user.id)) {
+    throw httpError("Choose another user to message.", 400, "INVALID_RECIPIENT");
   }
 
   let saved = null;
@@ -185,47 +319,66 @@ export async function createInternalThread(user, payload = {}) {
   await updateStore(
     (store) => {
       ensureCollections(store);
-      const ownerId = isAdmin(user) ? Number(payload.recipient_user_id) : Number(user.id);
-      const owner = (store.users || []).find((candidate) => Number(candidate.id) === ownerId);
-      if (!owner || isAdmin(owner)) {
-        throw httpError(
-          "Choose a valid user for this conversation.",
-          400,
-          "INVALID_RECIPIENT",
-        );
+      const recipient = (store.users || []).find((candidate) => sameId(candidate.id, recipientId));
+      if (!recipient) {
+        throw httpError("Choose a valid user for this conversation.", 400, "INVALID_RECIPIENT");
       }
 
+      const existing = findExistingDm(store, user.id, recipientId);
       const now = new Date().toISOString();
-      const threadId = randomUUID();
       const messageId = randomUUID();
-      const thread = {
-        id: threadId,
-        user_id: ownerId,
-        subject_enc: encryptInternalText(subject, `thread:${threadId}:subject`),
-        created_by: Number(user.id),
-        last_message_at: now,
-        unread_user: isAdmin(user) ? 1 : 0,
-        unread_admin: isAdmin(user) ? 0 : 1,
-        created_at: now,
-        updated_at: now,
-        deleted_at: null,
-      };
       const message = {
         id: messageId,
-        thread_id: threadId,
+        thread_id: existing?.id || "",
         sender_user_id: Number(user.id),
-        sender_role: isAdmin(user) ? "admin" : "user",
-        body_enc: encryptInternalText(body, `message:${messageId}:body`),
+        sender_role: user.role === "admin" ? "admin" : "user",
+        body_enc: encryptInternalText(body || (attachments.length ? "📷 Photo" : ""), `message:${messageId}:body`),
+        attachments,
+        deleted_for: [],
+        deleted_for_all: false,
+        edited_at: null,
         created_at: now,
         updated_at: now,
       };
-      store.internal_message_threads.push(thread);
-      store.internal_messages.push(message);
-      saved = {
-        thread: decryptThread(thread, store.users || []),
-        messages: [decryptMessage(message, store.users || [])],
-      };
-      recipients = isAdmin(user) ? [owner] : adminUsers(store);
+
+      if (existing) {
+        // Restore if previously hidden for either side
+        existing.deleted_for = deletedForSet(existing.deleted_for);
+        existing.deleted_for.delete(Number(user.id));
+        existing.deleted_for.delete(Number(recipientId));
+        existing.deleted_for = [...existing.deleted_for];
+        message.thread_id = existing.id;
+        store.internal_messages.push(message);
+        existing.last_message_at = now;
+        existing.updated_at = now;
+        if (!existing.subject_enc) {
+          existing.subject_enc = encryptInternalText(subject, `thread:${existing.id}:subject`);
+        }
+        bumpUnread(existing, [recipientId], user.id);
+        saved = threadDetail(store, existing, user.id);
+      } else {
+        const threadId = randomUUID();
+        message.thread_id = threadId;
+        const thread = {
+          id: threadId,
+          participant_ids: [Number(user.id), Number(recipientId)].sort((a, b) => a - b),
+          user_id: Number(recipientId),
+          subject_enc: encryptInternalText(subject, `thread:${threadId}:subject`),
+          created_by: Number(user.id),
+          last_message_at: now,
+          unread: {
+            [String(user.id)]: 0,
+            [String(recipientId)]: 1,
+          },
+          deleted_for: [],
+          created_at: now,
+          updated_at: now,
+        };
+        store.internal_message_threads.push(thread);
+        store.internal_messages.push(message);
+        saved = threadDetail(store, thread, user.id);
+      }
+      recipients = [recipient];
       return store;
     },
     { forceRefresh: true },
@@ -237,7 +390,10 @@ export async function createInternalThread(user, payload = {}) {
 
 export async function replyInternalThread(user, threadId, payload = {}) {
   const body = cleanText(payload.body || payload.message, 20000);
-  if (!body) throw httpError("Message is required.");
+  const attachments = Array.isArray(payload.attachments)
+    ? payload.attachments.map(normalizeAttachment).filter(Boolean).slice(0, 4)
+    : [];
+  if (!body && !attachments.length) throw httpError("Message text or an image is required.");
 
   let saved = null;
   let recipients = [];
@@ -248,33 +404,35 @@ export async function replyInternalThread(user, threadId, payload = {}) {
         (candidate) => String(candidate.id) === String(threadId),
       );
       assertThreadAccess(thread, user);
+      // Restore for other participants if they had deleted the chat for themselves
+      const deletedFor = deletedForSet(thread.deleted_for);
+      for (const id of otherParticipants(thread, user.id)) deletedFor.delete(id);
+      thread.deleted_for = [...deletedFor];
+
       const now = new Date().toISOString();
       const messageId = randomUUID();
       const message = {
         id: messageId,
         thread_id: thread.id,
         sender_user_id: Number(user.id),
-        sender_role: isAdmin(user) ? "admin" : "user",
-        body_enc: encryptInternalText(body, `message:${messageId}:body`),
+        sender_role: user.role === "admin" ? "admin" : "user",
+        body_enc: encryptInternalText(body || (attachments.length ? "📷 Photo" : ""), `message:${messageId}:body`),
+        attachments,
+        deleted_for: [],
+        deleted_for_all: false,
+        edited_at: null,
         created_at: now,
         updated_at: now,
       };
       store.internal_messages.push(message);
       thread.last_message_at = now;
       thread.updated_at = now;
-      if (isAdmin(user)) {
-        thread.unread_user = Number(thread.unread_user || 0) + 1;
-        thread.unread_admin = 0;
-        const owner = (store.users || []).find(
-          (candidate) => Number(candidate.id) === Number(thread.user_id),
-        );
-        recipients = owner ? [owner] : [];
-      } else {
-        thread.unread_admin = Number(thread.unread_admin || 0) + 1;
-        thread.unread_user = 0;
-        recipients = adminUsers(store);
-      }
-      saved = decryptMessage(message, store.users || []);
+      const recipientIds = otherParticipants(thread, user.id);
+      bumpUnread(thread, recipientIds, user.id);
+      saved = decryptMessage(message, store.users || [], user.id);
+      recipients = (store.users || []).filter((candidate) =>
+        recipientIds.some((id) => sameId(id, candidate.id)),
+      );
       return store;
     },
     { forceRefresh: true },
@@ -282,4 +440,96 @@ export async function replyInternalThread(user, threadId, payload = {}) {
 
   await notifyRecipients({ threadId, sender: user, recipients });
   return saved;
+}
+
+export async function editInternalMessage(user, messageId, payload = {}) {
+  const body = cleanText(payload.body || payload.message, 20000);
+  if (!body) throw httpError("Message text is required.");
+
+  let saved = null;
+  await updateStore(
+    (store) => {
+      ensureCollections(store);
+      const idx = store.internal_messages.findIndex((m) => String(m.id) === String(messageId));
+      if (idx < 0) throw httpError("Message not found.", 404, "MESSAGE_NOT_FOUND");
+      const message = store.internal_messages[idx];
+      if (!sameId(message.sender_user_id, user.id)) {
+        throw httpError("You can only edit your own messages.", 403, "MESSAGE_FORBIDDEN");
+      }
+      if (message.deleted_for_all) throw httpError("Deleted messages cannot be edited.");
+      const thread = store.internal_message_threads.find(
+        (candidate) => String(candidate.id) === String(message.thread_id),
+      );
+      assertThreadAccess(thread, user);
+      const now = new Date().toISOString();
+      message.body_enc = encryptInternalText(body, `message:${message.id}:body`);
+      message.edited_at = now;
+      message.updated_at = now;
+      store.internal_messages[idx] = message;
+      saved = decryptMessage(message, store.users || [], user.id);
+      return store;
+    },
+    { forceRefresh: true },
+  );
+  return saved;
+}
+
+export async function deleteInternalMessage(user, messageId, { scope = "me" } = {}) {
+  let result = null;
+  await updateStore(
+    (store) => {
+      ensureCollections(store);
+      const idx = store.internal_messages.findIndex((m) => String(m.id) === String(messageId));
+      if (idx < 0) throw httpError("Message not found.", 404, "MESSAGE_NOT_FOUND");
+      const message = store.internal_messages[idx];
+      const thread = store.internal_message_threads.find(
+        (candidate) => String(candidate.id) === String(message.thread_id),
+      );
+      assertThreadAccess(thread, user);
+
+      if (scope === "all") {
+        if (!sameId(message.sender_user_id, user.id)) {
+          throw httpError("You can only delete your own messages for everyone.", 403);
+        }
+        message.deleted_for_all = true;
+        message.body_enc = encryptInternalText("", `message:${message.id}:body`);
+        message.attachments = [];
+        message.updated_at = new Date().toISOString();
+      } else {
+        const deletedFor = deletedForSet(message.deleted_for);
+        deletedFor.add(Number(user.id));
+        message.deleted_for = [...deletedFor];
+        message.updated_at = new Date().toISOString();
+      }
+      store.internal_messages[idx] = message;
+      result = { ok: true, id: message.id, scope };
+      return store;
+    },
+    { forceRefresh: true },
+  );
+  return result;
+}
+
+export async function deleteInternalThreadForMe(user, threadId) {
+  let result = null;
+  await updateStore(
+    (store) => {
+      ensureCollections(store);
+      const thread = store.internal_message_threads.find(
+        (candidate) => String(candidate.id) === String(threadId),
+      );
+      assertThreadAccess(thread, user);
+      const deletedFor = deletedForSet(thread.deleted_for);
+      deletedFor.add(Number(user.id));
+      thread.deleted_for = [...deletedFor];
+      const unread = unreadMap(thread);
+      unread[String(user.id)] = 0;
+      thread.unread = unread;
+      thread.updated_at = new Date().toISOString();
+      result = { ok: true, id: thread.id };
+      return store;
+    },
+    { forceRefresh: true },
+  );
+  return result;
 }

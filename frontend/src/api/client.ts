@@ -910,24 +910,67 @@ export const api = {
     ),
 
   createInternalMessageThread: (payload: {
-    subject: string;
-    body: string;
-    recipient_user_id?: number;
+    subject?: string;
+    body?: string;
+    recipient_user_id: number;
+    attachments?: Array<{
+      url: string;
+      mime_type: string;
+      size_bytes: number;
+      name: string;
+      width?: number | null;
+      height?: number | null;
+    }>;
   }) =>
     request<{ thread: InternalMessageThread; messages: InternalMessage[] }>(
       "/internal-messages",
       { method: "POST", body: JSON.stringify(payload) },
     ),
 
-  replyInternalMessageThread: (threadId: string, body: string) =>
+  replyInternalMessageThread: (
+    threadId: string,
+    payload: {
+      body?: string;
+      attachments?: Array<{
+        url: string;
+        mime_type: string;
+        size_bytes: number;
+        name: string;
+        width?: number | null;
+        height?: number | null;
+      }>;
+    },
+  ) =>
     request<{
       message: InternalMessage;
       thread: InternalMessageThread;
       messages: InternalMessage[];
     }>(`/internal-messages/${encodeURIComponent(threadId)}`, {
       method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  editInternalMessage: (messageId: string, body: string) =>
+    request<{
+      message: InternalMessage;
+      thread: InternalMessageThread;
+      messages: InternalMessage[];
+    }>(`/internal-messages/messages/${encodeURIComponent(messageId)}`, {
+      method: "PATCH",
       body: JSON.stringify({ body }),
     }),
+
+  deleteInternalMessage: (messageId: string, scope: "me" | "all" = "me") =>
+    request<{ ok: boolean; id: string; scope: string }>(
+      `/internal-messages/messages/${encodeURIComponent(messageId)}?scope=${scope}`,
+      { method: "DELETE" },
+    ),
+
+  deleteInternalMessageThread: (threadId: string) =>
+    request<{ ok: boolean; id: string }>(
+      `/internal-messages/${encodeURIComponent(threadId)}`,
+      { method: "DELETE" },
+    ),
 
   getLikeStats: (caseStudyId: number) =>
     request<LikeStats>(`/case-studies/${caseStudyId}/like`),
