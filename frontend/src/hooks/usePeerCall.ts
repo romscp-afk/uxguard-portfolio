@@ -59,6 +59,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const offerSentRef = useRef(false);
   const answerSentRef = useRef(false);
   const syncingRef = useRef(false);
+  const resyncQueuedRef = useRef(false);
   const pollRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
   const iceServersRef = useRef<RTCIceServer[]>([
@@ -170,6 +171,19 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     }
   }, []);
 
+  const markConnected = useCallback(() => {
+    setPhaseSafe("connected");
+    const id = callIdRef.current;
+    if (id) void api.callAction(id, "connected").catch(() => undefined);
+    if (!timerRef.current) {
+      setElapsedSec(0);
+      timerRef.current = window.setInterval(() => {
+        setElapsedSec((value) => value + 1);
+      }, 1000);
+    }
+    attachRemoteVideo();
+  }, [attachRemoteVideo, setPhaseSafe]);
+
   const ensurePeer = useCallback(
     async (call: InternalCallSession, iceServers?: RTCIceServer[]) => {
       if (iceServers?.length) iceServersRef.current = iceServers;
@@ -227,30 +241,33 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
-          setPhaseSafe("connected");
-          const id = callIdRef.current;
-          if (id) void api.callAction(id, "connected").catch(() => undefined);
-          if (!timerRef.current) {
-            setElapsedSec(0);
-            timerRef.current = window.setInterval(() => {
-              setElapsedSec((value) => value + 1);
-            }, 1000);
-          }
-          attachRemoteVideo();
+          markConnected();
         }
         if (pc.connectionState === "failed") {
           reportError(new Error("Connection failed"), "Call connection failed.");
         }
       };
 
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+          markConnected();
+        }
+        if (pc.iceConnectionState === "failed") {
+          reportError(new Error("ICE connection failed"), "Call connection failed.");
+        }
+      };
+
       return pc;
     },
-    [attachLocalVideo, attachRemoteVideo, reportError, setPhaseSafe],
+    [attachLocalVideo, attachRemoteVideo, markConnected, reportError],
   );
 
   const applySignals = useCallback(
     async (call: InternalCallSession, isCaller: boolean) => {
-      if (syncingRef.current) return activeCallRef.current || call;
+      if (syncingRef.current) {
+        resyncQueuedRef.current = true;
+        return activeCallRef.current || call;
+      }
       syncingRef.current = true;
       try {
         const snapshot = await api.getCall(call.id, signalVersionRef.current);
@@ -270,27 +287,44 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         }
 
         // Stale store reads can still say "ringing" right after accept — don't rewind UI.
-        if (!isCaller && snapshot.call.status === "ringing" && !locallyEngaged) {
+        if (!isCaller && snapshot.call.status === "ringing" && !locallyEngaged && !snapshot.signal.offer) {
           setActiveCallSafe(snapshot.call);
           if (phaseRef.current !== "incoming") setPhaseSafe("incoming");
           return snapshot.call;
         }
 
+        const calleeHasAccepted =
+          Boolean(snapshot.call.accepted_at) ||
+          ["accepted", "connected"].includes(snapshot.call.status);
+
         const mergedCall =
-          !isCaller && snapshot.call.status === "ringing" && locallyEngaged
+          !isCaller && snapshot.call.status === "ringing" && (locallyEngaged || snapshot.signal.offer)
             ? { ...snapshot.call, status: "accepted" as const }
-            : snapshot.call;
+            : isCaller && snapshot.call.status === "ringing" && calleeHasAccepted
+              ? { ...snapshot.call, status: "accepted" as const }
+              : snapshot.call;
 
         setActiveCallSafe(mergedCall);
 
-        if (mergedCall.status === "accepted" || mergedCall.status === "connected") {
+        if (
+          mergedCall.status === "accepted" ||
+          mergedCall.status === "connected" ||
+          calleeHasAccepted ||
+          snapshot.signal.offer ||
+          snapshot.signal.answer
+        ) {
           if (phaseRef.current !== "connected") setPhaseSafe("connecting");
         }
 
         const pc = await ensurePeer(mergedCall, snapshot.ice_servers);
         const { signal } = snapshot;
+        const shouldNegotiate =
+          ["accepted", "connected"].includes(mergedCall.status) ||
+          calleeHasAccepted ||
+          Boolean(signal.answer) ||
+          Boolean(signal.offer);
 
-        if (isCaller && ["accepted", "connected"].includes(mergedCall.status)) {
+        if (isCaller && shouldNegotiate) {
           if (!signal.offer) {
             if (!pc.localDescription || pc.localDescription.type !== "offer") {
               const offer = await pc.createOffer();
@@ -304,12 +338,18 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
               },
             });
             offerSentRef.current = true;
+          } else if (!pc.localDescription || pc.localDescription.type !== "offer") {
+            await pc.setLocalDescription({
+              type: signal.offer.type,
+              sdp: signal.offer.sdp,
+            });
+            offerSentRef.current = true;
           } else {
             offerSentRef.current = true;
           }
         }
 
-        if (!isCaller && (locallyEngaged || mergedCall.status !== "ringing")) {
+        if (!isCaller && (locallyEngaged || snapshot.signal.offer || mergedCall.status !== "ringing")) {
           if (signal.offer) {
             const needRemote =
               !pc.currentRemoteDescription ||
@@ -332,6 +372,12 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
                   type: pc.localDescription!.type,
                   sdp: pc.localDescription!.sdp,
                 },
+              });
+              answerSentRef.current = true;
+            } else if (!pc.localDescription || pc.localDescription.type !== "answer") {
+              await pc.setLocalDescription({
+                type: signal.answer.type,
+                sdp: signal.answer.sdp,
               });
               answerSentRef.current = true;
             } else {
@@ -373,6 +419,13 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         return mergedCall;
       } finally {
         syncingRef.current = false;
+        if (resyncQueuedRef.current) {
+          resyncQueuedRef.current = false;
+          const current = activeCallRef.current || call;
+          void applySignals(current, isCaller).catch((err) =>
+            reportError(err, "Call sync failed."),
+          );
+        }
       }
     },
     [
@@ -383,7 +436,8 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       flushPendingIce,
       selfId,
       setActiveCallSafe,
-      setPhaseSafe,
+      markConnected,
+      reportError,
     ],
   );
 

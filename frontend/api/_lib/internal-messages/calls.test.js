@@ -68,6 +68,19 @@ test("caller and callee can ring, accept, exchange signals, and hang up", async 
   assert.ok(afterIce.signal.offer?.sdp);
   assert.ok(afterIce.signal.answer?.sdp);
 
+  // Concurrent offer + answer writes must both survive store merge
+  await Promise.all([
+    postCallSignal(a, started.call.id, {
+      offer: { type: "offer", sdp: "v=0\r\no=- 9 0 IN IP4 127.0.0.1\r\n" },
+    }),
+    postCallSignal(b, started.call.id, {
+      answer: { type: "answer", sdp: "v=0\r\no=- 10 1 IN IP4 127.0.0.1\r\n" },
+    }),
+  ]);
+  const afterSdp = await getCall(b, started.call.id, { since: 0 });
+  assert.ok(afterSdp.signal.offer?.sdp?.includes("o=- 9"));
+  assert.ok(afterSdp.signal.answer?.sdp?.includes("o=- 10"));
+
   const ended = await endCall(a, started.call.id, { reason: "hangup" });
   assert.equal(ended.call.status, "ended");
 

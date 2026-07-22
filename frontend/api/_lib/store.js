@@ -621,6 +621,132 @@ function mergeByStringId(remoteList = [], localList = [], deletedIds = []) {
   return [...byId.values()];
 }
 
+function normalizeCallSignal(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { version: 0, offer: null, answer: null, ice: [] };
+  }
+  return {
+    version: Number(raw.version) || 0,
+    offer: raw.offer || null,
+    answer: raw.answer || null,
+    ice: Array.isArray(raw.ice) ? raw.ice : [],
+  };
+}
+
+function pickNewerSignalPart(a, b) {
+  if (!a) return b || null;
+  if (!b) return a || null;
+  const aV = Number(a.version) || 0;
+  const bV = Number(b.version) || 0;
+  return bV >= aV ? b : a;
+}
+
+function mergeCallSignal(remoteSignal, localSignal) {
+  const remote = normalizeCallSignal(remoteSignal);
+  const local = normalizeCallSignal(localSignal);
+  const iceById = new Map();
+  for (const item of [...remote.ice, ...local.ice]) {
+    const id = String(item?.id || "").trim();
+    if (!id) continue;
+    iceById.set(id, item);
+  }
+  const ice = [...iceById.values()]
+    .sort((a, b) => (Number(a.version) || 0) - (Number(b.version) || 0))
+    .slice(-60);
+  const version = Math.max(
+    remote.version,
+    local.version,
+    Number(pickNewerSignalPart(remote.offer, local.offer)?.version) || 0,
+    Number(pickNewerSignalPart(remote.answer, local.answer)?.version) || 0,
+    ...ice.map((item) => Number(item.version) || 0),
+  );
+  return {
+    version,
+    offer: pickNewerSignalPart(remote.offer, local.offer),
+    answer: pickNewerSignalPart(remote.answer, local.answer),
+    ice,
+  };
+}
+
+const CALL_STATUS_RANK = {
+  ringing: 1,
+  accepted: 2,
+  connected: 3,
+  ended: 4,
+  rejected: 4,
+  missed: 4,
+  failed: 4,
+};
+
+function mergeCallLifecycleStatus(remote, local, fallback) {
+  const terminal = new Set(["ended", "rejected", "missed", "failed"]);
+  if (terminal.has(remote?.status)) return remote.status;
+  if (terminal.has(local?.status)) return local.status;
+
+  const remoteRank = CALL_STATUS_RANK[remote?.status] || 0;
+  const localRank = CALL_STATUS_RANK[local?.status] || 0;
+  if (remoteRank > localRank) return remote.status;
+  if (localRank > remoteRank) return local.status;
+
+  const remoteT = Date.parse(String(remote?.updated_at || remote?.created_at || 0)) || 0;
+  const localT = Date.parse(String(local?.updated_at || local?.created_at || 0)) || 0;
+  if (remoteT > localT) return remote.status;
+  if (localT > remoteT) return local.status;
+  return fallback?.status || remote?.status || local?.status || "ringing";
+}
+
+function pickNewerCallSession(remote, local) {
+  if (!remote) return local || null;
+  if (!local) return remote || null;
+  const remoteT = Date.parse(String(remote.updated_at || remote.created_at || 0)) || 0;
+  const localT = Date.parse(String(local.updated_at || local.created_at || 0)) || 0;
+  if (remoteT > localT) return remote;
+  if (localT > remoteT) return local;
+  return local;
+}
+
+/** Merge call sessions and deep-merge WebRTC signal payloads so SDP/ICE are not lost. */
+function mergeCallSessions(remoteList = [], localList = [], deletedIds = []) {
+  const deleted = new Set((deletedIds || []).map(String).filter(Boolean));
+  const remoteById = new Map(
+    (remoteList || []).map((item) => [String(item?.id || "").trim(), item]).filter(([id]) => id),
+  );
+  const localById = new Map(
+    (localList || []).map((item) => [String(item?.id || "").trim(), item]).filter(([id]) => id),
+  );
+  const out = [];
+
+  for (const id of new Set([...remoteById.keys(), ...localById.keys()])) {
+    if (!id || deleted.has(id)) continue;
+    const remote = remoteById.get(id);
+    const local = localById.get(id);
+    const base = pickNewerCallSession(remote, local);
+    if (!base) continue;
+
+    if (remote && local) {
+      out.push({
+        ...base,
+        status: mergeCallLifecycleStatus(remote, local, base),
+        accepted_at: remote.accepted_at || local.accepted_at || base.accepted_at || null,
+        ended_at: remote.ended_at || local.ended_at || base.ended_at || null,
+        ended_by:
+          remote.ended_by == null
+            ? local.ended_by == null
+              ? base.ended_by ?? null
+              : local.ended_by
+            : remote.ended_by,
+        end_reason: remote.end_reason || local.end_reason || base.end_reason || null,
+        signal: mergeCallSignal(remote.signal, local.signal),
+      });
+      continue;
+    }
+
+    out.push(base);
+  }
+
+  return out;
+}
+
 const TESTLAB_COLLECTIONS = [
   "testlab_projects",
   "testlab_targets",
@@ -977,7 +1103,7 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       localStore.internal_messages || [],
       deleted.internal_messages,
     ),
-    internal_call_sessions: mergeByStringId(
+    internal_call_sessions: mergeCallSessions(
       remote.internal_call_sessions || [],
       localStore.internal_call_sessions || [],
       deleted.internal_call_sessions,
@@ -1008,27 +1134,29 @@ export async function writeStore(store) {
   const slot = getMemoryStore();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const remote = slot.current || memoryStore || null;
+    const merged = remote ? mergeStoresForWrite(store, remote, deleted) : store;
     // Apply tombstones / media clears locally (mirrors Blob merge behavior).
     const cleaned = {
-      ...store,
-      mediaAssets: mergeByNumericId(store.mediaAssets || [], [], deleted.mediaAssets),
-      users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
-      follows: mergeFollows(store.follows || [], [], deleted.follows),
-      likes: mergeLikes(store.likes || [], [], deleted.likes),
-      comments: mergeByNumericId(store.comments || [], [], deleted.comments),
-      notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
+      ...merged,
+      mediaAssets: mergeByNumericId(merged.mediaAssets || [], [], deleted.mediaAssets),
+      users: mergeUsersPreservingMedia(merged.users || [], merged.users || [], deleted.users),
+      follows: mergeFollows(merged.follows || [], [], deleted.follows),
+      likes: mergeLikes(merged.likes || [], [], deleted.likes),
+      comments: mergeByNumericId(merged.comments || [], [], deleted.comments),
+      notifications: mergeByNumericId(merged.notifications || [], [], deleted.notifications),
       internal_message_threads: mergeByStringId(
-        store.internal_message_threads || [],
+        merged.internal_message_threads || [],
         [],
         deleted.internal_message_threads,
       ),
       internal_messages: mergeByStringId(
-        store.internal_messages || [],
+        merged.internal_messages || [],
         [],
         deleted.internal_messages,
       ),
-      internal_call_sessions: mergeByStringId(
-        store.internal_call_sessions || [],
+      internal_call_sessions: mergeCallSessions(
+        merged.internal_call_sessions || [],
         [],
         deleted.internal_call_sessions,
       ),
@@ -1037,42 +1165,42 @@ export async function writeStore(store) {
         [],
         deleted.case_study_views,
       ),
-      resumes: mergeByNumericId(store.resumes || [], [], deleted.resumes),
+      resumes: mergeByNumericId(merged.resumes || [], [], deleted.resumes),
       career_profiles: mergeByNumericId(
-        store.career_profiles || [],
+        merged.career_profiles || [],
         [],
         deleted.career_profiles,
       ),
       career_timeline_entries: mergeByNumericId(
-        store.career_timeline_entries || [],
+        merged.career_timeline_entries || [],
         [],
         deleted.career_timeline_entries,
       ),
-      companies: mergeByNumericId(store.companies || [], [], deleted.companies),
-      company_members: mergeByNumericId(store.company_members || [], [], deleted.company_members),
-      jobs: mergeByNumericId(store.jobs || [], [], deleted.jobs),
-      saved_jobs: mergeByNumericId(store.saved_jobs || [], [], deleted.saved_jobs),
+      companies: mergeByNumericId(merged.companies || [], [], deleted.companies),
+      company_members: mergeByNumericId(merged.company_members || [], [], deleted.company_members),
+      jobs: mergeByNumericId(merged.jobs || [], [], deleted.jobs),
+      saved_jobs: mergeByNumericId(merged.saved_jobs || [], [], deleted.saved_jobs),
       job_applications: mergeByNumericId(
-        store.job_applications || [],
+        merged.job_applications || [],
         [],
         deleted.job_applications,
       ),
       application_stage_history: mergeByNumericId(
-        store.application_stage_history || [],
+        merged.application_stage_history || [],
         [],
         deleted.application_stage_history,
       ),
       application_internal_notes: mergeByNumericId(
-        store.application_internal_notes || [],
+        merged.application_internal_notes || [],
         [],
         deleted.application_internal_notes,
       ),
       employer_invitations: mergeByNumericId(
-        store.employer_invitations || [],
+        merged.employer_invitations || [],
         [],
         deleted.employer_invitations,
       ),
-      job_reports: mergeByNumericId(store.job_reports || [], [], deleted.job_reports),
+      job_reports: mergeByNumericId(merged.job_reports || [], [], deleted.job_reports),
     };
     memoryStore = cleaned;
     slot.current = cleaned;
