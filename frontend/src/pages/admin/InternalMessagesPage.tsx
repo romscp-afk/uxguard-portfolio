@@ -101,6 +101,7 @@ export function InternalMessagesPage() {
     muted,
     cameraOff,
     elapsedSec,
+    busyAction,
     localVideoRef,
     remoteVideoRef,
     startCall,
@@ -892,6 +893,7 @@ export function InternalMessagesPage() {
         muted={muted}
         cameraOff={cameraOff}
         elapsedSec={elapsedSec}
+        busy={busyAction}
         localVideoRef={localVideoRef}
         remoteVideoRef={remoteVideoRef}
         onAccept={() => void acceptIncoming()}

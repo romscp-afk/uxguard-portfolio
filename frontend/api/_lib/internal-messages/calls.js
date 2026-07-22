@@ -315,6 +315,12 @@ export async function acceptCall(user, callId) {
     throw httpError("Only the callee can accept this call.", 403, "CALL_FORBIDDEN");
   }
   const current = await maybeMissCall(call);
+  if (current.status === "accepted" || current.status === "connected") {
+    return {
+      call: serializeCall(current, store.users || []),
+      ice_servers: getIceServers(),
+    };
+  }
   if (current.status !== "ringing") {
     throw httpError("Call is no longer ringing.", 409, "CALL_NOT_RINGING");
   }
@@ -324,8 +330,17 @@ export async function acceptCall(user, callId) {
     ensureCollections(draft);
     const idx = draft.internal_call_sessions.findIndex((c) => String(c.id) === String(callId));
     if (idx === -1) throw httpError("Call not found.", 404, "CALL_NOT_FOUND");
+    const latest = draft.internal_call_sessions[idx];
+    if (latest.status === "accepted" || latest.status === "connected") {
+      updated = latest;
+      draft.__uxguardSkipWrite = true;
+      return draft;
+    }
+    if (latest.status !== "ringing") {
+      throw httpError("Call is no longer ringing.", 409, "CALL_NOT_RINGING");
+    }
     updated = {
-      ...draft.internal_call_sessions[idx],
+      ...latest,
       status: "accepted",
       accepted_at: new Date().toISOString(),
     };
@@ -334,7 +349,7 @@ export async function acceptCall(user, callId) {
   });
 
   return {
-    call: serializeCall(updated, store.users || []),
+    call: serializeCall(updated, (await readStore()).users || store.users || []),
     ice_servers: getIceServers(),
   };
 }

@@ -15,6 +15,7 @@ type CallOverlayProps = {
   muted: boolean;
   cameraOff: boolean;
   elapsedSec: number;
+  busy?: boolean;
   localVideoRef: RefObject<HTMLVideoElement | null>;
   remoteVideoRef: RefObject<HTMLVideoElement | null>;
   onAccept: () => void;
@@ -31,6 +32,7 @@ export function CallOverlay({
   muted,
   cameraOff,
   elapsedSec,
+  busy = false,
   localVideoRef,
   remoteVideoRef,
   onAccept,
@@ -103,16 +105,18 @@ export function CallOverlay({
             <>
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-400"
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-60"
                 onClick={onAccept}
+                disabled={busy}
               >
                 <Phone className="h-4 w-4" />
-                Accept
+                {busy ? "Joining…" : "Accept"}
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white hover:bg-red-400"
+                className="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-60"
                 onClick={onReject}
+                disabled={busy}
               >
                 <PhoneOff className="h-4 w-4" />
                 Decline

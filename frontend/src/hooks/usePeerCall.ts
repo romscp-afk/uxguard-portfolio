@@ -15,12 +15,28 @@ type UsePeerCallOptions = {
   onError?: (message: string) => void;
 };
 
+async function getMediaStream(wantVideo: boolean) {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: wantVideo,
+    });
+  } catch (err) {
+    if (wantVideo) {
+      // Fall back to voice-only if camera is missing/blocked.
+      return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    }
+    throw err;
+  }
+}
+
 export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const [phase, setPhase] = useState<CallPhase>("idle");
   const [activeCall, setActiveCall] = useState<InternalCallSession | null>(null);
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [busyAction, setBusyAction] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -28,6 +44,10 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const callIdRef = useRef<string | null>(null);
+  const activeCallRef = useRef<InternalCallSession | null>(null);
+  const phaseRef = useRef<CallPhase>("idle");
+  const acceptingRef = useRef(false);
+  const isCallerRef = useRef(false);
   const signalVersionRef = useRef(0);
   const appliedCandidatesRef = useRef(new Set<string>());
   const offerSentRef = useRef(false);
@@ -38,6 +58,16 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
   ]);
+
+  const setPhaseSafe = useCallback((next: CallPhase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
+
+  const setActiveCallSafe = useCallback((call: InternalCallSession | null) => {
+    activeCallRef.current = call;
+    setActiveCall(call);
+  }, []);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -64,6 +94,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     callIdRef.current = null;
+    acceptingRef.current = false;
     signalVersionRef.current = 0;
     appliedCandidatesRef.current.clear();
     offerSentRef.current = false;
@@ -106,11 +137,13 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         return pcRef.current;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: Boolean(call.media.video),
-      });
-      localStreamRef.current = stream;
+      let stream = localStreamRef.current;
+      if (!stream || stream.getTracks().every((track) => track.readyState === "ended")) {
+        stream = await getMediaStream(Boolean(call.media.video));
+        localStreamRef.current = stream;
+      }
+      const hasVideo = stream.getVideoTracks().length > 0;
+      setCameraOff(!hasVideo);
       attachLocalVideo();
 
       const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
@@ -141,7 +174,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
-          setPhase("connected");
+          setPhaseSafe("connected");
           const id = callIdRef.current;
           if (id) void api.callAction(id, "connected").catch(() => undefined);
           if (!timerRef.current) {
@@ -155,34 +188,35 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
       return pc;
     },
-    [attachLocalVideo, attachRemoteVideo],
+    [attachLocalVideo, attachRemoteVideo, setPhaseSafe],
   );
 
   const applySignals = useCallback(
     async (call: InternalCallSession, isCaller: boolean) => {
       const snapshot = await api.getCall(call.id, signalVersionRef.current);
       if (snapshot.ice_servers?.length) iceServersRef.current = snapshot.ice_servers;
-      setActiveCall(snapshot.call);
+      setActiveCallSafe(snapshot.call);
 
       if (["ended", "rejected", "missed", "failed"].includes(snapshot.call.status)) {
-        setPhase("ended");
+        // Don't tear down while the user is mid-accept.
+        if (acceptingRef.current) return snapshot.call;
+        setPhaseSafe("ended");
         cleanupMedia();
         window.setTimeout(() => {
-          setPhase("idle");
-          setActiveCall(null);
+          setPhaseSafe("idle");
+          setActiveCallSafe(null);
         }, 1200);
         return snapshot.call;
       }
 
-      if (snapshot.call.status === "accepted" || snapshot.call.status === "connected") {
-        setPhase((prev) => (prev === "connected" ? prev : "connecting"));
+      // During ring, callee only watches status — no media/WebRTC yet.
+      if (!isCaller && snapshot.call.status === "ringing") {
+        return snapshot.call;
       }
 
-      const needsMedia =
-        isCaller ||
-        snapshot.call.status === "accepted" ||
-        snapshot.call.status === "connected";
-      if (!needsMedia) return snapshot.call;
+      if (snapshot.call.status === "accepted" || snapshot.call.status === "connected") {
+        setPhaseSafe(phaseRef.current === "connected" ? "connected" : "connecting");
+      }
 
       const pc = await ensurePeer(snapshot.call, snapshot.ice_servers);
       const { signal } = snapshot;
@@ -231,17 +265,21 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
       return snapshot.call;
     },
-    [cleanupMedia, ensurePeer, selfId],
+    [cleanupMedia, ensurePeer, selfId, setActiveCallSafe, setPhaseSafe],
   );
 
   const startPolling = useCallback(
     (call: InternalCallSession, isCaller: boolean) => {
       stopPolling();
+      isCallerRef.current = isCaller;
       const tick = () => {
-        void applySignals(call, isCaller).catch((err) => reportError(err, "Call sync failed."));
+        const current = activeCallRef.current || call;
+        void applySignals(current, isCallerRef.current).catch((err) =>
+          reportError(err, "Call sync failed."),
+        );
       };
       tick();
-      pollRef.current = window.setInterval(tick, 1200);
+      pollRef.current = window.setInterval(tick, 1000);
     },
     [applySignals, reportError, stopPolling],
   );
@@ -249,58 +287,86 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const startCall = useCallback(
     async (threadId: string, video: boolean) => {
       try {
+        setBusyAction(true);
         cleanupMedia();
+        // Capture media on the click gesture first — more reliable on mobile Safari.
+        const preview = await getMediaStream(video);
+        localStreamRef.current = preview;
+        setCameraOff(preview.getVideoTracks().length === 0);
+
         const result = await api.startCall({ thread_id: threadId, video, audio: true });
         iceServersRef.current = result.ice_servers || iceServersRef.current;
         callIdRef.current = result.call.id;
-        setActiveCall(result.call);
-        setPhase("outgoing");
-        setCameraOff(!video);
+        setActiveCallSafe(result.call);
+        setPhaseSafe("outgoing");
         setMuted(false);
         await ensurePeer(result.call, result.ice_servers);
         startPolling(result.call, true);
       } catch (err) {
         cleanupMedia();
-        setPhase("idle");
+        setPhaseSafe("idle");
+        setActiveCallSafe(null);
         reportError(err, "Could not start call.");
+      } finally {
+        setBusyAction(false);
       }
     },
-    [cleanupMedia, ensurePeer, reportError, startPolling],
+    [cleanupMedia, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
   );
 
   const acceptIncoming = useCallback(async () => {
-    if (!activeCall) return;
-    try {
-      const result = await api.callAction(activeCall.id, "accept");
-      const call = result.call || activeCall;
-      callIdRef.current = call.id;
-      setActiveCall(call);
-      setPhase("connecting");
-      setCameraOff(!call.media.video);
-      await ensurePeer(call, result.ice_servers);
-      startPolling(call, false);
-    } catch (err) {
-      reportError(err, "Could not accept call.");
+    const call = activeCallRef.current;
+    if (!call?.id) {
+      reportError(new Error("No incoming call to accept."), "No incoming call to accept.");
+      return;
     }
-  }, [activeCall, ensurePeer, reportError, startPolling]);
+    if (busyAction || acceptingRef.current) return;
+
+    try {
+      setBusyAction(true);
+      acceptingRef.current = true;
+      setPhaseSafe("connecting");
+
+      // Keep the user-gesture alive for getUserMedia before any awaits that might lose it.
+      await ensurePeer(call, iceServersRef.current);
+
+      const result = await api.callAction(call.id, "accept");
+      const next = result.call || call;
+      callIdRef.current = next.id;
+      setActiveCallSafe(next);
+      setCameraOff(!next.media.video || !localStreamRef.current?.getVideoTracks().length);
+      if (result.ice_servers?.length) iceServersRef.current = result.ice_servers;
+      startPolling(next, false);
+      acceptingRef.current = false;
+    } catch (err) {
+      acceptingRef.current = false;
+      // If accept API failed after media started, stay on incoming when still ringing.
+      if (phaseRef.current === "connecting" && activeCallRef.current?.status === "ringing") {
+        setPhaseSafe("incoming");
+      }
+      reportError(err, "Could not accept call. Check microphone permission and try again.");
+    } finally {
+      setBusyAction(false);
+    }
+  }, [busyAction, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling]);
 
   const rejectIncoming = useCallback(async () => {
-    if (!activeCall) return;
+    const callId = callIdRef.current || activeCallRef.current?.id;
     try {
-      await api.callAction(activeCall.id, "reject");
+      if (callId) await api.callAction(callId, "reject");
     } catch {
       // ignore
     }
     cleanupMedia();
-    setActiveCall(null);
-    setPhase("idle");
-  }, [activeCall, cleanupMedia]);
+    setActiveCallSafe(null);
+    setPhaseSafe("idle");
+  }, [cleanupMedia, setActiveCallSafe, setPhaseSafe]);
 
   const hangup = useCallback(async () => {
-    const callId = callIdRef.current || activeCall?.id;
+    const callId = callIdRef.current || activeCallRef.current?.id;
     cleanupMedia();
-    setPhase("idle");
-    setActiveCall(null);
+    setPhaseSafe("idle");
+    setActiveCallSafe(null);
     setElapsedSec(0);
     if (callId) {
       try {
@@ -309,16 +375,20 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         // ignore
       }
     }
-  }, [activeCall?.id, cleanupMedia]);
+  }, [cleanupMedia, setActiveCallSafe, setPhaseSafe]);
 
-  const attachIncoming = useCallback((call: InternalCallSession, iceServers?: RTCIceServer[]) => {
-    if (iceServers?.length) iceServersRef.current = iceServers;
-    callIdRef.current = call.id;
-    setActiveCall(call);
-    setPhase("incoming");
-    setCameraOff(!call.media.video);
-    startPolling(call, false);
-  }, [startPolling]);
+  const attachIncoming = useCallback(
+    (call: InternalCallSession, iceServers?: RTCIceServer[]) => {
+      if (iceServers?.length) iceServersRef.current = iceServers;
+      callIdRef.current = call.id;
+      setActiveCallSafe(call);
+      setPhaseSafe("incoming");
+      setCameraOff(!call.media.video);
+      // Status-only polling until accept (no getUserMedia yet).
+      startPolling(call, false);
+    },
+    [setActiveCallSafe, setPhaseSafe, startPolling],
+  );
 
   const toggleMute = useCallback(() => {
     const next = !muted;
@@ -329,13 +399,13 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   }, [muted]);
 
   const toggleCamera = useCallback(() => {
-    if (!activeCall?.media.video) return;
+    if (!activeCallRef.current?.media.video) return;
     const next = !cameraOff;
     setCameraOff(next);
     localStreamRef.current?.getVideoTracks().forEach((track) => {
       track.enabled = !next;
     });
-  }, [activeCall?.media.video, cameraOff]);
+  }, [cameraOff]);
 
   useEffect(() => {
     attachLocalVideo();
@@ -353,6 +423,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     muted,
     cameraOff,
     elapsedSec,
+    busyAction,
     localVideoRef,
     remoteVideoRef,
     startCall,

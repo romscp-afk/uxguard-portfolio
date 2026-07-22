@@ -1038,7 +1038,7 @@ export const api = {
       call?: InternalCallSession;
       version?: number;
       ice_servers?: RTCIceServer[];
-    }>(`/internal-messages/calls/${encodeURIComponent(callId)}`, {
+    }>(`/internal-messages/calls/${encodeURIComponent(callId)}?action=${encodeURIComponent(action)}`, {
       method: "POST",
       body: JSON.stringify({ action, ...body }),
     }),

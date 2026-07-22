@@ -18,6 +18,27 @@ function resolveCallId(req) {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
+function readBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  if (Buffer.isBuffer(req.body)) {
+    try {
+      return JSON.parse(req.body.toString("utf8"));
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
@@ -37,7 +58,8 @@ export default withApi(async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const action = String(req.body?.action || req.query.action || "signal").toLowerCase();
+      const body = readBody(req);
+      const action = String(body.action || req.query.action || "signal").toLowerCase();
       if (action === "accept") {
         res.status(200).json(await acceptCall(user, callId));
         return;
@@ -55,7 +77,7 @@ export default withApi(async (req, res) => {
         return;
       }
       if (action === "signal") {
-        res.status(200).json(await postCallSignal(user, callId, req.body || {}));
+        res.status(200).json(await postCallSignal(user, callId, body));
         return;
       }
       res.status(400).json({ detail: "Unknown call action" });
