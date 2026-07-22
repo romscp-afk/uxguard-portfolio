@@ -47,7 +47,8 @@ export function CallOverlay({
   const other = isCaller ? call.callee : call.caller;
   const title = other?.name || other?.email || "UXGuard member";
   const videoEnabled = Boolean(call.media.video);
-  const showAccept = phase === "incoming" && call.status === "ringing";
+  const showAccept =
+    phase === "incoming" && call.status === "ringing" && !busy;
   const statusLabel =
     showAccept
       ? videoEnabled

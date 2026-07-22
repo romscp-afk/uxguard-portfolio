@@ -62,6 +62,10 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
 
 function linkIsActive(pathname: string, to: string) {
   if (pathname === to) return true;
+  // Admin employer approvals (/admin/employers) — not the hiring portal (/admin/employer/*)
+  if (to === "/admin/employers") {
+    return pathname === "/admin/employers" || pathname.startsWith("/admin/employers/");
+  }
   // Avoid "/admin/employer" matching every employer child incorrectly for "Post a Job"
   if (to === "/admin/employer") {
     return pathname === "/admin/employer";
@@ -73,6 +77,14 @@ function linkIsActive(pathname: string, to: string) {
     return pathname === "/admin/jobs" || /^\/admin\/jobs\/\d+/.test(pathname);
   }
   return pathname.startsWith(`${to}/`);
+}
+
+/** Hiring portal routes (/admin/employer/...) — excludes admin approvals at /admin/employers */
+function isEmployerWorkspaceRoute(pathname: string) {
+  if (pathname === "/admin/employers" || pathname.startsWith("/admin/employers/")) {
+    return false;
+  }
+  return pathname.startsWith("/admin/employer");
 }
 
 export function AdminLayout() {
@@ -107,7 +119,7 @@ export function AdminLayout() {
   }
 
   if (!user) {
-    const wantsEmployer = location.pathname.startsWith("/admin/employer");
+    const wantsEmployer = isEmployerWorkspaceRoute(location.pathname);
     return (
       <Navigate
         to={wantsEmployer ? "/admin/employer/login" : "/admin/login"}
@@ -124,7 +136,7 @@ export function AdminLayout() {
   // Employer session → stay in hiring portal (not candidate profile pages)
   if (
     isEmployerPortal &&
-    !location.pathname.startsWith("/admin/employer") &&
+    !isEmployerWorkspaceRoute(location.pathname) &&
     !location.pathname.startsWith("/admin/messages") &&
     !location.pathname.startsWith("/admin/billing") &&
     !location.pathname.startsWith("/admin/notifications") &&
@@ -137,7 +149,7 @@ export function AdminLayout() {
   // Candidate / admin session cannot open employer routes
   if (
     !isEmployerPortal &&
-    location.pathname.startsWith("/admin/employer") &&
+    isEmployerWorkspaceRoute(location.pathname) &&
     !location.pathname.startsWith("/admin/employer/login") &&
     !location.pathname.startsWith("/admin/employer/register")
   ) {

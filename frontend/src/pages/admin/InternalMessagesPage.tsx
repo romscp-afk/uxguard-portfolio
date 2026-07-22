@@ -60,6 +60,10 @@ function formatWhen(value: string) {
   });
 }
 
+function isTerminalCallStatus(status?: string) {
+  return status === "ended" || status === "rejected" || status === "missed" || status === "failed";
+}
+
 function threadTitle(thread: InternalMessageThread, selfId?: number) {
   const other =
     thread.counterpart ||
@@ -115,6 +119,8 @@ export function InternalMessagesPage() {
     selfId: user?.id,
     onError: (message) => setError(message),
   });
+
+  const prevCallPhaseRef = useRef<typeof callPhase>("idle");
 
   const selectedId = searchParams.get("thread");
   const callIdParam = searchParams.get("call");
@@ -208,23 +214,45 @@ export function InternalMessagesPage() {
             Number(item.callee_user_id) === Number(user?.id) &&
             !seenIncomingRef.current.has(item.id),
         );
-        if (incoming && callPhase === "idle") {
-          seenIncomingRef.current.add(incoming.id);
+        if (incoming && (callPhase === "idle" || activeCall?.id === incoming.id)) {
+          if (callPhase === "idle") {
+            seenIncomingRef.current.add(incoming.id);
+          }
           attachIncoming(incoming, result.ice_servers);
           if (!selectedId || selectedId !== incoming.thread_id) {
             setSearchParams({ thread: incoming.thread_id, call: incoming.id });
           }
         }
-        if (callIdParam && callPhase === "idle") {
+        if (callIdParam) {
           const match = result.calls.find((item) => item.id === callIdParam);
           if (
             match &&
             Number(match.callee_user_id) === Number(user?.id) &&
             match.status === "ringing" &&
-            !seenIncomingRef.current.has(match.id)
+            (callPhase === "idle" || activeCall?.id === match.id)
           ) {
             seenIncomingRef.current.add(match.id);
             attachIncoming(match, result.ice_servers);
+          }
+        }
+        // Caller: close overlay when callee rejects or call ends
+        if (
+          activeCall?.id &&
+          Number(activeCall.caller_user_id) === Number(user?.id) &&
+          (callPhase === "outgoing" || callPhase === "connecting")
+        ) {
+          const mine = result.calls.find((item) => item.id === activeCall.id);
+          if (mine && isTerminalCallStatus(mine.status)) {
+            hangup();
+          } else if (!mine) {
+            try {
+              const snapshot = await api.getCall(activeCall.id);
+              if (isTerminalCallStatus(snapshot.call.status)) {
+                hangup();
+              }
+            } catch {
+              // ignore
+            }
           }
         }
       } catch {
@@ -237,7 +265,31 @@ export function InternalMessagesPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [user?.id, callPhase, callIdParam, selectedId, setSearchParams, attachIncoming]);
+  }, [
+    user?.id,
+    callPhase,
+    callIdParam,
+    selectedId,
+    activeCall?.id,
+    activeCall?.caller_user_id,
+    setSearchParams,
+    attachIncoming,
+    hangup,
+  ]);
+
+  useEffect(() => {
+    const wasActive = prevCallPhaseRef.current !== "idle";
+    prevCallPhaseRef.current = callPhase;
+    if (!wasActive || callPhase !== "idle" || !callIdParam) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("call");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [callPhase, callIdParam, setSearchParams]);
 
   function clearPendingAttachments() {
     setPendingAttachments((prev) => {

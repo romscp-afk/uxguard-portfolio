@@ -29,6 +29,10 @@ async function getMediaStream(wantVideo: boolean) {
   }
 }
 
+function isTerminalStatus(status?: string) {
+  return status === "ended" || status === "rejected" || status === "missed" || status === "failed";
+}
+
 export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const [phase, setPhase] = useState<CallPhase>("idle");
   const [activeCall, setActiveCall] = useState<InternalCallSession | null>(null);
@@ -46,10 +50,12 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const activeCallRef = useRef<InternalCallSession | null>(null);
   const phaseRef = useRef<CallPhase>("idle");
   const acceptingRef = useRef(false);
+  const locallyAcceptedRef = useRef(false);
   const isCallerRef = useRef(false);
   const signalVersionRef = useRef(0);
   const appliedCandidatesRef = useRef(new Set<string>());
   const pendingRemoteIceRef = useRef<RTCIceCandidateInit[]>([]);
+  const pendingLocalIceRef = useRef<RTCIceCandidateInit[]>([]);
   const offerSentRef = useRef(false);
   const answerSentRef = useRef(false);
   const syncingRef = useRef(false);
@@ -96,13 +102,22 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     callIdRef.current = null;
     acceptingRef.current = false;
+    locallyAcceptedRef.current = false;
     signalVersionRef.current = 0;
     appliedCandidatesRef.current.clear();
     pendingRemoteIceRef.current = [];
+    pendingLocalIceRef.current = [];
     offerSentRef.current = false;
     answerSentRef.current = false;
     syncingRef.current = false;
   }, [stopPolling, stopTimer]);
+
+  const endCallUi = useCallback(() => {
+    cleanupMedia();
+    setPhaseSafe("idle");
+    setActiveCallSafe(null);
+    setElapsedSec(0);
+  }, [cleanupMedia, setActiveCallSafe, setPhaseSafe]);
 
   const attachLocalVideo = useCallback(() => {
     if (localVideoRef.current && localStreamRef.current) {
@@ -138,6 +153,17 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     for (const candidate of queued) {
       try {
         await pc.addIceCandidate(candidate);
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const flushLocalIce = useCallback(async (callId: string) => {
+    const queued = pendingLocalIceRef.current.splice(0);
+    for (const candidate of queued) {
+      try {
+        await api.callAction(callId, "signal", { candidate });
       } catch {
         // ignore
       }
@@ -191,11 +217,12 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       pc.onicecandidate = (event) => {
         const id = callIdRef.current;
         if (!event.candidate || !id) return;
-        // Wait until we have a local description so candidates belong to the SDP.
-        if (!pc.localDescription) return;
-        void api
-          .callAction(id, "signal", { candidate: event.candidate.toJSON() })
-          .catch(() => undefined);
+        const candidate = event.candidate.toJSON();
+        if (!pc.localDescription) {
+          pendingLocalIceRef.current.push(candidate);
+          return;
+        }
+        void api.callAction(id, "signal", { candidate }).catch(() => undefined);
       };
 
       pc.onconnectionstatechange = () => {
@@ -211,11 +238,14 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
           }
           attachRemoteVideo();
         }
+        if (pc.connectionState === "failed") {
+          reportError(new Error("Connection failed"), "Call connection failed.");
+        }
       };
 
       return pc;
     },
-    [attachLocalVideo, attachRemoteVideo, setPhaseSafe],
+    [attachLocalVideo, attachRemoteVideo, reportError, setPhaseSafe],
   );
 
   const applySignals = useCallback(
@@ -225,40 +255,47 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       try {
         const snapshot = await api.getCall(call.id, signalVersionRef.current);
         if (snapshot.ice_servers?.length) iceServersRef.current = snapshot.ice_servers;
-        setActiveCallSafe(snapshot.call);
 
-        if (["ended", "rejected", "missed", "failed"].includes(snapshot.call.status)) {
-          if (acceptingRef.current) return snapshot.call;
+        const locallyEngaged =
+          locallyAcceptedRef.current ||
+          acceptingRef.current ||
+          phaseRef.current === "connecting" ||
+          phaseRef.current === "connected" ||
+          phaseRef.current === "outgoing";
+
+        if (isTerminalStatus(snapshot.call.status)) {
           setPhaseSafe("ended");
-          cleanupMedia();
-          window.setTimeout(() => {
-            setPhaseSafe("idle");
-            setActiveCallSafe(null);
-          }, 1200);
+          endCallUi();
           return snapshot.call;
         }
 
-        if (!isCaller && snapshot.call.status === "ringing") {
+        // Stale store reads can still say "ringing" right after accept — don't rewind UI.
+        if (!isCaller && snapshot.call.status === "ringing" && !locallyEngaged) {
+          setActiveCallSafe(snapshot.call);
+          if (phaseRef.current !== "incoming") setPhaseSafe("incoming");
           return snapshot.call;
         }
 
-        if (snapshot.call.status === "accepted" || snapshot.call.status === "connected") {
-          if (phaseRef.current === "incoming" || phaseRef.current === "outgoing") {
-            setPhaseSafe("connecting");
-          } else if (phaseRef.current !== "connected") {
-            setPhaseSafe("connecting");
-          }
+        const mergedCall =
+          !isCaller && snapshot.call.status === "ringing" && locallyEngaged
+            ? { ...snapshot.call, status: "accepted" as const }
+            : snapshot.call;
+
+        setActiveCallSafe(mergedCall);
+
+        if (mergedCall.status === "accepted" || mergedCall.status === "connected") {
+          if (phaseRef.current !== "connected") setPhaseSafe("connecting");
         }
 
-        const pc = await ensurePeer(snapshot.call, snapshot.ice_servers);
+        const pc = await ensurePeer(mergedCall, snapshot.ice_servers);
         const { signal } = snapshot;
 
-        // Caller: keep publishing offer until the server has it.
-        if (isCaller && ["accepted", "connected"].includes(snapshot.call.status)) {
+        if (isCaller && ["accepted", "connected"].includes(mergedCall.status)) {
           if (!signal.offer) {
             if (!pc.localDescription || pc.localDescription.type !== "offer") {
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
+              await flushLocalIce(call.id);
             }
             await api.callAction(call.id, "signal", {
               offer: {
@@ -272,36 +309,37 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
           }
         }
 
-        // Callee: apply offer and publish answer until server has it.
-        if (!isCaller && signal.offer) {
-          const needRemote =
-            !pc.currentRemoteDescription ||
-            pc.currentRemoteDescription.sdp !== signal.offer.sdp;
-          if (needRemote) {
-            await pc.setRemoteDescription({
-              type: signal.offer.type,
-              sdp: signal.offer.sdp,
-            });
-            await flushPendingIce(pc);
-          }
-          if (!signal.answer) {
-            if (!pc.localDescription || pc.localDescription.type !== "answer") {
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
+        if (!isCaller && (locallyEngaged || mergedCall.status !== "ringing")) {
+          if (signal.offer) {
+            const needRemote =
+              !pc.currentRemoteDescription ||
+              pc.currentRemoteDescription.sdp !== signal.offer.sdp;
+            if (needRemote) {
+              await pc.setRemoteDescription({
+                type: signal.offer.type,
+                sdp: signal.offer.sdp,
+              });
+              await flushPendingIce(pc);
             }
-            await api.callAction(call.id, "signal", {
-              answer: {
-                type: pc.localDescription!.type,
-                sdp: pc.localDescription!.sdp,
-              },
-            });
-            answerSentRef.current = true;
-          } else {
-            answerSentRef.current = true;
+            if (!signal.answer) {
+              if (!pc.localDescription || pc.localDescription.type !== "answer") {
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                await flushLocalIce(call.id);
+              }
+              await api.callAction(call.id, "signal", {
+                answer: {
+                  type: pc.localDescription!.type,
+                  sdp: pc.localDescription!.sdp,
+                },
+              });
+              answerSentRef.current = true;
+            } else {
+              answerSentRef.current = true;
+            }
           }
         }
 
-        // Caller: apply answer.
         if (isCaller && signal.answer) {
           const needRemote =
             !pc.currentRemoteDescription ||
@@ -326,21 +364,22 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
           try {
             await pc.addIceCandidate(item.candidate);
           } catch {
-            // ignore stale candidates
+            // ignore
           }
         }
 
         signalVersionRef.current = Math.max(signalVersionRef.current, signal.version || 0);
         attachRemoteVideo();
-        return snapshot.call;
+        return mergedCall;
       } finally {
         syncingRef.current = false;
       }
     },
     [
       attachRemoteVideo,
-      cleanupMedia,
+      endCallUi,
       ensurePeer,
+      flushLocalIce,
       flushPendingIce,
       selfId,
       setActiveCallSafe,
@@ -349,7 +388,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   );
 
   const startPolling = useCallback(
-    (call: InternalCallSession, isCaller: boolean, intervalMs = 800) => {
+    (call: InternalCallSession, isCaller: boolean, intervalMs = 400) => {
       stopPolling();
       isCallerRef.current = isCaller;
       const tick = () => {
@@ -380,17 +419,15 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         setPhaseSafe("outgoing");
         setMuted(false);
         await ensurePeer(result.call, result.ice_servers);
-        startPolling(result.call, true, 800);
+        startPolling(result.call, true, 400);
       } catch (err) {
-        cleanupMedia();
-        setPhaseSafe("idle");
-        setActiveCallSafe(null);
+        endCallUi();
         reportError(err, "Could not start call.");
       } finally {
         setBusyAction(false);
       }
     },
-    [cleanupMedia, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
+    [cleanupMedia, endCallUi, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
   );
 
   const acceptIncoming = useCallback(async () => {
@@ -404,7 +441,9 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     try {
       setBusyAction(true);
       acceptingRef.current = true;
+      locallyAcceptedRef.current = true;
       setPhaseSafe("connecting");
+      setActiveCallSafe({ ...call, status: "accepted" });
 
       await ensurePeer(call, iceServersRef.current);
 
@@ -414,17 +453,17 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       setActiveCallSafe(next);
       setCameraOff(!next.media.video || !localStreamRef.current?.getVideoTracks().length);
       if (result.ice_servers?.length) iceServersRef.current = result.ice_servers;
-      startPolling(next, false, 500);
-      acceptingRef.current = false;
-      // Kick an immediate sync so we can answer the offer ASAP.
-      void applySignals(next, false).catch(() => undefined);
+      startPolling(next, false, 300);
+      await applySignals(next, false);
     } catch (err) {
+      locallyAcceptedRef.current = false;
       acceptingRef.current = false;
       if (activeCallRef.current?.status === "ringing") {
         setPhaseSafe("incoming");
       }
       reportError(err, "Could not accept call. Check microphone permission and try again.");
     } finally {
+      acceptingRef.current = false;
       setBusyAction(false);
     }
   }, [
@@ -439,22 +478,19 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
   const rejectIncoming = useCallback(async () => {
     const callId = callIdRef.current || activeCallRef.current?.id;
-    try {
-      if (callId) await api.callAction(callId, "reject");
-    } catch {
-      // ignore
+    endCallUi();
+    if (callId) {
+      try {
+        await api.callAction(callId, "reject");
+      } catch {
+        // ignore
+      }
     }
-    cleanupMedia();
-    setActiveCallSafe(null);
-    setPhaseSafe("idle");
-  }, [cleanupMedia, setActiveCallSafe, setPhaseSafe]);
+  }, [endCallUi]);
 
   const hangup = useCallback(async () => {
     const callId = callIdRef.current || activeCallRef.current?.id;
-    cleanupMedia();
-    setPhaseSafe("idle");
-    setActiveCallSafe(null);
-    setElapsedSec(0);
+    endCallUi();
     if (callId) {
       try {
         await api.callAction(callId, "hangup");
@@ -462,17 +498,24 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         // ignore
       }
     }
-  }, [cleanupMedia, setActiveCallSafe, setPhaseSafe]);
+  }, [endCallUi]);
 
   const attachIncoming = useCallback(
     (call: InternalCallSession, iceServers?: RTCIceServer[]) => {
-      if (phaseRef.current !== "idle" && phaseRef.current !== "incoming") return;
+      if (
+        phaseRef.current !== "idle" &&
+        phaseRef.current !== "incoming" &&
+        activeCallRef.current?.id !== call.id
+      ) {
+        return;
+      }
       if (iceServers?.length) iceServersRef.current = iceServers;
       callIdRef.current = call.id;
+      locallyAcceptedRef.current = false;
       setActiveCallSafe(call);
       setPhaseSafe("incoming");
       setCameraOff(!call.media.video);
-      startPolling(call, false, 1000);
+      startPolling(call, false, 800);
     },
     [setActiveCallSafe, setPhaseSafe, startPolling],
   );
