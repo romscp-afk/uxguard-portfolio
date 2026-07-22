@@ -235,6 +235,8 @@ function normalizeLoadedStore(data) {
     likes: data.likes || [],
     case_study_views: data.case_study_views || [],
     contact_messages: data.contact_messages || [],
+    internal_message_threads: data.internal_message_threads || [],
+    internal_messages: data.internal_messages || [],
     projects: data.projects || [],
     resumes: data.resumes || [],
     career_profiles: data.career_profiles || [],
@@ -333,6 +335,8 @@ function seedStore() {
     likes: [],
     case_study_views: [],
     contact_messages: [],
+    internal_message_threads: [],
+    internal_messages: [],
     projects: [
       {
         id: 1,
@@ -851,6 +855,8 @@ function takeDeletionMarkers(store) {
     comments: markers.comments || [],
     notifications: markers.notifications || [],
     case_study_views: markers.case_study_views || [],
+    internal_message_threads: markers.internal_message_threads || [],
+    internal_messages: markers.internal_messages || [],
     testlab_projects: markers.testlab_projects || [],
     testlab_targets: markers.testlab_targets || [],
     testlab_project_members: markers.testlab_project_members || [],
@@ -950,6 +956,16 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       localStore.notifications || [],
       deleted.notifications,
     ),
+    internal_message_threads: mergeByStringId(
+      remote.internal_message_threads || [],
+      localStore.internal_message_threads || [],
+      deleted.internal_message_threads,
+    ),
+    internal_messages: mergeByStringId(
+      remote.internal_messages || [],
+      localStore.internal_messages || [],
+      deleted.internal_messages,
+    ),
     case_study_views: mergeCaseStudyViews(
       remote.case_study_views || [],
       localStore.case_study_views || [],
@@ -985,6 +1001,16 @@ export async function writeStore(store) {
       likes: mergeLikes(store.likes || [], [], deleted.likes),
       comments: mergeByNumericId(store.comments || [], [], deleted.comments),
       notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
+      internal_message_threads: mergeByStringId(
+        store.internal_message_threads || [],
+        [],
+        deleted.internal_message_threads,
+      ),
+      internal_messages: mergeByStringId(
+        store.internal_messages || [],
+        [],
+        deleted.internal_messages,
+      ),
       case_study_views: mergeCaseStudyViews(
         store.case_study_views || [],
         [],

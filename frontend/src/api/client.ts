@@ -17,6 +17,9 @@ import type {
   Comment,
   ContactMessage,
   ContactMailboxCounts,
+  InternalMessage,
+  InternalMessageThread,
+  InternalMessageUser,
   AdminUserSummary,
   AnalyticsSummary,
   FeedCaseStudyItem,
@@ -892,6 +895,38 @@ export const api = {
     }>("/contact-messages", {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+
+  listInternalMessageThreads: () =>
+    request<{
+      threads: InternalMessageThread[];
+      unread_count: number;
+      users?: InternalMessageUser[];
+    }>("/internal-messages"),
+
+  getInternalMessageThread: (threadId: string) =>
+    request<{ thread: InternalMessageThread; messages: InternalMessage[] }>(
+      `/internal-messages/${encodeURIComponent(threadId)}`,
+    ),
+
+  createInternalMessageThread: (payload: {
+    subject: string;
+    body: string;
+    recipient_user_id?: number;
+  }) =>
+    request<{ thread: InternalMessageThread; messages: InternalMessage[] }>(
+      "/internal-messages",
+      { method: "POST", body: JSON.stringify(payload) },
+    ),
+
+  replyInternalMessageThread: (threadId: string, body: string) =>
+    request<{
+      message: InternalMessage;
+      thread: InternalMessageThread;
+      messages: InternalMessage[];
+    }>(`/internal-messages/${encodeURIComponent(threadId)}`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
     }),
 
   getLikeStats: (caseStudyId: number) =>

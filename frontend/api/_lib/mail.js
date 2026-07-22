@@ -89,6 +89,61 @@ export async function sendNewCaseStudyEmail({ to, userName, authorName, studyTit
   return res.json();
 }
 
+export async function sendInternalMessageNotificationEmail({
+  to,
+  userName,
+  senderName,
+  conversationUrl,
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM || "UXGuard Studio <onboarding@resend.dev>";
+
+  if (!apiKey) {
+    throw new Error(
+      "Email service is not configured. Add RESEND_API_KEY to your deployment environment.",
+    );
+  }
+
+  const safeUserName = escapeHtml(userName || "");
+  const safeSenderName = escapeHtml(senderName || "Someone");
+  const safeUrl = escapeHtml(conversationUrl);
+  const html = `
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #111;">
+      <h2 style="color: #0eb5bd;">UXGuard Studio</h2>
+      <p>Hi${safeUserName ? ` ${safeUserName}` : ""},</p>
+      <p><strong>${safeSenderName}</strong> sent you a private message in the UXGuard portal.</p>
+      <p style="font-size:13px;color:#666;">For privacy, message content is never included in notification emails.</p>
+      <p style="margin: 28px 0;">
+        <a href="${safeUrl}" style="background:#0eb5bd;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
+          Open private conversation
+        </a>
+      </p>
+      <p style="font-size:12px;color:#999;word-break:break-all;">${safeUrl}</p>
+    </div>
+  `;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: "New private message in UXGuard Studio",
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const response = await res.json().catch(() => ({}));
+    throw new Error(response.message || `Email delivery failed (${res.status})`);
+  }
+
+  return res.json();
+}
+
 export async function sendContactFormEmail({
   to,
   name,

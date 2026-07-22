@@ -21,6 +21,7 @@ import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
 import { NotificationsPage } from "./pages/admin/NotificationsPage";
 import { ContactPage } from "./pages/public/ContactPage";
 import { ContactInboxPage } from "./pages/admin/ContactInboxPage";
+import { InternalMessagesPage } from "./pages/admin/InternalMessagesPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
 import { AdminEmployersPage } from "./pages/admin/AdminEmployersPage";
@@ -129,6 +130,7 @@ export default function App() {
             <Route path="testlab/:projectId" element={<TestLabProjectPage />} />
             <Route path="media" element={<MediaLibraryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="messages" element={<InternalMessagesPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="users/new" element={<AdminCreateAccountPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />

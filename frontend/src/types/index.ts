@@ -669,7 +669,13 @@ export interface Comment {
 export interface Notification {
   id: number;
   user_id: number;
-  type: "new_case_study" | "comment" | "follow" | "like";
+  type:
+    | "new_case_study"
+    | "comment"
+    | "follow"
+    | "like"
+    | "contact_message"
+    | "internal_message";
   title: string;
   message: string;
   link?: string | null;
@@ -725,6 +731,36 @@ export interface ContactMailboxCounts {
   drafts: number;
   trash: number;
   starred: number;
+}
+
+export interface InternalMessageUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface InternalMessageThread {
+  id: string;
+  user_id: number;
+  user: InternalMessageUser | null;
+  subject: string;
+  created_by: number;
+  last_message_at: string;
+  unread_user: number;
+  unread_admin: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InternalMessage {
+  id: string;
+  thread_id: string;
+  sender_user_id: number;
+  sender: InternalMessageUser | null;
+  sender_role: "admin" | "user";
+  body: string;
+  created_at: string;
 }
 
 export type AssistantContextType = "general" | "case_study" | "project" | "profile" | "portfolio";

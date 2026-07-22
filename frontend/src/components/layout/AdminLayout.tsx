@@ -16,6 +16,7 @@ import {
   LayoutTemplate,
   LogOut,
   Mail,
+  MessageCircle,
   Menu,
   Palette,
   PlusCircle,
@@ -44,6 +45,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   media: Image,
   notifications: Bell,
   contact: Mail,
+  messages: MessageCircle,
   users: Users,
   employers: Building2,
   resume: FileText,
@@ -123,6 +125,7 @@ export function AdminLayout() {
   if (
     isEmployerPortal &&
     !location.pathname.startsWith("/admin/employer") &&
+    !location.pathname.startsWith("/admin/messages") &&
     !location.pathname.startsWith("/admin/billing") &&
     !location.pathname.startsWith("/admin/notifications") &&
     !location.pathname.startsWith("/admin/upgrade") &&

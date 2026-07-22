@@ -108,6 +108,7 @@ const CANDIDATE_GROUPS: NavGroup[] = [
     id: "account",
     label: "Account",
     links: [
+      { to: "/admin/messages", label: "Messages", section: "messages" },
       { to: "/admin/billing", label: "Billing", section: "billing" },
       { to: "/admin/notifications", label: "Notifications", section: "notifications" },
     ],
@@ -127,6 +128,7 @@ const EMPLOYER_GROUPS: NavGroup[] = [
     id: "account",
     label: "Account",
     links: [
+      { to: "/admin/messages", label: "Messages", section: "messages" },
       { to: "/admin/billing", label: "Billing", section: "billing" },
       { to: "/admin/notifications", label: "Notifications", section: "notifications" },
     ],

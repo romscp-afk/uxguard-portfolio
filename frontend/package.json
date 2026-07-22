@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
-    "test": "UXGUARD_TEST=1 node --test api/_lib/billing/billing.test.js api/_lib/resume/schema.test.js api/_lib/resume/extraction.test.js api/_lib/resume/quality-pdf.test.js api/_lib/career/schema.test.js api/_lib/hiring/match.test.js api/_lib/testlab/testlab.test.js",
+    "test": "UXGUARD_TEST=1 node --test api/_lib/billing/billing.test.js api/_lib/resume/schema.test.js api/_lib/resume/extraction.test.js api/_lib/resume/quality-pdf.test.js api/_lib/career/schema.test.js api/_lib/hiring/match.test.js api/_lib/testlab/testlab.test.js api/_lib/internal-messages/internal-messages.test.js",
     "testlab:worker": "node scripts/testlab-worker.mjs",
     "lint": "npm run typecheck"
   },
