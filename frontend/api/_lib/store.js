@@ -1134,29 +1134,28 @@ export async function writeStore(store) {
   const slot = getMemoryStore();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    const remote = slot.current || memoryStore || null;
-    const merged = remote ? mergeStoresForWrite(store, remote, deleted) : store;
-    // Apply tombstones / media clears locally (mirrors Blob merge behavior).
+    // Apply tombstones / media clears locally. Call signaling is in call-signals.js,
+    // so we do not re-merge the whole platform store against itself in memory mode.
     const cleaned = {
-      ...merged,
-      mediaAssets: mergeByNumericId(merged.mediaAssets || [], [], deleted.mediaAssets),
-      users: mergeUsersPreservingMedia(merged.users || [], merged.users || [], deleted.users),
-      follows: mergeFollows(merged.follows || [], [], deleted.follows),
-      likes: mergeLikes(merged.likes || [], [], deleted.likes),
-      comments: mergeByNumericId(merged.comments || [], [], deleted.comments),
-      notifications: mergeByNumericId(merged.notifications || [], [], deleted.notifications),
+      ...store,
+      mediaAssets: mergeByNumericId(store.mediaAssets || [], [], deleted.mediaAssets),
+      users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
+      follows: mergeFollows(store.follows || [], [], deleted.follows),
+      likes: mergeLikes(store.likes || [], [], deleted.likes),
+      comments: mergeByNumericId(store.comments || [], [], deleted.comments),
+      notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
       internal_message_threads: mergeByStringId(
-        merged.internal_message_threads || [],
+        store.internal_message_threads || [],
         [],
         deleted.internal_message_threads,
       ),
       internal_messages: mergeByStringId(
-        merged.internal_messages || [],
+        store.internal_messages || [],
         [],
         deleted.internal_messages,
       ),
       internal_call_sessions: mergeCallSessions(
-        merged.internal_call_sessions || [],
+        store.internal_call_sessions || [],
         [],
         deleted.internal_call_sessions,
       ),
@@ -1165,42 +1164,42 @@ export async function writeStore(store) {
         [],
         deleted.case_study_views,
       ),
-      resumes: mergeByNumericId(merged.resumes || [], [], deleted.resumes),
+      resumes: mergeByNumericId(store.resumes || [], [], deleted.resumes),
       career_profiles: mergeByNumericId(
-        merged.career_profiles || [],
+        store.career_profiles || [],
         [],
         deleted.career_profiles,
       ),
       career_timeline_entries: mergeByNumericId(
-        merged.career_timeline_entries || [],
+        store.career_timeline_entries || [],
         [],
         deleted.career_timeline_entries,
       ),
-      companies: mergeByNumericId(merged.companies || [], [], deleted.companies),
-      company_members: mergeByNumericId(merged.company_members || [], [], deleted.company_members),
-      jobs: mergeByNumericId(merged.jobs || [], [], deleted.jobs),
-      saved_jobs: mergeByNumericId(merged.saved_jobs || [], [], deleted.saved_jobs),
+      companies: mergeByNumericId(store.companies || [], [], deleted.companies),
+      company_members: mergeByNumericId(store.company_members || [], [], deleted.company_members),
+      jobs: mergeByNumericId(store.jobs || [], [], deleted.jobs),
+      saved_jobs: mergeByNumericId(store.saved_jobs || [], [], deleted.saved_jobs),
       job_applications: mergeByNumericId(
-        merged.job_applications || [],
+        store.job_applications || [],
         [],
         deleted.job_applications,
       ),
       application_stage_history: mergeByNumericId(
-        merged.application_stage_history || [],
+        store.application_stage_history || [],
         [],
         deleted.application_stage_history,
       ),
       application_internal_notes: mergeByNumericId(
-        merged.application_internal_notes || [],
+        store.application_internal_notes || [],
         [],
         deleted.application_internal_notes,
       ),
       employer_invitations: mergeByNumericId(
-        merged.employer_invitations || [],
+        store.employer_invitations || [],
         [],
         deleted.employer_invitations,
       ),
-      job_reports: mergeByNumericId(merged.job_reports || [], [], deleted.job_reports),
+      job_reports: mergeByNumericId(store.job_reports || [], [], deleted.job_reports),
     };
     memoryStore = cleaned;
     slot.current = cleaned;

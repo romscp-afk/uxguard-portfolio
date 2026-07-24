@@ -2,6 +2,13 @@ import { randomUUID } from "node:crypto";
 import { readStore, updateStore } from "../store.js";
 import { createNotification } from "../community.js";
 import { sendIncomingCallEmail } from "../mail.js";
+import {
+  emptyCallSignal,
+  normalizeCallSignal,
+  readCallSignal,
+  resetCallSignalsForTests as resetSignalStore,
+  updateCallSignal,
+} from "./call-signals.js";
 
 const RING_TIMEOUT_MS = 60_000;
 
@@ -47,25 +54,6 @@ function assertCallParticipant(call, userId) {
   }
 }
 
-function emptySignal() {
-  return {
-    version: 0,
-    offer: null,
-    answer: null,
-    ice: [],
-  };
-}
-
-function normalizeSignal(raw) {
-  if (!raw || typeof raw !== "object") return emptySignal();
-  return {
-    version: Number(raw.version) || 0,
-    offer: raw.offer || null,
-    answer: raw.answer || null,
-    ice: Array.isArray(raw.ice) ? raw.ice.slice(-60) : [],
-  };
-}
-
 function serializeCall(call, users = []) {
   return {
     id: call.id,
@@ -88,7 +76,7 @@ function serializeCall(call, users = []) {
 }
 
 export function resetCallSignalsForTests() {
-  // Signaling now lives on call sessions in the store; nothing separate to clear.
+  resetSignalStore();
 }
 
 export function getIceServers() {
@@ -222,7 +210,6 @@ export async function createCall(user, payload = {}) {
     callee_user_id: Number(calleeId),
     media: { audio, video },
     status: "ringing",
-    signal: emptySignal(),
     created_at: now,
     accepted_at: null,
     ended_at: null,
@@ -236,6 +223,9 @@ export async function createCall(user, payload = {}) {
     draft.internal_call_sessions.push(call);
     return draft;
   });
+
+  // Seed dedicated signaling blob (not platform store).
+  await updateCallSignal(call.id, () => emptyCallSignal());
 
   const callee = (store.users || []).find((u) => sameId(u.id, calleeId));
   const callerName = user.name || user.email || "Someone";
@@ -278,7 +268,12 @@ export async function getCall(user, callId, { since = 0 } = {}) {
   assertCallParticipant(call, user.id);
   call = await maybeMissCall(call);
 
-  const signal = normalizeSignal(call.signal);
+  // Prefer dedicated signal blob; fall back to legacy inline signal if present.
+  let signal = await readCallSignal(callId);
+  if (!signal.offer && !signal.answer && !(signal.ice || []).length && call.signal) {
+    signal = normalizeCallSignal(call.signal);
+  }
+
   const sinceVersion = Number(since) || 0;
   return {
     call: serializeCall(call, store.users || []),
@@ -330,7 +325,6 @@ export async function acceptCall(user, callId) {
       status: "accepted",
       accepted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      signal: normalizeSignal(latest.signal),
     };
     draft.internal_call_sessions[idx] = updated;
     return draft;
@@ -409,69 +403,69 @@ export async function postCallSignal(user, callId, payload = {}) {
   const hasOffer = payload.offer && typeof payload.offer === "object";
   const hasAnswer = payload.answer && typeof payload.answer === "object";
   const hasCandidate = payload.candidate && typeof payload.candidate === "object";
-  if (!hasOffer && !hasAnswer && !hasCandidate) {
+  const hasCandidates = Array.isArray(payload.candidates) && payload.candidates.length > 0;
+  if (!hasOffer && !hasAnswer && !hasCandidate && !hasCandidates) {
     throw httpError("Signal payload must include offer, answer, or candidate.");
   }
 
-  let savedSignal = emptySignal();
-  await updateStore(
-    (store) => {
-      ensureCollections(store);
-      const idx = store.internal_call_sessions.findIndex((c) => String(c.id) === String(callId));
-      if (idx === -1) throw httpError("Call not found.", 404, "CALL_NOT_FOUND");
-      const call = store.internal_call_sessions[idx];
-      assertCallParticipant(call, user.id);
-      if (["ended", "rejected", "missed", "failed"].includes(call.status)) {
-        throw httpError("Call has ended.", 409, "CALL_ENDED");
-      }
-      if (hasOffer && !sameId(call.caller_user_id, user.id)) {
-        throw httpError("Only the caller can send the offer.", 403, "CALL_FORBIDDEN");
-      }
-      if (hasAnswer && !sameId(call.callee_user_id, user.id)) {
-        throw httpError("Only the callee can send the answer.", 403, "CALL_FORBIDDEN");
-      }
+  // Validate call ownership/status from platform store (metadata only).
+  const store = ensureCollections(await readStore({ forceRefresh: true }));
+  const call = store.internal_call_sessions.find((c) => String(c.id) === String(callId));
+  if (!call) throw httpError("Call not found.", 404, "CALL_NOT_FOUND");
+  assertCallParticipant(call, user.id);
+  if (["ended", "rejected", "missed", "failed"].includes(call.status)) {
+    throw httpError("Call has ended.", 409, "CALL_ENDED");
+  }
+  if (hasOffer && !sameId(call.caller_user_id, user.id)) {
+    throw httpError("Only the caller can send the offer.", 403, "CALL_FORBIDDEN");
+  }
+  if (hasAnswer && !sameId(call.callee_user_id, user.id)) {
+    throw httpError("Only the callee can send the answer.", 403, "CALL_FORBIDDEN");
+  }
 
-      const signal = normalizeSignal(call.signal);
-      const nextVersion = (Number(signal.version) || 0) + 1;
-      if (hasOffer) {
-        signal.offer = {
-          type: payload.offer.type,
-          sdp: payload.offer.sdp,
+  const savedSignal = await updateCallSignal(callId, (signal) => {
+    const nextVersion = (Number(signal.version) || 0) + 1;
+    if (hasOffer) {
+      signal.offer = {
+        type: payload.offer.type,
+        sdp: payload.offer.sdp,
+        from_user_id: Number(user.id),
+        version: nextVersion,
+        created_at: new Date().toISOString(),
+      };
+    }
+    if (hasAnswer) {
+      signal.answer = {
+        type: payload.answer.type,
+        sdp: payload.answer.sdp,
+        from_user_id: Number(user.id),
+        version: nextVersion,
+        created_at: new Date().toISOString(),
+      };
+    }
+    const candidates = [];
+    if (hasCandidate) candidates.push(payload.candidate);
+    if (hasCandidates) {
+      for (const item of payload.candidates) {
+        if (item && typeof item === "object") candidates.push(item);
+      }
+    }
+    if (candidates.length) {
+      signal.ice = [
+        ...(signal.ice || []),
+        ...candidates.map((candidate, index) => ({
+          id: randomUUID(),
           from_user_id: Number(user.id),
-          version: nextVersion,
+          candidate,
+          version: nextVersion + index,
           created_at: new Date().toISOString(),
-        };
-      }
-      if (hasAnswer) {
-        signal.answer = {
-          type: payload.answer.type,
-          sdp: payload.answer.sdp,
-          from_user_id: Number(user.id),
-          version: nextVersion,
-          created_at: new Date().toISOString(),
-        };
-      }
-      if (hasCandidate) {
-        signal.ice = [
-          ...(signal.ice || []),
-          {
-            id: randomUUID(),
-            from_user_id: Number(user.id),
-            candidate: payload.candidate,
-            version: nextVersion,
-            created_at: new Date().toISOString(),
-          },
-        ].slice(-60);
-      }
-      signal.version = nextVersion;
-      call.signal = signal;
-      call.updated_at = new Date().toISOString();
-      store.internal_call_sessions[idx] = call;
-      savedSignal = signal;
-      return store;
-    },
-    { forceRefresh: true },
-  );
+        })),
+      ].slice(-80);
+    }
+    signal.version = nextVersion + Math.max(0, candidates.length - 1);
+    signal.updated_at = new Date().toISOString();
+    return signal;
+  });
 
   return {
     version: savedSignal.version,
