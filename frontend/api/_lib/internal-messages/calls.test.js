@@ -90,3 +90,28 @@ test("caller and callee can ring, accept, exchange signals, and hang up", async 
     false,
   );
 });
+
+test("starting a new call replaces a stuck in-progress call", async () => {
+  resetMemoryStoreForTests();
+  resetCallSignalsForTests();
+  const initial = await readStore();
+  const members = initial.users.filter((user) => user.email);
+  const a = members[0];
+  const b = members[1];
+
+  const thread = await createInternalThread(a, {
+    recipient_user_id: b.id,
+    body: "call again",
+  });
+
+  const first = await createCall(a, { thread_id: thread.thread.id, video: false });
+  assert.equal(first.call.status, "ringing");
+
+  const second = await createCall(a, { thread_id: thread.thread.id, video: true });
+  assert.equal(second.call.status, "ringing");
+  assert.notEqual(second.call.id, first.call.id);
+
+  const active = await listActiveCalls(a);
+  assert.equal(active.calls.filter((call) => call.thread_id === thread.thread.id).length, 1);
+  assert.equal(active.calls[0].id, second.call.id);
+});

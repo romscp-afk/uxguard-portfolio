@@ -88,6 +88,8 @@ function mergeSignals(remoteRaw, localRaw) {
 
 /** In-memory fallback for tests / local without Blob token. */
 const memorySignals = new Map();
+/** Last-known good signal per call — never treat Blob 304 as empty. */
+const lastKnownSignals = new Map();
 const memoryLocks = new Map();
 
 async function withMemoryLock(callId, fn) {
@@ -110,12 +112,17 @@ async function withMemoryLock(callId, fn) {
   }
 }
 
+function rememberSignal(callId, signal) {
+  const normalized = normalizeCallSignal(signal);
+  lastKnownSignals.set(String(callId), normalized);
+  return normalized;
+}
+
 async function readSignalBlob(callId) {
+  const key = String(callId);
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return {
-      data: memorySignals.get(String(callId)) || emptyCallSignal(),
-      etag: null,
-    };
+    const data = memorySignals.get(key) || emptyCallSignal();
+    return { data, etag: null };
   }
 
   const pathname = signalPath(callId);
@@ -138,16 +145,39 @@ async function readSignalBlob(callId) {
     if (!result || result.statusCode === 404) {
       return { data: emptyCallSignal(), etag: null };
     }
+
+    // 304 must NOT clear signaling — that left both peers stuck on "Connecting…".
     if (result.statusCode === 304) {
-      return { data: emptyCallSignal(), etag };
+      const cached = lastKnownSignals.get(key);
+      if (cached) return { data: cached, etag };
+      // Force a fresh body read once more without relying on conditional cache.
+      await sleep(40);
+      const retry = await get(pathname, {
+        access: "private",
+        useCache: false,
+        headers: {
+          "Cache-Control": "no-cache, no-store",
+          Pragma: "no-cache",
+        },
+      });
+      if (retry?.statusCode === 200 && retry.stream) {
+        const text = await new Response(retry.stream).text();
+        const raw = text ? JSON.parse(text) : emptyCallSignal();
+        return {
+          data: rememberSignal(callId, raw),
+          etag: retry.blob?.etag || etag,
+        };
+      }
+      return { data: cached || emptyCallSignal(), etag };
     }
+
     if (result.statusCode !== 200 || !result.stream) {
-      return { data: emptyCallSignal(), etag };
+      return { data: lastKnownSignals.get(key) || emptyCallSignal(), etag };
     }
     const text = await new Response(result.stream).text();
     const raw = text ? JSON.parse(text) : emptyCallSignal();
     return {
-      data: normalizeCallSignal(raw),
+      data: rememberSignal(callId, raw),
       etag: result.blob?.etag || etag,
     };
   } catch (error) {
@@ -158,11 +188,14 @@ async function readSignalBlob(callId) {
 
 async function writeSignalBlob(callId, signal, etag) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    memorySignals.set(String(callId), normalizeCallSignal(signal));
-    return memorySignals.get(String(callId));
+    const normalized = normalizeCallSignal(signal);
+    memorySignals.set(String(callId), normalized);
+    rememberSignal(callId, normalized);
+    return normalized;
   }
 
   const pathname = signalPath(callId);
+  const normalized = normalizeCallSignal(signal);
   const options = {
     access: "private",
     addRandomSuffix: false,
@@ -170,8 +203,9 @@ async function writeSignalBlob(callId, signal, etag) {
     contentType: "application/json",
   };
   if (etag) options.ifMatch = etag;
-  await put(pathname, JSON.stringify(normalizeCallSignal(signal)), options);
-  return signal;
+  await put(pathname, JSON.stringify(normalized), options);
+  rememberSignal(callId, normalized);
+  return normalized;
 }
 
 export async function readCallSignal(callId) {
@@ -191,6 +225,7 @@ export async function updateCallSignal(callId, mutator) {
       const next = mutator(draft) || draft;
       const merged = mergeSignals(remote, next);
       memorySignals.set(String(callId), merged);
+      rememberSignal(callId, merged);
       return merged;
     });
   }
@@ -222,4 +257,5 @@ export async function updateCallSignal(callId, mutator) {
 
 export function resetCallSignalsForTests() {
   memorySignals.clear();
+  lastKnownSignals.clear();
 }

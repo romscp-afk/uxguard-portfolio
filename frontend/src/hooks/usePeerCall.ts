@@ -75,6 +75,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
   const pollRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
   const connectedOnceRef = useRef(false);
+  const connectWatchdogRef = useRef<number | null>(null);
   const iceServersRef = useRef<RTCIceServer[]>([
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
@@ -111,10 +112,18 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     }
   }, []);
 
+  const clearConnectWatchdog = useCallback(() => {
+    if (connectWatchdogRef.current) {
+      window.clearTimeout(connectWatchdogRef.current);
+      connectWatchdogRef.current = null;
+    }
+  }, []);
+
   const cleanupMedia = useCallback(() => {
     stopPolling();
     stopTimer();
     stopIceFlush();
+    clearConnectWatchdog();
     pcRef.current?.close();
     pcRef.current = null;
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -136,7 +145,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     syncingRef.current = false;
     resyncQueuedRef.current = false;
     connectedOnceRef.current = false;
-  }, [stopIceFlush, stopPolling, stopTimer]);
+  }, [clearConnectWatchdog, stopIceFlush, stopPolling, stopTimer]);
 
   const endCallUi = useCallback(() => {
     cleanupMedia();
@@ -172,6 +181,21 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     },
     [onError],
   );
+
+  const armConnectWatchdog = useCallback(() => {
+    clearConnectWatchdog();
+    connectWatchdogRef.current = window.setTimeout(() => {
+      if (phaseRef.current === "connecting" || phaseRef.current === "outgoing") {
+        reportError(
+          new Error("Call timed out while connecting"),
+          "Call could not connect. Please try again.",
+        );
+        const callId = callIdRef.current || activeCallRef.current?.id;
+        endCallUi();
+        if (callId) void api.callAction(callId, "hangup").catch(() => undefined);
+      }
+    }, 45_000);
+  }, [clearConnectWatchdog, endCallUi, reportError]);
 
   const flushPendingRemoteIce = useCallback(async (pc: RTCPeerConnection) => {
     if (!pc.remoteDescription) return;
@@ -212,6 +236,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       return;
     }
     connectedOnceRef.current = true;
+    clearConnectWatchdog();
     setPhaseSafe("connected");
     const id = callIdRef.current;
     if (id) void api.callAction(id, "connected").catch(() => undefined);
@@ -222,7 +247,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       }, 1000);
     }
     attachRemoteVideo();
-  }, [attachRemoteVideo, setPhaseSafe]);
+  }, [attachRemoteVideo, clearConnectWatchdog, setPhaseSafe]);
 
   const ensurePeer = useCallback(
     async (call: InternalCallSession, iceServers?: RTCIceServer[]) => {
@@ -310,7 +335,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       }
       syncingRef.current = true;
       try {
-        const snapshot = await api.getCall(call.id, signalVersionRef.current);
+        const snapshot = await api.getCall(call.id, 0);
         if (snapshot.ice_servers?.length) iceServersRef.current = snapshot.ice_servers;
 
         if (isTerminalStatus(snapshot.call.status)) {
@@ -357,26 +382,26 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         const pc = await ensurePeer(mergedCall, snapshot.ice_servers);
         const { signal } = snapshot;
 
-        // Caller: create + publish offer once accepted.
-        if (isCaller && !offerMadeRef.current) {
-          if (!pc.localDescription || pc.localDescription.type !== "offer") {
-            const offer = await pc.createOffer({
-              offerToReceiveAudio: true,
-              offerToReceiveVideo: Boolean(mergedCall.media.video),
+        // Caller: create + publish offer once accepted. Re-publish if server lost it.
+        if (isCaller) {
+          const needOffer = !offerMadeRef.current || !signal.offer;
+          if (needOffer) {
+            if (!pc.localDescription || pc.localDescription.type !== "offer") {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+            }
+            await api.callAction(call.id, "signal", {
+              offer: {
+                type: pc.localDescription!.type,
+                sdp: pc.localDescription!.sdp,
+              },
             });
-            await pc.setLocalDescription(offer);
+            offerMadeRef.current = true;
+            await flushLocalIceNow();
           }
-          await api.callAction(call.id, "signal", {
-            offer: {
-              type: pc.localDescription!.type,
-              sdp: pc.localDescription!.sdp,
-            },
-          });
-          offerMadeRef.current = true;
-          await flushLocalIceNow();
         }
 
-        // Callee: apply remote offer, create answer.
+        // Callee: apply remote offer, create answer. Re-publish answer if missing.
         if (!isCaller && signal.offer) {
           if (!remoteOfferAppliedRef.current) {
             await pc.setRemoteDescription({
@@ -387,7 +412,8 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
             await flushPendingRemoteIce(pc);
           }
 
-          if (!answerMadeRef.current) {
+          const needAnswer = !answerMadeRef.current || !signal.answer;
+          if (needAnswer) {
             if (!pc.localDescription || pc.localDescription.type !== "answer") {
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
@@ -498,6 +524,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         setPhaseSafe("outgoing");
         setMuted(false);
         await ensurePeer(result.call, result.ice_servers);
+        armConnectWatchdog();
         startPolling(result.call, true, 350);
       } catch (err) {
         endCallUi();
@@ -506,7 +533,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         setBusyAction(false);
       }
     },
-    [cleanupMedia, endCallUi, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
+    [armConnectWatchdog, cleanupMedia, endCallUi, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
   );
 
   const acceptIncoming = useCallback(async () => {
@@ -537,6 +564,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       setActiveCallSafe(next);
       setCameraOff(!next.media.video || !localStreamRef.current?.getVideoTracks().length);
       if (result.ice_servers?.length) iceServersRef.current = result.ice_servers;
+      armConnectWatchdog();
       startPolling(next, false, 300);
       await applySignals(next, false);
     } catch (err) {
@@ -552,6 +580,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
     }
   }, [
     applySignals,
+    armConnectWatchdog,
     busyAction,
     ensurePeer,
     reportError,

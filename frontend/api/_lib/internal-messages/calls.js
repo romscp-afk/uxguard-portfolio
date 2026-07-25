@@ -11,6 +11,59 @@ import {
 } from "./call-signals.js";
 
 const RING_TIMEOUT_MS = 60_000;
+const CONNECTING_TIMEOUT_MS = 90_000;
+const CONNECTED_STALE_MS = 30 * 60_000;
+
+function callAgeMs(call) {
+  const anchor = call.updated_at || call.accepted_at || call.created_at;
+  const age = Date.now() - Date.parse(anchor);
+  return Number.isFinite(age) ? age : 0;
+}
+
+async function forceEndCallRecord(call, reason = "timeout") {
+  let updated = call;
+  await updateStore((store) => {
+    ensureCollections(store);
+    const idx = store.internal_call_sessions.findIndex((c) => String(c.id) === String(call.id));
+    if (idx === -1) {
+      store.__uxguardSkipWrite = true;
+      return store;
+    }
+    const current = store.internal_call_sessions[idx];
+    if (["ended", "rejected", "missed", "failed"].includes(current.status)) {
+      store.__uxguardSkipWrite = true;
+      updated = current;
+      return store;
+    }
+    updated = {
+      ...current,
+      status: reason === "reject" ? "rejected" : reason === "replaced" ? "ended" : "missed",
+      ended_at: new Date().toISOString(),
+      end_reason: reason,
+      updated_at: new Date().toISOString(),
+    };
+    store.internal_call_sessions[idx] = updated;
+    return store;
+  });
+  return updated;
+}
+
+async function maybeExpireCall(call) {
+  if (!["ringing", "accepted", "connected"].includes(call.status)) return call;
+  const age = callAgeMs(call);
+
+  if (call.status === "ringing" && age >= RING_TIMEOUT_MS) {
+    return forceEndCallRecord(call, "timeout");
+  }
+  // Accepted but never fully connected — clear so users can call again.
+  if (call.status === "accepted" && age >= CONNECTING_TIMEOUT_MS) {
+    return forceEndCallRecord(call, "timeout");
+  }
+  if (call.status === "connected" && age >= CONNECTED_STALE_MS) {
+    return forceEndCallRecord(call, "timeout");
+  }
+  return call;
+}
 
 function httpError(message, status = 400, code = "CALL_ERROR") {
   const error = new Error(message);
@@ -83,6 +136,7 @@ export function getIceServers() {
   const servers = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun.cloudflare.com:3478" },
   ];
 
   const turnUrls = String(process.env.TURN_URLS || "")
@@ -92,27 +146,36 @@ export function getIceServers() {
 
   if (turnUrls.length) {
     servers.push({
-      urls: turnUrls,
+      urls: turnUrls.length === 1 ? turnUrls[0] : turnUrls,
       username: process.env.TURN_USERNAME || undefined,
       credential: process.env.TURN_CREDENTIAL || undefined,
     });
-  } else {
-    // Public Open Relay TURN so calls work across strict NATs without custom env.
+  }
+
+  // Optional Metered TURN credentials (static openrelayproject auth no longer works).
+  const meteredUser = process.env.METERED_TURN_USERNAME || process.env.TURN_USERNAME;
+  const meteredPass = process.env.METERED_TURN_CREDENTIAL || process.env.TURN_CREDENTIAL;
+  if (meteredUser && meteredPass && !turnUrls.length) {
     servers.push(
       {
-        urls: "turn:openrelay.metered.ca:80",
-        username: "openrelayproject",
-        credential: "openrelayproject",
+        urls: "turn:a.relay.metered.ca:80",
+        username: meteredUser,
+        credential: meteredPass,
       },
       {
-        urls: "turn:openrelay.metered.ca:443",
-        username: "openrelayproject",
-        credential: "openrelayproject",
+        urls: "turn:a.relay.metered.ca:80?transport=tcp",
+        username: meteredUser,
+        credential: meteredPass,
       },
       {
-        urls: "turn:openrelay.metered.ca:443?transport=tcp",
-        username: "openrelayproject",
-        credential: "openrelayproject",
+        urls: "turn:a.relay.metered.ca:443",
+        username: meteredUser,
+        credential: meteredPass,
+      },
+      {
+        urls: "turns:a.relay.metered.ca:443?transport=tcp",
+        username: meteredUser,
+        credential: meteredPass,
       },
     );
   }
@@ -125,34 +188,7 @@ async function findThread(store, threadId) {
 }
 
 async function maybeMissCall(call) {
-  if (call.status !== "ringing") return call;
-  const age = Date.now() - Date.parse(call.created_at);
-  if (!Number.isFinite(age) || age < RING_TIMEOUT_MS) return call;
-
-  let updated = call;
-  await updateStore((store) => {
-    ensureCollections(store);
-    const idx = store.internal_call_sessions.findIndex((c) => String(c.id) === String(call.id));
-    if (idx === -1) {
-      store.__uxguardSkipWrite = true;
-      return store;
-    }
-    const current = store.internal_call_sessions[idx];
-    if (current.status !== "ringing") {
-      store.__uxguardSkipWrite = true;
-      updated = current;
-      return store;
-    }
-    updated = {
-      ...current,
-      status: "missed",
-      ended_at: new Date().toISOString(),
-      end_reason: "timeout",
-    };
-    store.internal_call_sessions[idx] = updated;
-    return store;
-  });
-  return updated;
+  return maybeExpireCall(call);
 }
 
 export async function listActiveCalls(user) {
@@ -196,9 +232,10 @@ export async function createCall(user, payload = {}) {
       (sameId(call.caller_user_id, user.id) || sameId(call.callee_user_id, user.id)),
   );
   if (existing) {
-    const current = await maybeMissCall(existing);
+    const current = await maybeExpireCall(existing);
     if (["ringing", "accepted", "connected"].includes(current.status)) {
-      throw httpError("A call is already in progress for this chat.", 409, "CALL_IN_PROGRESS");
+      // Replace stuck / previous call so users are never locked out of retrying.
+      await forceEndCallRecord(current, "replaced");
     }
   }
 
