@@ -2,69 +2,12 @@ import { randomUUID } from "node:crypto";
 import { readStore, updateStore } from "../store.js";
 import { createNotification } from "../community.js";
 import { sendIncomingCallEmail } from "../mail.js";
-import {
-  emptyCallSignal,
-  normalizeCallSignal,
-  readCallSignal,
-  resetCallSignalsForTests as resetSignalStore,
-  updateCallSignal,
-} from "./call-signals.js";
+import { emptyCallSignal, normalizeCallSignal } from "./call-signals.js";
 import { getIceServers } from "./ice-servers.js";
 
 const RING_TIMEOUT_MS = 60_000;
 const CONNECTING_TIMEOUT_MS = 90_000;
 const CONNECTED_STALE_MS = 30 * 60_000;
-
-function callAgeMs(call) {
-  const anchor = call.updated_at || call.accepted_at || call.created_at;
-  const age = Date.now() - Date.parse(anchor);
-  return Number.isFinite(age) ? age : 0;
-}
-
-async function forceEndCallRecord(call, reason = "timeout") {
-  let updated = call;
-  await updateStore((store) => {
-    ensureCollections(store);
-    const idx = store.internal_call_sessions.findIndex((c) => String(c.id) === String(call.id));
-    if (idx === -1) {
-      store.__uxguardSkipWrite = true;
-      return store;
-    }
-    const current = store.internal_call_sessions[idx];
-    if (["ended", "rejected", "missed", "failed"].includes(current.status)) {
-      store.__uxguardSkipWrite = true;
-      updated = current;
-      return store;
-    }
-    updated = {
-      ...current,
-      status: reason === "reject" ? "rejected" : reason === "replaced" ? "ended" : "missed",
-      ended_at: new Date().toISOString(),
-      end_reason: reason,
-      updated_at: new Date().toISOString(),
-    };
-    store.internal_call_sessions[idx] = updated;
-    return store;
-  });
-  return updated;
-}
-
-async function maybeExpireCall(call) {
-  if (!["ringing", "accepted", "connected"].includes(call.status)) return call;
-  const age = callAgeMs(call);
-
-  if (call.status === "ringing" && age >= RING_TIMEOUT_MS) {
-    return forceEndCallRecord(call, "timeout");
-  }
-  // Accepted but never fully connected — clear so users can call again.
-  if (call.status === "accepted" && age >= CONNECTING_TIMEOUT_MS) {
-    return forceEndCallRecord(call, "timeout");
-  }
-  if (call.status === "connected" && age >= CONNECTED_STALE_MS) {
-    return forceEndCallRecord(call, "timeout");
-  }
-  return call;
-}
 
 function httpError(message, status = 400, code = "CALL_ERROR") {
   const error = new Error(message);
@@ -130,17 +73,67 @@ function serializeCall(call, users = []) {
 }
 
 export function resetCallSignalsForTests() {
-  resetSignalStore();
+  // Signaling lives on call sessions in the platform store.
 }
 
 export { getIceServers };
 
-async function findThread(store, threadId) {
-  return (store.internal_message_threads || []).find((t) => String(t.id) === String(threadId)) || null;
+function callAgeMs(call) {
+  const anchor = call.updated_at || call.accepted_at || call.created_at;
+  const age = Date.now() - Date.parse(anchor);
+  return Number.isFinite(age) ? age : 0;
+}
+
+async function forceEndCallRecord(call, reason = "timeout") {
+  let updated = call;
+  await updateStore((store) => {
+    ensureCollections(store);
+    const idx = store.internal_call_sessions.findIndex((c) => String(c.id) === String(call.id));
+    if (idx === -1) {
+      store.__uxguardSkipWrite = true;
+      return store;
+    }
+    const current = store.internal_call_sessions[idx];
+    if (["ended", "rejected", "missed", "failed"].includes(current.status)) {
+      store.__uxguardSkipWrite = true;
+      updated = current;
+      return store;
+    }
+    updated = {
+      ...current,
+      status: reason === "reject" ? "rejected" : reason === "replaced" ? "ended" : "missed",
+      ended_at: new Date().toISOString(),
+      end_reason: reason,
+      updated_at: new Date().toISOString(),
+    };
+    store.internal_call_sessions[idx] = updated;
+    return store;
+  });
+  return updated;
+}
+
+async function maybeExpireCall(call) {
+  if (!["ringing", "accepted", "connected"].includes(call.status)) return call;
+  const age = callAgeMs(call);
+
+  if (call.status === "ringing" && age >= RING_TIMEOUT_MS) {
+    return forceEndCallRecord(call, "timeout");
+  }
+  if (call.status === "accepted" && age >= CONNECTING_TIMEOUT_MS) {
+    return forceEndCallRecord(call, "timeout");
+  }
+  if (call.status === "connected" && age >= CONNECTED_STALE_MS) {
+    return forceEndCallRecord(call, "timeout");
+  }
+  return call;
 }
 
 async function maybeMissCall(call) {
   return maybeExpireCall(call);
+}
+
+async function findThread(store, threadId) {
+  return (store.internal_message_threads || []).find((t) => String(t.id) === String(threadId)) || null;
 }
 
 export async function listActiveCalls(user) {
@@ -186,7 +179,6 @@ export async function createCall(user, payload = {}) {
   if (existing) {
     const current = await maybeExpireCall(existing);
     if (["ringing", "accepted", "connected"].includes(current.status)) {
-      // Replace stuck / previous call so users are never locked out of retrying.
       await forceEndCallRecord(current, "replaced");
     }
   }
@@ -199,6 +191,8 @@ export async function createCall(user, payload = {}) {
     callee_user_id: Number(calleeId),
     media: { audio, video },
     status: "ringing",
+    // Use the existing platform store blob — no separate call-signals blob required.
+    signal: emptyCallSignal(),
     created_at: now,
     accepted_at: null,
     ended_at: null,
@@ -212,9 +206,6 @@ export async function createCall(user, payload = {}) {
     draft.internal_call_sessions.push(call);
     return draft;
   });
-
-  // Seed dedicated signaling blob (not platform store).
-  await updateCallSignal(call.id, () => emptyCallSignal());
 
   const callee = (store.users || []).find((u) => sameId(u.id, calleeId));
   const callerName = user.name || user.email || "Someone";
@@ -257,12 +248,7 @@ export async function getCall(user, callId, { since = 0 } = {}) {
   assertCallParticipant(call, user.id);
   call = await maybeMissCall(call);
 
-  // Prefer dedicated signal blob; fall back to legacy inline signal if present.
-  let signal = await readCallSignal(callId);
-  if (!signal.offer && !signal.answer && !(signal.ice || []).length && call.signal) {
-    signal = normalizeCallSignal(call.signal);
-  }
-
+  const signal = normalizeCallSignal(call.signal);
   const sinceVersion = Number(since) || 0;
   return {
     call: serializeCall(call, store.users || []),
@@ -314,6 +300,7 @@ export async function acceptCall(user, callId) {
       status: "accepted",
       accepted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      signal: normalizeCallSignal(latest.signal),
     };
     draft.internal_call_sessions[idx] = updated;
     return draft;
@@ -397,64 +384,73 @@ export async function postCallSignal(user, callId, payload = {}) {
     throw httpError("Signal payload must include offer, answer, or candidate.");
   }
 
-  // Validate call ownership/status from platform store (metadata only).
-  const store = ensureCollections(await readStore({ forceRefresh: true }));
-  const call = store.internal_call_sessions.find((c) => String(c.id) === String(callId));
-  if (!call) throw httpError("Call not found.", 404, "CALL_NOT_FOUND");
-  assertCallParticipant(call, user.id);
-  if (["ended", "rejected", "missed", "failed"].includes(call.status)) {
-    throw httpError("Call has ended.", 409, "CALL_ENDED");
-  }
-  if (hasOffer && !sameId(call.caller_user_id, user.id)) {
-    throw httpError("Only the caller can send the offer.", 403, "CALL_FORBIDDEN");
-  }
-  if (hasAnswer && !sameId(call.callee_user_id, user.id)) {
-    throw httpError("Only the callee can send the answer.", 403, "CALL_FORBIDDEN");
-  }
-
-  const savedSignal = await updateCallSignal(callId, (signal) => {
-    const nextVersion = (Number(signal.version) || 0) + 1;
-    if (hasOffer) {
-      signal.offer = {
-        type: payload.offer.type,
-        sdp: payload.offer.sdp,
-        from_user_id: Number(user.id),
-        version: nextVersion,
-        created_at: new Date().toISOString(),
-      };
-    }
-    if (hasAnswer) {
-      signal.answer = {
-        type: payload.answer.type,
-        sdp: payload.answer.sdp,
-        from_user_id: Number(user.id),
-        version: nextVersion,
-        created_at: new Date().toISOString(),
-      };
-    }
-    const candidates = [];
-    if (hasCandidate) candidates.push(payload.candidate);
-    if (hasCandidates) {
-      for (const item of payload.candidates) {
-        if (item && typeof item === "object") candidates.push(item);
+  let savedSignal = emptyCallSignal();
+  await updateStore(
+    (store) => {
+      ensureCollections(store);
+      const idx = store.internal_call_sessions.findIndex((c) => String(c.id) === String(callId));
+      if (idx === -1) throw httpError("Call not found.", 404, "CALL_NOT_FOUND");
+      const call = store.internal_call_sessions[idx];
+      assertCallParticipant(call, user.id);
+      if (["ended", "rejected", "missed", "failed"].includes(call.status)) {
+        throw httpError("Call has ended.", 409, "CALL_ENDED");
       }
-    }
-    if (candidates.length) {
-      signal.ice = [
-        ...(signal.ice || []),
-        ...candidates.map((candidate, index) => ({
-          id: randomUUID(),
+      if (hasOffer && !sameId(call.caller_user_id, user.id)) {
+        throw httpError("Only the caller can send the offer.", 403, "CALL_FORBIDDEN");
+      }
+      if (hasAnswer && !sameId(call.callee_user_id, user.id)) {
+        throw httpError("Only the callee can send the answer.", 403, "CALL_FORBIDDEN");
+      }
+
+      const signal = normalizeCallSignal(call.signal);
+      const nextVersion = (Number(signal.version) || 0) + 1;
+      if (hasOffer) {
+        signal.offer = {
+          type: payload.offer.type,
+          sdp: payload.offer.sdp,
           from_user_id: Number(user.id),
-          candidate,
-          version: nextVersion + index,
+          version: nextVersion,
           created_at: new Date().toISOString(),
-        })),
-      ].slice(-80);
-    }
-    signal.version = nextVersion + Math.max(0, candidates.length - 1);
-    signal.updated_at = new Date().toISOString();
-    return signal;
-  });
+        };
+      }
+      if (hasAnswer) {
+        signal.answer = {
+          type: payload.answer.type,
+          sdp: payload.answer.sdp,
+          from_user_id: Number(user.id),
+          version: nextVersion,
+          created_at: new Date().toISOString(),
+        };
+      }
+      const candidates = [];
+      if (hasCandidate) candidates.push(payload.candidate);
+      if (hasCandidates) {
+        for (const item of payload.candidates) {
+          if (item && typeof item === "object") candidates.push(item);
+        }
+      }
+      if (candidates.length) {
+        signal.ice = [
+          ...(signal.ice || []),
+          ...candidates.map((candidate, index) => ({
+            id: randomUUID(),
+            from_user_id: Number(user.id),
+            candidate,
+            version: nextVersion + index,
+            created_at: new Date().toISOString(),
+          })),
+        ].slice(-80);
+      }
+      signal.version = nextVersion + Math.max(0, candidates.length - 1);
+      signal.updated_at = new Date().toISOString();
+      call.signal = signal;
+      call.updated_at = new Date().toISOString();
+      store.internal_call_sessions[idx] = call;
+      savedSignal = signal;
+      return store;
+    },
+    { forceRefresh: true },
+  );
 
   return {
     version: savedSignal.version,

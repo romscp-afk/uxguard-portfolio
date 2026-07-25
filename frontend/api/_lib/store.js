@@ -216,6 +216,16 @@ export const portfolioSettings = {
 };
 
 let memoryStore = null;
+let memoryWriteChain = Promise.resolve();
+
+function withMemoryWriteLock(fn) {
+  const run = memoryWriteChain.then(fn, fn);
+  memoryWriteChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
 
 function getMemoryStore() {
   // Share across Vite SSR module instances in the same Node process
@@ -1134,77 +1144,80 @@ export async function writeStore(store) {
   const slot = getMemoryStore();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    // Apply tombstones / media clears locally. Call signaling is in call-signals.js,
-    // so we do not re-merge the whole platform store against itself in memory mode.
-    const cleaned = {
-      ...store,
-      mediaAssets: mergeByNumericId(store.mediaAssets || [], [], deleted.mediaAssets),
-      users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
-      follows: mergeFollows(store.follows || [], [], deleted.follows),
-      likes: mergeLikes(store.likes || [], [], deleted.likes),
-      comments: mergeByNumericId(store.comments || [], [], deleted.comments),
-      notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
-      internal_message_threads: mergeByStringId(
-        store.internal_message_threads || [],
-        [],
-        deleted.internal_message_threads,
-      ),
-      internal_messages: mergeByStringId(
-        store.internal_messages || [],
-        [],
-        deleted.internal_messages,
-      ),
-      internal_call_sessions: mergeCallSessions(
-        store.internal_call_sessions || [],
-        [],
-        deleted.internal_call_sessions,
-      ),
-      case_study_views: mergeCaseStudyViews(
-        store.case_study_views || [],
-        [],
-        deleted.case_study_views,
-      ),
-      resumes: mergeByNumericId(store.resumes || [], [], deleted.resumes),
-      career_profiles: mergeByNumericId(
-        store.career_profiles || [],
-        [],
-        deleted.career_profiles,
-      ),
-      career_timeline_entries: mergeByNumericId(
-        store.career_timeline_entries || [],
-        [],
-        deleted.career_timeline_entries,
-      ),
-      companies: mergeByNumericId(store.companies || [], [], deleted.companies),
-      company_members: mergeByNumericId(store.company_members || [], [], deleted.company_members),
-      jobs: mergeByNumericId(store.jobs || [], [], deleted.jobs),
-      saved_jobs: mergeByNumericId(store.saved_jobs || [], [], deleted.saved_jobs),
-      job_applications: mergeByNumericId(
-        store.job_applications || [],
-        [],
-        deleted.job_applications,
-      ),
-      application_stage_history: mergeByNumericId(
-        store.application_stage_history || [],
-        [],
-        deleted.application_stage_history,
-      ),
-      application_internal_notes: mergeByNumericId(
-        store.application_internal_notes || [],
-        [],
-        deleted.application_internal_notes,
-      ),
-      employer_invitations: mergeByNumericId(
-        store.employer_invitations || [],
-        [],
-        deleted.employer_invitations,
-      ),
-      job_reports: mergeByNumericId(store.job_reports || [], [], deleted.job_reports),
-    };
-    memoryStore = cleaned;
-    slot.current = cleaned;
-    slot.writtenAt = Date.now();
-    return cleaned;
+    return withMemoryWriteLock(async () => {
+      // Merge call sessions against the latest in-memory store so concurrent
+      // offer/answer/ICE writes don't wipe each other in tests/local.
+      const latest = slot.current || memoryStore || null;
+      const cleaned = {
+        ...store,
+        mediaAssets: mergeByNumericId(store.mediaAssets || [], [], deleted.mediaAssets),
+        users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
+        follows: mergeFollows(store.follows || [], [], deleted.follows),
+        likes: mergeLikes(store.likes || [], [], deleted.likes),
+        comments: mergeByNumericId(store.comments || [], [], deleted.comments),
+        notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
+        internal_message_threads: mergeByStringId(
+          store.internal_message_threads || [],
+          [],
+          deleted.internal_message_threads,
+        ),
+        internal_messages: mergeByStringId(
+          store.internal_messages || [],
+          [],
+          deleted.internal_messages,
+        ),
+        internal_call_sessions: mergeCallSessions(
+          latest?.internal_call_sessions || [],
+          store.internal_call_sessions || [],
+          deleted.internal_call_sessions,
+        ),
+        case_study_views: mergeCaseStudyViews(
+          store.case_study_views || [],
+          [],
+          deleted.case_study_views,
+        ),
+        resumes: mergeByNumericId(store.resumes || [], [], deleted.resumes),
+        career_profiles: mergeByNumericId(
+          store.career_profiles || [],
+          [],
+          deleted.career_profiles,
+        ),
+        career_timeline_entries: mergeByNumericId(
+          store.career_timeline_entries || [],
+          [],
+          deleted.career_timeline_entries,
+        ),
+        companies: mergeByNumericId(store.companies || [], [], deleted.companies),
+        company_members: mergeByNumericId(store.company_members || [], [], deleted.company_members),
+        jobs: mergeByNumericId(store.jobs || [], [], deleted.jobs),
+        saved_jobs: mergeByNumericId(store.saved_jobs || [], [], deleted.saved_jobs),
+        job_applications: mergeByNumericId(
+          store.job_applications || [],
+          [],
+          deleted.job_applications,
+        ),
+        application_stage_history: mergeByNumericId(
+          store.application_stage_history || [],
+          [],
+          deleted.application_stage_history,
+        ),
+        application_internal_notes: mergeByNumericId(
+          store.application_internal_notes || [],
+          [],
+          deleted.application_internal_notes,
+        ),
+        employer_invitations: mergeByNumericId(
+          store.employer_invitations || [],
+          [],
+          deleted.employer_invitations,
+        ),
+        job_reports: mergeByNumericId(store.job_reports || [], [], deleted.job_reports),
+      };
+      memoryStore = cleaned;
+      slot.current = cleaned;
+      slot.writtenAt = Date.now();
+      return cleaned;
+    });
   }
 
   let lastError = null;
