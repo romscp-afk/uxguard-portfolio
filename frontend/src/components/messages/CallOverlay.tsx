@@ -47,40 +47,43 @@ export function CallOverlay({
   const other = isCaller ? call.callee : call.caller;
   const title = other?.name || other?.email || "UXGuard member";
   const videoEnabled = Boolean(call.media.video);
-  const showAccept =
-    phase === "incoming" && call.status === "ringing" && !busy;
-  const statusLabel =
-    showAccept
-      ? videoEnabled
-        ? "Incoming video call"
-        : "Incoming voice call"
-      : phase === "outgoing" && call.status === "ringing"
-        ? "Calling…"
-        : phase === "connected" || call.status === "connected"
-          ? formatElapsed(elapsedSec)
-          : phase === "ended"
-            ? "Call ended"
-            : "Connecting…";
+  // Accept stays available for the entire incoming phase (do not hide on stale status).
+  const showAccept = phase === "incoming";
+  const statusLabel = showAccept
+    ? videoEnabled
+      ? "Incoming video call"
+      : "Incoming voice call"
+    : phase === "outgoing"
+      ? "Calling…"
+      : phase === "connected" || call.status === "connected"
+        ? formatElapsed(elapsedSec)
+        : phase === "ended"
+          ? "Call ended"
+          : "Connecting…";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-950/90 p-4 backdrop-blur-sm">
       <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-ink-800 bg-ink-950 text-white shadow-2xl">
         <div className="relative aspect-video bg-ink-900">
+          {/* Keep both video elements always mounted so React never drops the MediaStream refs. */}
           <video
             ref={remoteVideoRef as RefObject<HTMLVideoElement>}
             className={`h-full w-full bg-ink-900 object-cover ${videoEnabled ? "" : "opacity-0"}`}
             autoPlay
             playsInline
           />
-          {videoEnabled ? (
-            <video
-              ref={localVideoRef as RefObject<HTMLVideoElement>}
-              className="absolute bottom-4 right-4 h-28 w-40 rounded-xl border border-white/20 object-cover shadow-lg"
-              autoPlay
-              muted
-              playsInline
-            />
-          ) : (
+          <video
+            ref={localVideoRef as RefObject<HTMLVideoElement>}
+            className={
+              videoEnabled
+                ? "absolute bottom-4 right-4 h-28 w-40 rounded-xl border border-white/20 object-cover shadow-lg"
+                : "hidden"
+            }
+            autoPlay
+            muted
+            playsInline
+          />
+          {!videoEnabled ? (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-500/20 text-3xl font-semibold text-brand-300">
                 {(title || "?").slice(0, 1).toUpperCase()}
@@ -89,15 +92,11 @@ export function CallOverlay({
                 {showAccept ? "Voice call" : statusLabel}
               </p>
             </div>
-          )}
-          {!videoEnabled ? (
-            <video
-              ref={localVideoRef as RefObject<HTMLVideoElement>}
-              className="hidden"
-              autoPlay
-              muted
-              playsInline
-            />
+          ) : null}
+          {videoEnabled && cameraOff ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink-950/40">
+              <p className="rounded-full bg-black/50 px-3 py-1 text-sm text-white/80">Camera off</p>
+            </div>
           ) : null}
           <div className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1 text-sm">
             {title} · {statusLabel}

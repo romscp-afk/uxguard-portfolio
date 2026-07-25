@@ -9,6 +9,7 @@ import {
   resetCallSignalsForTests as resetSignalStore,
   updateCallSignal,
 } from "./call-signals.js";
+import { getIceServers } from "./ice-servers.js";
 
 const RING_TIMEOUT_MS = 60_000;
 const CONNECTING_TIMEOUT_MS = 90_000;
@@ -132,56 +133,7 @@ export function resetCallSignalsForTests() {
   resetSignalStore();
 }
 
-export function getIceServers() {
-  const servers = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun.cloudflare.com:3478" },
-  ];
-
-  const turnUrls = String(process.env.TURN_URLS || "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-
-  if (turnUrls.length) {
-    servers.push({
-      urls: turnUrls.length === 1 ? turnUrls[0] : turnUrls,
-      username: process.env.TURN_USERNAME || undefined,
-      credential: process.env.TURN_CREDENTIAL || undefined,
-    });
-  }
-
-  // Optional Metered TURN credentials (static openrelayproject auth no longer works).
-  const meteredUser = process.env.METERED_TURN_USERNAME || process.env.TURN_USERNAME;
-  const meteredPass = process.env.METERED_TURN_CREDENTIAL || process.env.TURN_CREDENTIAL;
-  if (meteredUser && meteredPass && !turnUrls.length) {
-    servers.push(
-      {
-        urls: "turn:a.relay.metered.ca:80",
-        username: meteredUser,
-        credential: meteredPass,
-      },
-      {
-        urls: "turn:a.relay.metered.ca:80?transport=tcp",
-        username: meteredUser,
-        credential: meteredPass,
-      },
-      {
-        urls: "turn:a.relay.metered.ca:443",
-        username: meteredUser,
-        credential: meteredPass,
-      },
-      {
-        urls: "turns:a.relay.metered.ca:443?transport=tcp",
-        username: meteredUser,
-        credential: meteredPass,
-      },
-    );
-  }
-
-  return servers;
-}
+export { getIceServers };
 
 async function findThread(store, threadId) {
   return (store.internal_message_threads || []).find((t) => String(t.id) === String(threadId)) || null;

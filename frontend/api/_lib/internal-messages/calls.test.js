@@ -115,3 +115,13 @@ test("starting a new call replaces a stuck in-progress call", async () => {
   assert.equal(active.calls.filter((call) => call.thread_id === thread.thread.id).length, 1);
   assert.equal(active.calls[0].id, second.call.id);
 });
+
+test("ice servers include TURN credentials for cross-network calls", async () => {
+  const { getIceServers } = await import("./ice-servers.js");
+  const servers = getIceServers();
+  assert.ok(servers.some((s) => String(s.urls).includes("stun:")));
+  const turn = servers.find((s) => String(s.urls).includes("turn"));
+  assert.ok(turn, "expected a TURN server entry");
+  assert.ok(turn.username, "TURN username required");
+  assert.ok(turn.credential, "TURN credential required");
+});

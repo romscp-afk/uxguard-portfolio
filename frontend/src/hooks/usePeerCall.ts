@@ -344,45 +344,38 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
           return snapshot.call;
         }
 
-        const locallyEngaged =
+        const calleeAccepted =
+          isAcceptedish(snapshot.call) ||
           locallyAcceptedRef.current ||
-          acceptingRef.current ||
-          phaseRef.current === "connecting" ||
-          phaseRef.current === "connected" ||
-          phaseRef.current === "outgoing";
+          acceptingRef.current;
 
-        const calleeAccepted = isAcceptedish(snapshot.call);
-        const hasOffer = Boolean(snapshot.signal.offer);
-        const hasAnswer = Boolean(snapshot.signal.answer);
-
-        if (!isCaller && snapshot.call.status === "ringing" && !locallyEngaged && !hasOffer) {
+        // Callee waiting: keep Accept visible until they tap it.
+        if (!isCaller && !calleeAccepted) {
           setActiveCallSafe(snapshot.call);
           if (phaseRef.current !== "incoming") setPhaseSafe("incoming");
           return snapshot.call;
         }
 
-        const mergedCall: InternalCallSession =
-          snapshot.call.status === "ringing" && (calleeAccepted || locallyEngaged || hasOffer)
-            ? { ...snapshot.call, status: "accepted" }
-            : snapshot.call;
+        // Caller waiting for accept: stay on outgoing / ringing UI.
+        if (isCaller && !calleeAccepted && snapshot.call.status === "ringing") {
+          setActiveCallSafe(snapshot.call);
+          if (phaseRef.current !== "outgoing" && phaseRef.current !== "connected") {
+            setPhaseSafe("outgoing");
+          }
+          return snapshot.call;
+        }
+
+        const mergedCall: InternalCallSession = isAcceptedish(snapshot.call)
+          ? snapshot.call
+          : { ...snapshot.call, status: "accepted", accepted_at: snapshot.call.accepted_at || new Date().toISOString() };
 
         setActiveCallSafe(mergedCall);
-
-        const readyToNegotiate =
-          isAcceptedish(mergedCall) || locallyEngaged || hasOffer || hasAnswer || calleeAccepted;
-
-        if (readyToNegotiate && phaseRef.current !== "connected") {
-          setPhaseSafe("connecting");
-        }
-
-        if (!readyToNegotiate) {
-          return mergedCall;
-        }
+        if (phaseRef.current !== "connected") setPhaseSafe("connecting");
 
         const pc = await ensurePeer(mergedCall, snapshot.ice_servers);
         const { signal } = snapshot;
 
-        // Caller: create + publish offer once accepted. Re-publish if server lost it.
+        // Caller: create + publish offer only AFTER accept.
         if (isCaller) {
           const needOffer = !offerMadeRef.current || !signal.offer;
           if (needOffer) {
@@ -401,7 +394,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
           }
         }
 
-        // Callee: apply remote offer, create answer. Re-publish answer if missing.
+        // Callee: apply offer + answer only AFTER Accept click.
         if (!isCaller && signal.offer) {
           if (!remoteOfferAppliedRef.current) {
             await pc.setRemoteDescription({
@@ -439,7 +432,6 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
           await flushPendingRemoteIce(pc);
         }
 
-        // Apply peer ICE candidates.
         for (const item of signal.ice || []) {
           if (Number(item.from_user_id) === Number(selfId)) continue;
           if (appliedCandidatesRef.current.has(item.id)) continue;
@@ -457,8 +449,8 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
 
         signalVersionRef.current = Math.max(signalVersionRef.current, signal.version || 0);
         attachRemoteVideo();
+        attachLocalVideo();
 
-        // If we already have media flowing, promote UI.
         if (
           remoteStreamRef.current?.getTracks().some((t) => t.readyState === "live") &&
           phaseRef.current !== "connected"
@@ -479,6 +471,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
       }
     },
     [
+      attachLocalVideo,
       attachRemoteVideo,
       endCallUi,
       ensurePeer,
@@ -523,7 +516,8 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         setActiveCallSafe(result.call);
         setPhaseSafe("outgoing");
         setMuted(false);
-        await ensurePeer(result.call, result.ice_servers);
+        // Preview only — do not create RTCPeerConnection / offer until callee accepts.
+        attachLocalVideo();
         armConnectWatchdog();
         startPolling(result.call, true, 350);
       } catch (err) {
@@ -533,7 +527,7 @@ export function usePeerCall({ selfId, onError }: UsePeerCallOptions) {
         setBusyAction(false);
       }
     },
-    [armConnectWatchdog, cleanupMedia, endCallUi, ensurePeer, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
+    [armConnectWatchdog, attachLocalVideo, cleanupMedia, endCallUi, reportError, setActiveCallSafe, setPhaseSafe, startPolling],
   );
 
   const acceptIncoming = useCallback(async () => {
