@@ -143,6 +143,7 @@ export interface Project {
   team: string[];
   outcomes: ProjectOutcome[];
   cover_image?: string | null;
+  sort_order: number;
   attachments: ProjectAttachment[];
   created_at: string;
   updated_at: string;
@@ -572,6 +573,7 @@ export interface PortfolioBuilderConfig {
   show_analytics: boolean;
   case_study_order: number[];
   featured_case_study_ids: number[];
+  project_order: number[];
   /** Public portfolio visual layout */
   theme?: PortfolioTheme;
   /** Last applied starter/theme template id */

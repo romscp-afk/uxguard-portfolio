@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { FolderKanban, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, FolderKanban, Plus, Trash2 } from "lucide-react";
 import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import { EditGuard, EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import type { Project } from "../../types";
@@ -17,6 +17,9 @@ export function ProjectsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [reorderDirty, setReorderDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,8 +41,14 @@ export function ProjectsListPage() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
   async function handleDelete(project: Project) {
-    if (!window.confirm(`Delete “${project.title}”? Linked case studies will be unlinked.`)) {
+    if (!window.confirm(`Delete "${project.title}"? Linked case studies will be unlinked.`)) {
       return;
     }
     setDeletingId(project.id);
@@ -54,6 +63,34 @@ export function ProjectsListPage() {
     }
   }
 
+  function moveProject(index: number, direction: -1 | 1) {
+    const next = [...projects];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setProjects(next);
+    setReorderDirty(true);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => void persistOrder(next), 1200);
+  }
+
+  async function persistOrder(list?: Project[]) {
+    const ordered = list || projects;
+    const ids = ordered.map((p) => p.id);
+    setSaving(true);
+    try {
+      await Promise.all([
+        api.reorderProjects(ids),
+        api.updatePortfolioBuilder({ project_order: ids }),
+      ]);
+      setReorderDirty(false);
+    } catch {
+      // silent
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div>
       <ReadOnlyNotice />
@@ -64,10 +101,15 @@ export function ProjectsListPage() {
             Manage the work behind your portfolio. Case studies and career artifacts attach to projects.
           </p>
         </div>
-        <EditLink to="/admin/projects/new">
-          <Plus className="h-4 w-4" />
-          New Project
-        </EditLink>
+        <div className="flex items-center gap-2">
+          {reorderDirty || saving ? (
+            <span className="text-xs text-ink-400">{saving ? "Saving order…" : "Order changed"}</span>
+          ) : null}
+          <EditLink to="/admin/projects/new">
+            <Plus className="h-4 w-4" />
+            New Project
+          </EditLink>
+        </div>
       </div>
 
       {error ? (
@@ -90,7 +132,7 @@ export function ProjectsListPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {projects.map((project) => (
+          {projects.map((project, index) => (
             <div
               key={project.id}
               className="card overflow-hidden transition hover:border-brand-300 hover:shadow-md"
@@ -135,7 +177,27 @@ export function ProjectsListPage() {
                 </div>
               </Link>
               <EditGuard>
-                <div className="flex justify-end border-t border-ink-100 px-5 py-3">
+                <div className="flex items-center justify-between border-t border-ink-100 px-5 py-3">
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveProject(index, -1)}
+                      disabled={index === 0}
+                      className="rounded p-1.5 text-ink-400 hover:text-ink-700 disabled:opacity-30"
+                      aria-label="Move up"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveProject(index, 1)}
+                      disabled={index === projects.length - 1}
+                      className="rounded p-1.5 text-ink-400 hover:text-ink-700 disabled:opacity-30"
+                      aria-label="Move down"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleDelete(project)}

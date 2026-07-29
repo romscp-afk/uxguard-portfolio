@@ -1,7 +1,7 @@
 import { portfolioSettings, readStore, updateStore, persistRegistrationRecord, touchMediaUpdatedAt } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
 import { likeCountsByCaseStudy } from "./like-utils.js";
-import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
+import { applyPortfolioOrdering, applyProjectOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
 import { sanitizeUserMediaFields } from "./media.js";
 import { resolveActiveWorkspace } from "./workspace-portal.js";
 
@@ -407,13 +407,12 @@ export async function getUserProfile(username) {
     config,
   );
 
-  const projects = (store.projects || [])
-    .filter(
-      (project) =>
-        subjectIds.has(Number(project.author_id)) &&
-        String(project.status || "active") !== "archived",
-    )
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  const rawProjects = (store.projects || []).filter(
+    (project) =>
+      subjectIds.has(Number(project.author_id)) &&
+      String(project.status || "active") !== "archived",
+  );
+  const projects = applyProjectOrdering(rawProjects, config);
 
   const likeCounts = likeCountsByCaseStudy(store);
   const { password: _password, ...publicUser } = user;

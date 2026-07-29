@@ -32,6 +32,9 @@ export async function updatePortfolioConfigForUser(userId, updates) {
       featured_case_study_ids: Array.isArray(updates.featured_case_study_ids)
         ? updates.featured_case_study_ids
         : current.featured_case_study_ids,
+      project_order: Array.isArray(updates.project_order)
+        ? updates.project_order
+        : current.project_order || [],
       theme: updates.theme || current.theme || "evidence_lab",
       applied_template_id:
         updates.applied_template_id !== undefined
@@ -52,7 +55,7 @@ export async function updatePortfolioConfigForUser(userId, updates) {
 export function applyPortfolioOrdering(caseStudies, config) {
   const order = config?.case_study_order || [];
   if (!order.length) {
-    return [...caseStudies].sort((a, b) => a.sort_order - b.sort_order);
+    return [...caseStudies].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   }
 
   const rank = new Map(order.map((id, index) => [id, index]));
@@ -60,6 +63,23 @@ export function applyPortfolioOrdering(caseStudies, config) {
     const aRank = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER;
     const bRank = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER;
     if (aRank !== bRank) return aRank - bRank;
-    return a.sort_order - b.sort_order;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+}
+
+export function applyProjectOrdering(projects, config) {
+  const order = config?.project_order || [];
+  if (!order.length) {
+    return [...projects].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || new Date(b.updated_at) - new Date(a.updated_at),
+    );
+  }
+
+  const rank = new Map(order.map((id, index) => [id, index]));
+  return [...projects].sort((a, b) => {
+    const aRank = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER;
+    const bRank = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) return aRank - bRank;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
 }

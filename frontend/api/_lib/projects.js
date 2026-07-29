@@ -31,7 +31,21 @@ export async function listProjectsForUser(authorId) {
   const store = await readStore();
   return (store.projects || [])
     .filter((project) => sameId(project.author_id, authorId))
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || new Date(b.updated_at) - new Date(a.updated_at));
+}
+
+export async function reorderProjects(authorId, orderedIds) {
+  const ownerId = Number(authorId);
+  await updateStore((store) => {
+    const projects = store.projects || [];
+    for (let i = 0; i < orderedIds.length; i++) {
+      const project = projects.find(
+        (p) => sameId(p.id, orderedIds[i]) && sameId(p.author_id, ownerId),
+      );
+      if (project) project.sort_order = i;
+    }
+    return store;
+  });
 }
 
 export async function getProjectForAuthor(id, authorId) {
@@ -89,6 +103,7 @@ export async function createProject(authorId, payload) {
       team: Array.isArray(payload.team) ? payload.team : [],
       outcomes: Array.isArray(payload.outcomes) ? payload.outcomes : [],
       cover_image: payload.cover_image || null,
+      sort_order: payload.sort_order ?? 0,
       attachments: Array.isArray(payload.attachments) ? payload.attachments : [],
       created_at: now,
       updated_at: now,

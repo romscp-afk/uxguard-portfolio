@@ -18,6 +18,7 @@ const DEFAULT_CONFIG: PortfolioBuilderConfig = {
   show_analytics: false,
   case_study_order: [],
   featured_case_study_ids: [],
+  project_order: [],
   theme: "evidence_lab",
   applied_template_id: null,
 };

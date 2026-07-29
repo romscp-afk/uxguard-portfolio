@@ -770,6 +770,12 @@ export const api = {
 
   adminListCaseStudies: () => request<CaseStudyListItem[]>("/case-studies/admin/all"),
 
+  reorderCaseStudies: (ids: number[]) =>
+    request<{ ok: boolean }>("/case-studies/reorder", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+
   getAnalyticsSummary: () =>
     request<AnalyticsSummary>(`/analytics/summary?_=${Date.now()}`),
 
@@ -1071,6 +1077,12 @@ export const api = {
     }),
 
   deleteProject: (id: number) => request<void>(`/projects/${id}`, { method: "DELETE" }),
+
+  reorderProjects: (ids: number[]) =>
+    request<{ ok: boolean }>("/projects/reorder", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
 
   getPortfolioBuilder: () => request<PortfolioBuilderConfig>("/portfolio-builder"),
 
