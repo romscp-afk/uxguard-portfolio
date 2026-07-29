@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FREE_UNTIL_NOTE, PAID_CHECKOUT_ENABLED } from "../../lib/billingLaunch";
 
 type Props = {
   open: boolean;
@@ -24,6 +25,9 @@ export function LimitReachedDialog({ open, title, message, resetDate, usageLabel
           {title}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-600">{message}</p>
+        {!PAID_CHECKOUT_ENABLED ? (
+          <p className="mt-2 text-xs font-medium text-brand-700">{FREE_UNTIL_NOTE}</p>
+        ) : null}
         {usageLabel ? <p className="mt-2 text-xs font-medium text-ink-500">{usageLabel}</p> : null}
         {resetDate ? (
           <p className="mt-1 text-xs text-ink-400">
@@ -31,9 +35,15 @@ export function LimitReachedDialog({ open, title, message, resetDate, usageLabel
           </p>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link to="/upgrade" className="btn-primary" onClick={onClose}>
-            Upgrade
-          </Link>
+          {PAID_CHECKOUT_ENABLED ? (
+            <Link to="/upgrade" className="btn-primary" onClick={onClose}>
+              Upgrade
+            </Link>
+          ) : (
+            <button type="button" disabled className="btn-primary cursor-not-allowed opacity-60">
+              Upgrade
+            </button>
+          )}
           <Link to="/pricing" className="btn-secondary" onClick={onClose}>
             View plans
           </Link>

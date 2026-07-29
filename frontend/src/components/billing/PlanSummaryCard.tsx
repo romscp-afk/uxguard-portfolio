@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, CreditCard } from "lucide-react";
+import { FREE_UNTIL_NOTE, PAID_CHECKOUT_ENABLED } from "../../lib/billingLaunch";
 import type { BillingUsageSummary } from "../../types";
 
 function Meter({
@@ -110,10 +111,17 @@ export function PlanSummaryCard({ summary }: { summary: BillingUsageSummary }) {
             Billing details
           </Link>
         ) : plan.code === "free" ? (
-          <Link to="/upgrade" className="btn-primary">
-            Upgrade
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
+          PAID_CHECKOUT_ENABLED ? (
+            <Link to="/upgrade" className="btn-primary">
+              Upgrade
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <button type="button" disabled className="btn-primary cursor-not-allowed opacity-60">
+              Upgrade
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          )
         ) : (
           <Link to="/admin/billing" className="btn-primary">
             Manage subscription
@@ -125,6 +133,9 @@ export function PlanSummaryCard({ summary }: { summary: BillingUsageSummary }) {
           </Link>
         ) : null}
       </div>
+      {!isAdminComp && plan.code === "free" && !PAID_CHECKOUT_ENABLED ? (
+        <p className="mt-3 text-xs text-ink-500">{FREE_UNTIL_NOTE}</p>
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import { PlanSummaryCard } from "../../components/billing/PlanSummaryCard";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
+import { FREE_UNTIL_NOTE, PAID_CHECKOUT_ENABLED, PAID_CHECKOUT_PAUSED_DETAIL } from "../../lib/billingLaunch";
 import { trackBillingEvent } from "../../lib/analytics";
 import type { BillingUsageSummary } from "../../types";
 
@@ -79,7 +80,11 @@ export function BillingSettingsPage() {
         <div className="card space-y-4 p-6">
           <h2 className="font-semibold text-ink-900">Subscription actions</h2>
           {summary?.plan.code === "free" && !summary?.is_admin_comp ? (
-            <p className="text-sm text-ink-600">No payment method is required for your current plan.</p>
+            <p className="text-sm text-ink-600">
+              {PAID_CHECKOUT_ENABLED
+                ? "No payment method is required for your current plan."
+                : PAID_CHECKOUT_PAUSED_DETAIL}
+            </p>
           ) : summary?.is_admin_comp || summary?.plan.code === "admin" ? (
             <p className="text-sm text-ink-600">
               Admin complimentary access — unlimited quotas, no payment required.
@@ -91,10 +96,14 @@ export function BillingSettingsPage() {
           )}
           <EditGuard>
             <div className="flex flex-wrap gap-2">
-              {summary?.is_admin_comp || summary?.plan.code === "admin" ? null : (
+              {summary?.is_admin_comp || summary?.plan.code === "admin" ? null : PAID_CHECKOUT_ENABLED ? (
                 <Link to="/upgrade" className="btn-primary">
                   {summary?.plan.code === "free" ? "Upgrade" : "Change plan"}
                 </Link>
+              ) : (
+                <button type="button" disabled className="btn-primary cursor-not-allowed opacity-60">
+                  {summary?.plan.code === "free" ? "Upgrade" : "Change plan"}
+                </button>
               )}
               {summary?.subscription.status === "canceling" ? (
                 <button type="button" className="btn-secondary" disabled={busy} onClick={resume}>
@@ -109,6 +118,11 @@ export function BillingSettingsPage() {
               ) : null}
             </div>
           </EditGuard>
+          {!PAID_CHECKOUT_ENABLED &&
+          summary?.plan.code === "free" &&
+          !summary?.is_admin_comp ? (
+            <p className="text-xs text-ink-500">{FREE_UNTIL_NOTE}</p>
+          ) : null}
         </div>
       </div>
 

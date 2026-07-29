@@ -5,24 +5,29 @@ import { api } from "../../api/client";
 import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout";
 import { useAuth } from "../../context/AuthContext";
 import { trackBillingEvent } from "../../lib/analytics";
+import {
+  FREE_UNTIL_DATE_LABEL,
+  FREE_UNTIL_NOTE,
+  PAID_CHECKOUT_ENABLED,
+} from "../../lib/billingLaunch";
 import type { BillingPlan, BillingUsageSummary } from "../../types";
 
 const FAQS = [
   {
     q: "Do I need a payment method for Free?",
-    a: "No. The Free plan never requires a card. Upgrade only when you need more case studies, AI credits, or advanced features.",
+    a: `No. The Free plan never requires a card. Paid upgrades are paused for now — UXGuard is free until ${FREE_UNTIL_DATE_LABEL}.`,
   },
   {
     q: "What happens when I hit Free limits?",
-    a: "Existing work stays safe. You can keep viewing and editing within limits, and upgrade anytime for unlimited case studies and higher AI allowances.",
+    a: "Existing work stays safe. You can keep viewing and editing within limits. Paid upgrades will reopen after the free launch period.",
   },
   {
     q: "Is there a discount for annual billing?",
-    a: "Yes. Annual plans are billed as 11 months — Professional is $165/year and Team is $429/year — so you effectively get one month free.",
+    a: "Yes. When paid plans reopen, annual billing is 11 months — Professional is $165/year and Team is $429/year — so you effectively get one month free.",
   },
   {
     q: "Can I cancel a paid plan?",
-    a: "Yes. Paid access continues until the end of the billing period, then you return to Free without deleting your content.",
+    a: "Yes. Once paid plans are available, paid access continues until the end of the billing period, then you return to Free without deleting your content.",
   },
 ];
 
@@ -100,6 +105,11 @@ export function PricingPage() {
             Start free. Upgrade when you need unlimited case studies, more storage, or team tools.
             More platform features will roll out over time.
           </p>
+          {!PAID_CHECKOUT_ENABLED ? (
+            <p className="mt-4 text-sm font-semibold text-brand-700">
+              {FREE_UNTIL_NOTE} Paid upgrades will open after that.
+            </p>
+          ) : null}
           <p className="mt-3 text-sm text-ink-500">
             <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
               Create your portfolio
@@ -180,6 +190,16 @@ export function PricingPage() {
                     >
                       {isCurrent ? "Current plan" : "Start free"}
                     </Link>
+                  ) : !PAID_CHECKOUT_ENABLED ? (
+                    <button
+                      type="button"
+                      disabled
+                      className={`w-full cursor-not-allowed opacity-60 ${
+                        recommended ? "btn-primary py-3 text-base" : "btn-secondary"
+                      }`}
+                    >
+                      {isCurrent ? "Current plan" : "Coming soon"}
+                    </button>
                   ) : (
                     <Link
                       to={user ? `/upgrade?plan=${plan.code}&interval=${annual ? "year" : "month"}` : "/admin/register"}
@@ -190,7 +210,11 @@ export function PricingPage() {
                   )}
                 </div>
                 {plan.code === "free" ? (
-                  <p className="mt-3 text-center text-[11px] text-ink-400">No payment method required</p>
+                  <p className="mt-3 text-center text-[11px] text-ink-400">
+                    {PAID_CHECKOUT_ENABLED ? "No payment method required" : FREE_UNTIL_NOTE}
+                  </p>
+                ) : !PAID_CHECKOUT_ENABLED ? (
+                  <p className="mt-3 text-center text-[11px] text-ink-400">{FREE_UNTIL_NOTE}</p>
                 ) : null}
               </div>
             );

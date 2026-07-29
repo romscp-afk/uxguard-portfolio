@@ -4,6 +4,7 @@ import { api, ApiError } from "../../api/client";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAuth } from "../../context/AuthContext";
 import { trackBillingEvent } from "../../lib/analytics";
+import { FREE_UNTIL_NOTE, PAID_CHECKOUT_ENABLED, PAID_CHECKOUT_PAUSED_DETAIL } from "../../lib/billingLaunch";
 
 export function UpgradePage() {
   const { user } = useAuth();
@@ -22,6 +23,10 @@ export function UpgradePage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!PAID_CHECKOUT_ENABLED) {
+      setError(PAID_CHECKOUT_PAUSED_DETAIL);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -44,9 +49,16 @@ export function UpgradePage() {
       <ReadOnlyNotice />
       <h1 className="font-display text-3xl font-bold text-ink-950">Upgrade your plan</h1>
       <p className="mt-2 text-ink-500">
-        Choose Professional or Team. Checkout uses your configured payment provider
-        (mock locally, PayPal or Stripe when credentials are set).
+        {PAID_CHECKOUT_ENABLED
+          ? "Choose Professional or Team. Checkout uses your configured payment provider (mock locally, PayPal or Stripe when credentials are set)."
+          : PAID_CHECKOUT_PAUSED_DETAIL}
       </p>
+
+      {!PAID_CHECKOUT_ENABLED ? (
+        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+          {FREE_UNTIL_NOTE}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
@@ -55,7 +67,7 @@ export function UpgradePage() {
       ) : null}
 
       <form onSubmit={handleSubmit} className="card mt-6 space-y-5 p-6">
-        <fieldset>
+        <fieldset disabled={!PAID_CHECKOUT_ENABLED}>
           <legend className="text-sm font-semibold text-ink-900">Plan</legend>
           <div className="mt-3 space-y-2">
             {[
@@ -68,6 +80,7 @@ export function UpgradePage() {
                   name="plan"
                   checked={planCode === opt.code}
                   onChange={() => setPlanCode(opt.code)}
+                  disabled={!PAID_CHECKOUT_ENABLED}
                 />
                 <span className="text-sm text-ink-800">{opt.label}</span>
               </label>
@@ -75,13 +88,14 @@ export function UpgradePage() {
           </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset disabled={!PAID_CHECKOUT_ENABLED}>
           <legend className="text-sm font-semibold text-ink-900">Billing interval</legend>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               className={`rounded-lg px-4 py-2 text-sm font-medium ${interval === "month" ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
               onClick={() => setInterval("month")}
+              disabled={!PAID_CHECKOUT_ENABLED}
             >
               Monthly
             </button>
@@ -89,6 +103,7 @@ export function UpgradePage() {
               type="button"
               className={`rounded-lg px-4 py-2 text-sm font-medium ${interval === "year" ? "bg-brand-600 text-white" : "bg-ink-100 text-ink-700"}`}
               onClick={() => setInterval("year")}
+              disabled={!PAID_CHECKOUT_ENABLED}
             >
               Annual
             </button>
@@ -96,8 +111,16 @@ export function UpgradePage() {
         </fieldset>
 
         <EditGuard>
-          <button type="submit" className="btn-primary w-full" disabled={busy}>
-            {busy ? "Starting checkout…" : "Continue to checkout"}
+          <button
+            type="submit"
+            className="btn-primary w-full"
+            disabled={busy || !PAID_CHECKOUT_ENABLED}
+          >
+            {PAID_CHECKOUT_ENABLED
+              ? busy
+                ? "Starting checkout…"
+                : "Continue to checkout"
+              : "Checkout unavailable"}
           </button>
         </EditGuard>
         <Link to="/pricing" className="block text-center text-sm text-brand-600">
