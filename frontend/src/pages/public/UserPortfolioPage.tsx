@@ -18,7 +18,6 @@ import { PublicFooter, PublicHeader } from "../../components/layout/PublicLayout
 import { getUserFromRegistry } from "../../lib/platformRegistry";
 import {
   mergePublishedIntoProfile,
-  syncCachedCaseStudies,
 } from "../../lib/caseStudyStore";
 import { useAuth } from "../../context/AuthContext";
 import type { UserProfile } from "../../types";
@@ -60,10 +59,8 @@ export function UserPortfolioPage() {
       const isOwner = Boolean(authUser && authUser.username === profileUsername);
 
       try {
-        if (isOwner && authUser) {
-          await syncCachedCaseStudies(authUser.id);
-        }
-
+        // Load profile first — sync is deferred to avoid stale cache
+        // overwriting published studies before the page renders.
         const remote = await api.getUserProfile(profileUsername);
         if (cancelled) return;
 

@@ -687,7 +687,22 @@ export async function syncCaseStudies(authorId, studies) {
       }
 
       const current = store.caseStudies[index];
-      const nextStatus = incoming.status ?? current.status;
+
+      // Never let a stale cache downgrade a published study back to draft.
+      const incomingIsOlder =
+        current.updated_at &&
+        incoming.updated_at &&
+        new Date(incoming.updated_at) < new Date(current.updated_at);
+      if (incomingIsOlder && String(current.status) === "published" && String(incoming.status) !== "published") {
+        continue;
+      }
+
+      // Never downgrade status from published to draft via sync.
+      const nextStatus =
+        String(current.status) === "published" && String(incoming.status || "") === "draft"
+          ? "published"
+          : (incoming.status ?? current.status);
+
       const incomingAttachments = Array.isArray(incoming.attachments) ? incoming.attachments : null;
       const incomingBlocks = Array.isArray(incoming.content_blocks) ? incoming.content_blocks : null;
       store.caseStudies[index] = {
@@ -706,7 +721,7 @@ export async function syncCaseStudies(authorId, studies) {
             ? incomingBlocks
             : current.content_blocks || [],
         cover_image: incoming.cover_image || current.cover_image || null,
-        updated_at: incoming.updated_at || now,
+        updated_at: incomingIsOlder ? current.updated_at : (incoming.updated_at || now),
         published_at:
           nextStatus === "published"
             ? current.published_at || incoming.published_at || now

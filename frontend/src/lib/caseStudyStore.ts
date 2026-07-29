@@ -101,11 +101,33 @@ export async function syncCachedCaseStudies(
 
   await api.syncCaseStudies(payload);
 
-  const next = { ...cache };
-  for (const study of payload) {
-    next[String(study.id)] = study as CaseStudy;
+  // After sync, refresh cache from server to prevent stale entries from
+  // overwriting published studies on the next sync.
+  try {
+    const remote = await api.adminListCaseStudies();
+    const next = { ...cache };
+    for (const item of remote) {
+      const existing = next[String(item.id)] as CaseStudy | undefined;
+      // Always accept server's published status; only keep cache if newer for drafts.
+      if (
+        existing &&
+        String(existing.status) !== "published" &&
+        String(item.status) === "published"
+      ) {
+        next[String(item.id)] = { ...existing, ...item, status: "published" } as CaseStudy;
+      } else if (!existing) {
+        next[String(item.id)] = item as unknown as CaseStudy;
+      }
+    }
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    // Best-effort cache refresh; old cache is still fine.
+    const next = { ...cache };
+    for (const study of payload) {
+      next[String(study.id)] = study as CaseStudy;
+    }
+    localStorage.setItem(KEY, JSON.stringify(next));
   }
-  localStorage.setItem(KEY, JSON.stringify(next));
 }
 
 export async function loadMergedCaseStudies(
