@@ -101,23 +101,7 @@ export function AdminLoginPage() {
           <p className="mt-6 text-center text-sm text-ink-500">
             Don&apos;t have an account?{" "}
             <Link to="/admin/register" className="font-semibold text-brand-600 hover:text-brand-700">
-              Join as a professional
-            </Link>
-          </p>
-          <p className="mt-3 text-center text-sm text-ink-500">
-            Hiring?{" "}
-            <Link
-              to="/admin/employer/register"
-              className="font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Create an employer account
-            </Link>
-            {" · "}
-            <Link
-              to="/admin/employer/login"
-              className="font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Sign in
+              Create your portfolio
             </Link>
           </p>
         </form>

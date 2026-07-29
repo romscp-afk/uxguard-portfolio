@@ -15,7 +15,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useAssistant } from "../../context/AssistantContext";
 import { loadMergedCaseStudies } from "../../lib/caseStudyStore";
-import { normalizeRole } from "../../lib/roles";
+import { isAdmin, normalizeRole, PORTFOLIO_LAUNCH_ONLY } from "../../lib/roles";
 import { ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { api } from "../../api/client";
 import type { AnalyticsSummary, BillingUsageSummary, CaseStudyListItem, Project } from "../../types";
@@ -33,7 +33,9 @@ export function AdminDashboardPage() {
     loadMergedCaseStudies(user.id).then((result) => setStudies(result.studies));
     api.listProjects().then(setProjects).catch(() => setProjects([]));
     api.getBillingSubscription().then(setBilling).catch(() => setBilling(null));
-    api.getAnalyticsSummary().then(setAnalytics).catch(() => setAnalytics(null));
+    if (isAdmin(user) || !PORTFOLIO_LAUNCH_ONLY) {
+      api.getAnalyticsSummary().then(setAnalytics).catch(() => setAnalytics(null));
+    }
   }, [user]);
 
   if (!user) return null;
@@ -41,6 +43,7 @@ export function AdminDashboardPage() {
   const published = studies.filter((s) => s.status === "published").length;
   const drafts = studies.filter((s) => s.status === "draft").length;
   const role = normalizeRole(user.role);
+  const portfolioOnly = PORTFOLIO_LAUNCH_ONLY && !isAdmin(user);
 
   const intentLabel =
     user.onboarding_intent === "publish_case_studies"
@@ -77,29 +80,53 @@ export function AdminDashboardPage() {
         ) : null}
       </div>
 
-      <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600 sm:h-12 sm:w-12">
-            <Bot className="h-5 w-5 sm:h-6 sm:w-6" />
+      {portfolioOnly ? (
+        <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600 sm:h-12 sm:w-12">
+              <FolderKanban className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-ink-900">Build your portfolio</h2>
+              <p className="mt-1 text-sm text-ink-600">
+                Add projects and case studies, then publish your public portfolio page.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="font-semibold text-ink-900">UXGuard AI</h2>
-            <p className="mt-1 text-sm text-ink-600">
-              Draft case studies, polish your bio, and structure your portfolio with AI built for UX
-              storytelling.
-            </p>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link to="/admin/portfolio-builder" className="btn-primary">
+              Portfolio builder
+            </Link>
+            <Link to="/admin/case-studies" className="btn-secondary">
+              Case studies
+            </Link>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Link to="/admin/ai" className="btn-primary">
-            <Sparkles className="h-4 w-4" />
-            Open UXGuard AI
-          </Link>
-          <button type="button" onClick={() => openAssistant(true)} className="btn-secondary">
-            Quick editor AI
-          </button>
+      ) : (
+        <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600 sm:h-12 sm:w-12">
+              <Bot className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-ink-900">UXGuard AI</h2>
+              <p className="mt-1 text-sm text-ink-600">
+                Draft case studies, polish your bio, and structure your portfolio with AI built for UX
+                storytelling.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link to="/admin/ai" className="btn-primary">
+              <Sparkles className="h-4 w-4" />
+              Open UXGuard AI
+            </Link>
+            <button type="button" onClick={() => openAssistant(true)} className="btn-secondary">
+              Quick editor AI
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="card mb-6 flex flex-col gap-4 border-ink-200 bg-gradient-to-r from-ink-950 to-ink-800 p-4 text-white sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3 sm:gap-4">
@@ -134,40 +161,75 @@ export function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4">
-        <Link
-          to="/admin/analytics"
-          className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
-        >
-          <div>
-            <div className="flex items-center gap-2 text-brand-600">
-              <Eye className="h-5 w-5" />
-              <span className="text-xs font-semibold uppercase tracking-wide">Views</span>
+      {!portfolioOnly ? (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4">
+          <Link
+            to="/admin/analytics"
+            className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-brand-600">
+                <Eye className="h-5 w-5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Views</span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
+                {analytics?.totals.views ?? "—"}
+              </p>
+              <p className="text-xs text-ink-500 sm:text-sm">Open analytics</p>
             </div>
-            <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
-              {analytics?.totals.views ?? "—"}
-            </p>
-            <p className="text-xs text-ink-500 sm:text-sm">Open analytics</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-ink-400" />
-        </Link>
-        <Link
-          to="/admin/analytics"
-          className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
-        >
-          <div>
-            <div className="flex items-center gap-2 text-rose-600">
-              <Heart className="h-5 w-5" />
-              <span className="text-xs font-semibold uppercase tracking-wide">Likes</span>
+            <ArrowRight className="h-4 w-4 text-ink-400" />
+          </Link>
+          <Link
+            to="/admin/analytics"
+            className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-rose-600">
+                <Heart className="h-5 w-5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Likes</span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
+                {analytics?.totals.likes ?? "—"}
+              </p>
+              <p className="text-xs text-ink-500 sm:text-sm">Open analytics</p>
             </div>
-            <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
-              {analytics?.totals.likes ?? "—"}
-            </p>
-            <p className="text-xs text-ink-500 sm:text-sm">Open analytics</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-ink-400" />
-        </Link>
-      </div>
+            <ArrowRight className="h-4 w-4 text-ink-400" />
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4">
+          <Link
+            to="/admin/projects"
+            className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-brand-600">
+                <FolderKanban className="h-5 w-5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Projects</span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
+                {projects.length}
+              </p>
+              <p className="text-xs text-ink-500 sm:text-sm">Manage projects</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-ink-400" />
+          </Link>
+          <Link
+            to="/admin/case-studies"
+            className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-brand-600">
+                <FileText className="h-5 w-5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Published</span>
+              </div>
+              <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">{published}</p>
+              <p className="text-xs text-ink-500 sm:text-sm">Open case studies</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-ink-400" />
+          </Link>
+        </div>
+      )}
 
       <div className="card overflow-hidden">
         <div className="border-b border-ink-100 px-4 py-4 sm:px-6">

@@ -32,7 +32,12 @@ import { NotificationBell } from "../community/NotificationBell";
 import { AssistantFab, AssistantPanel } from "../assistant/AssistantPanel";
 import { AssistantProvider } from "../../context/AssistantContext";
 import { useAuth } from "../../context/AuthContext";
-import { dashboardLinksForUser, isAdmin } from "../../lib/roles";
+import {
+  dashboardLinksForUser,
+  isAdmin,
+  isPortfolioLaunchPathAllowed,
+  PORTFOLIO_LAUNCH_ONLY,
+} from "../../lib/roles";
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   profile: UserCircle,
@@ -119,6 +124,17 @@ export function AdminLayout() {
   }
 
   if (!user) {
+    // Portfolio launch: employer signup/login are paused — send everyone to professional auth.
+    if (PORTFOLIO_LAUNCH_ONLY && isEmployerWorkspaceRoute(location.pathname)) {
+      const toRegister = location.pathname.includes("/register");
+      return (
+        <Navigate
+          to={toRegister ? "/admin/register" : "/admin/login"}
+          state={{ from: location.pathname }}
+          replace
+        />
+      );
+    }
     const wantsEmployer = isEmployerWorkspaceRoute(location.pathname);
     return (
       <Navigate
@@ -132,6 +148,15 @@ export function AdminLayout() {
   const { groups, phase2, workspace } = dashboardLinksForUser(user);
   const isEmployerPortal = workspace === "employer";
   const displayName = user.name || user.email || "Account";
+
+  // Portfolio launch: non-admins only keep Dashboard, Portfolio, and Account routes.
+  if (
+    PORTFOLIO_LAUNCH_ONLY &&
+    !isAdmin(user) &&
+    !isPortfolioLaunchPathAllowed(location.pathname)
+  ) {
+    return <Navigate to="/admin" replace />;
+  }
 
   // Employer session → stay in hiring portal (not candidate profile pages)
   if (
@@ -155,6 +180,9 @@ export function AdminLayout() {
   ) {
     // Super admins go to the platform dashboard, not employer login
     if (user.role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+    if (PORTFOLIO_LAUNCH_ONLY) {
       return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/admin/employer/login" replace />;
@@ -341,7 +369,11 @@ export function AdminLayout() {
               <NotificationBell />
             </div>
             <p className="mt-2 text-[10px] uppercase tracking-wider text-ink-400">
-              {isEmployerPortal ? "Employer portal" : "Platform portal"}
+              {isEmployerPortal
+                ? "Employer portal"
+                : PORTFOLIO_LAUNCH_ONLY && !isAdmin(user)
+                  ? "Portfolio portal"
+                  : "Platform portal"}
             </p>
             <p className="mt-1 truncate text-xs text-ink-200">{displayName}</p>
           </div>
@@ -353,8 +385,12 @@ export function AdminLayout() {
           <Outlet />
         </main>
 
-        <AssistantPanel />
-        <AssistantFab />
+        {isAdmin(user) || !PORTFOLIO_LAUNCH_ONLY ? (
+          <>
+            <AssistantPanel />
+            <AssistantFab />
+          </>
+        ) : null}
       </div>
     </AssistantProvider>
   );

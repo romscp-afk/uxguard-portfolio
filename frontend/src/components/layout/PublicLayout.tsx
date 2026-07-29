@@ -72,12 +72,6 @@ export function PublicHeader() {
               <Link to="/admin/register" className="btn-secondary py-2 text-xs">
                 Sign up
               </Link>
-              <Link
-                to="/admin/employer/register"
-                className="rounded-lg border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
-              >
-                Employers
-              </Link>
             </>
           )}
         </nav>
@@ -138,14 +132,7 @@ export function PublicHeader() {
                     onClick={close}
                     className="btn-primary flex w-full justify-center py-3"
                   >
-                    Join as a professional
-                  </Link>
-                  <Link
-                    to="/admin/employer/register"
-                    onClick={close}
-                    className="btn-secondary flex w-full justify-center py-3"
-                  >
-                    Create employer account
+                    Create portfolio account
                   </Link>
                   <Link
                     to="/admin/login"
@@ -159,7 +146,7 @@ export function PublicHeader() {
             </div>
 
             <p className="mt-6 rounded-xl bg-brand-50 px-4 py-3 text-center text-xs font-medium text-brand-800">
-              Build · Showcase · Measure · Grow
+              Build · Showcase · Grow
             </p>
           </nav>
         </div>
@@ -189,7 +176,7 @@ export function PublicFooter() {
           <div className="lg:col-span-4">
             <Logo variant="mark" theme="light" className="h-10 w-auto max-w-[220px]" />
             <p className="mt-4 max-w-sm text-sm text-ink-500">
-              Portfolios for professionals. Hiring tools for employers — after company verification.
+              Professional portfolios for UX researchers, designers, and product people — publish case studies and share your impact.
             </p>
             <p className="mt-4 text-sm">
               <a href={`mailto:${contactEmail}`} className="font-medium text-brand-600 hover:text-brand-500">
@@ -229,12 +216,7 @@ export function PublicFooter() {
                 </li>
                 <li>
                   <Link to="/admin/register" className="hover:text-brand-600">
-                    Professional signup
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/employer/register" className="hover:text-brand-600">
-                    Employer signup
+                    Create portfolio
                   </Link>
                 </li>
                 <li>
