@@ -12,8 +12,6 @@ export function PaypalReturnPage() {
 
   useEffect(() => {
     const orderId = params.get("token") || params.get("orderId") || "";
-    const planCode = params.get("plan") || "professional";
-    const billingInterval = params.get("interval") === "year" ? "year" : "month";
 
     if (!orderId) {
       setError("Missing PayPal order id. Please start checkout again.");
@@ -24,15 +22,11 @@ export function PaypalReturnPage() {
 
     async function finish() {
       try {
-        const result = await api.completePaypalCheckout({
-          orderId,
-          planCode,
-          billingInterval,
-        });
+        const result = await api.completePaypalCheckout({ orderId });
         if (cancelled) return;
         trackBillingEvent("checkout_completed", {
-          plan: planCode,
-          interval: billingInterval,
+          plan: result.planCode || "unknown",
+          interval: result.billingInterval || "month",
           provider: "paypal",
         });
         navigate("/checkout/success", {
@@ -41,7 +35,7 @@ export function PaypalReturnPage() {
         });
       } catch (err) {
         if (cancelled) return;
-        trackBillingEvent("checkout_failed", { plan: planCode, interval: billingInterval, provider: "paypal" });
+        trackBillingEvent("checkout_failed", { provider: "paypal" });
         setError(err instanceof ApiError ? err.message : "PayPal payment could not be completed.");
       }
     }

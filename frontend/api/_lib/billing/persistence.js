@@ -267,6 +267,24 @@ export async function setAiCreditsUsed(userId, used) {
   });
 }
 
+/** Find a prior payment by provider capture/charge id (idempotent checkouts). */
+export async function findPaymentTransactionByProviderId(paymentProvider, providerTransactionId) {
+  const txId = String(providerTransactionId || "").trim();
+  if (!txId) return null;
+  const store = await readStore();
+  ensureBillingCollections(store);
+  const tx = (store.payment_transactions || []).find(
+    (row) =>
+      String(row.payment_provider) === String(paymentProvider) &&
+      String(row.provider_transaction_id) === txId &&
+      String(row.status) === "succeeded",
+  );
+  if (!tx) return null;
+  const subscription =
+    (store.subscriptions || []).find((s) => String(s.id) === String(tx.subscription_id)) || null;
+  return { transaction: tx, subscription };
+}
+
 export async function activatePaidPlan({
   userId,
   planCode,
@@ -286,10 +304,29 @@ export async function activatePaidPlan({
   let result = null;
   const start = nowIso();
   const end = billingInterval === "year" ? addMonths(start, 12) : addMonths(start, 1);
+  const providerTxId = transaction?.provider_transaction_id
+    ? String(transaction.provider_transaction_id)
+    : null;
 
   await updateStore((store) => {
     ensureBillingCollections(store);
     const id = Number(userId);
+
+    // Idempotent: same PayPal/Stripe capture must not create a second paid period.
+    if (providerTxId) {
+      const prior = (store.payment_transactions || []).find(
+        (row) =>
+          String(row.payment_provider) === String(paymentProvider) &&
+          String(row.provider_transaction_id) === providerTxId &&
+          String(row.status) === "succeeded",
+      );
+      if (prior) {
+        result =
+          (store.subscriptions || []).find((s) => String(s.id) === String(prior.subscription_id)) ||
+          null;
+        return store;
+      }
+    }
 
     for (const sub of store.subscriptions) {
       if (Number(sub.user_id) === id && (sub.status === "active" || sub.status === "canceling")) {

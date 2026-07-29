@@ -64,11 +64,10 @@ export default withApi(async (req, res) => {
         res.status(400).json({ detail: "PayPal provider is not active." });
         return;
       }
+      // Plan/interval come from the PayPal order custom_id — never trust client body.
       const result = await provider.completeCheckout({
         userId: user.id,
         orderId: body.orderId || body.token,
-        planCode: body.planCode,
-        billingInterval: body.billingInterval === "year" ? "year" : "month",
       });
       const summary = result.success ? await getUsageSummary(user.id) : null;
       res.status(200).json({ ...result, current: summary });

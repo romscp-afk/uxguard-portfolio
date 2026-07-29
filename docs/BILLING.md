@@ -38,14 +38,35 @@ ENABLE_MOCK_PAYMENTS=true
 Use a PayPal **Business / Developer app** for the merchant that should receive funds
 (login such as `romscp@gmail.com`). Configure **API credentials** — the email itself is not passed to PayPal Checkout.
 
+Money is paid to the **PayPal Business account that owns the REST app** (Client ID / Secret).
+
 ```bash
 PAYMENT_PROVIDER=paypal
-PAYPAL_MODE=sandbox
+PAYPAL_MODE=sandbox   # or live
 PAYPAL_CLIENT_ID=
 PAYPAL_CLIENT_SECRET=
+ALLOW_MOCK_PAYMENTS_IN_PROD=false
 ```
 
-Sandbox first via [developer.paypal.com](https://developer.paypal.com/) → Apps & Credentials.
+#### Live (production) setup — step by step
+
+1. Log in at [https://developer.paypal.com/](https://developer.paypal.com/) with the **same Business account** that should receive UXGuard payments.
+2. Open **Dashboard → Apps & Credentials**.
+3. Toggle the top switch from **Sandbox** to **Live**.
+4. Under **REST API apps**, open your app (or **Create App** if none exists).
+5. Copy **Client ID** and **Secret** from the **Live** tab only (Sandbox credentials will not work in live mode).
+6. In [Vercel](https://vercel.com/) → project → **Settings → Environment Variables**, set for **Production**:
+   - `PAYMENT_PROVIDER` = `paypal`
+   - `PAYPAL_MODE` = `live`
+   - `PAYPAL_CLIENT_ID` = *(Live Client ID)*
+   - `PAYPAL_CLIENT_SECRET` = *(Live Secret)*
+   - `ALLOW_MOCK_PAYMENTS_IN_PROD` = `false`
+7. Redeploy the Production deployment after saving env vars (Deployments → … → Redeploy).
+8. Smoke test: upgrade a Free account with a real card / PayPal balance for **$15** Professional monthly, confirm funds appear in the Business PayPal balance / Activity, and Billing shows Professional.
+
+**Do not paste secrets into chat.** Confirm in Vercel that Live values are set; if you want a second check, you can say whether each of the five Production keys above is present (yes/no) without pasting values.
+
+Checkout capture trusts the PayPal order `custom_id` + amount (not URL/query params). Refreshing the return page is idempotent.
 
 ### Production (Stripe-ready)
 
@@ -132,6 +153,8 @@ UXGUARD_TEST=1 npm test
 
 ## Known limitations
 
+- PayPal uses **Orders v2 one-time capture** per upgrade period (not PayPal Subscriptions auto-renew yet). After the paid period ends, the user is downgraded unless they check out again.
+- No PayPal webhooks yet — activation happens when the buyer returns to `/checkout/paypal/return` (capture is idempotent if they refresh).
 - Stripe checkout/webhooks are stubs (Phase 3).
 - Admin promotional tools / founding-member program not fully UI-wired.
 - Email verification is not a separate gate; Free is provisioned on account creation.

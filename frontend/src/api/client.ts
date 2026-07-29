@@ -1192,15 +1192,13 @@ export const api = {
       body: JSON.stringify({ action: "complete_mock", ...payload }),
     }),
 
-  completePaypalCheckout: (payload: {
-    orderId: string;
-    planCode: string;
-    billingInterval: "month" | "year";
-  }) =>
+  completePaypalCheckout: (payload: { orderId: string }) =>
     request<{
       success: boolean;
       outcome: string;
       detail?: string;
+      planCode?: string;
+      billingInterval?: "month" | "year";
       current?: BillingUsageSummary | null;
     }>("/billing/checkout", {
       method: "POST",
