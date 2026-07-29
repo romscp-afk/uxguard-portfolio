@@ -57,6 +57,7 @@ export function FollowButton({
   }, [user?.id, username]);
 
   useEffect(() => {
+    if (liveLoaded.current) return;
     setFollowing(Boolean(initialFollowing));
     setFollowers(Number(followerCount) || 0);
   }, [initialFollowing, followerCount]);

@@ -358,7 +358,7 @@ export function toListItem(cs, likeCount = 0) {
 }
 
 export async function getFeedItems(limit) {
-  const store = await readStore();
+  const store = await readStore({ forceRefresh: true });
   const likeCounts = likeCountsByCaseStudy(store);
   const users = store.users || [];
   const studies = Array.isArray(store.caseStudies) ? store.caseStudies : [];

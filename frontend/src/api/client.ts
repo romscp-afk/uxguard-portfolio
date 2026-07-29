@@ -719,7 +719,8 @@ export const api = {
   search: (q: string) =>
     request<SearchResults>(`/search?q=${encodeURIComponent(q)}`),
 
-  getFollowStats: (username: string) => request<FollowStats>(`/users/${username}/follow`),
+  getFollowStats: (username: string) =>
+    request<FollowStats>(`/users/${username}/follow?_=${Date.now()}`),
 
   followUser: (username: string) =>
     request<FollowStats & { ok: boolean }>(`/users/${username}/follow`, { method: "POST" }),
@@ -1052,7 +1053,7 @@ export const api = {
     }),
 
   getLikeStats: (caseStudyId: number) =>
-    request<LikeStats>(`/case-studies/${caseStudyId}/like`),
+    request<LikeStats>(`/case-studies/${caseStudyId}/like?_=${Date.now()}`),
 
   likeCaseStudy: (caseStudyId: number) =>
     request<LikeStats>(`/case-studies/${caseStudyId}/like`, { method: "POST" }),

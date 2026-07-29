@@ -537,7 +537,7 @@ export async function readStore(options = {}) {
 
     try {
       const { data, etag } = await loadFromBlobWithMeta();
-      let next = normalizeLoadedStore(data);
+      let next = applyPersistedDeletionMarkers(normalizeLoadedStore(data));
       // Blob reads can lag a local write. Keep recent in-memory mutations so
       // follow-up updates (versions, export, delete) still see the new rows.
       if (
@@ -546,8 +546,13 @@ export async function readStore(options = {}) {
         Date.now() - slot.writtenAt < 10_000
       ) {
         const localClone = structuredClone(slot.current);
-        const deleted = takeDeletionMarkers(localClone);
+        const localDeleted = takeDeletionMarkers(localClone);
+        const remoteDeleted = next.__uxguardDeleted || {};
+        const deleted = mergeDeletionMarkers(remoteDeleted, localDeleted);
         next = mergeStoresForWrite(localClone, next, deleted);
+        if (Object.values(deleted).some((arr) => Array.isArray(arr) && arr.length > 0)) {
+          next.__uxguardDeleted = deleted;
+        }
       }
       memoryStore = next;
       slot.current = memoryStore;
@@ -972,6 +977,29 @@ function mergeCaseStudyViews(remoteList = [], localList = [], deletedIds = []) {
   return mergeByNumericId(remoteList, localList, deletedIds);
 }
 
+function mergeStringMarkers(a = [], b = []) {
+  return [...new Set([...(a || []), ...(b || [])].map(String).filter(Boolean))];
+}
+
+function mergeDeletionMarkers(remote = {}, local = {}) {
+  const keys = new Set([...Object.keys(remote || {}), ...Object.keys(local || {})]);
+  const merged = {};
+  for (const key of keys) {
+    merged[key] = mergeStringMarkers(remote?.[key], local?.[key]);
+  }
+  return merged;
+}
+
+function applyPersistedDeletionMarkers(store) {
+  const deleted = store?.__uxguardDeleted;
+  if (!deleted || typeof deleted !== "object") return store;
+  return {
+    ...store,
+    follows: mergeFollows(store.follows || [], [], deleted.follows || []),
+    likes: mergeLikes(store.likes || [], [], deleted.likes || []),
+  };
+}
+
 function takeDeletionMarkers(store) {
   const markers = store?.__uxguardDeleted && typeof store.__uxguardDeleted === "object"
     ? store.__uxguardDeleted
@@ -1239,7 +1267,14 @@ export async function writeStore(store) {
       // keep previous etag
     }
 
-    const toWrite = remote ? mergeStoresForWrite(store, remote, deleted) : store;
+    const remoteDeleted = remote?.__uxguardDeleted || {};
+    const mergedDeleted = mergeDeletionMarkers(remoteDeleted, deleted);
+    const toWrite = applyPersistedDeletionMarkers(
+      remote ? mergeStoresForWrite(store, remote, mergedDeleted) : store,
+    );
+    if (Object.values(mergedDeleted).some((arr) => Array.isArray(arr) && arr.length > 0)) {
+      toWrite.__uxguardDeleted = mergedDeleted;
+    }
     // Last attempts: overwrite without ifMatch so admin delete/save cannot soft-lock.
     const requireMatch = Boolean(etag) && attempt < WRITE_MAX_ATTEMPTS - 1;
 

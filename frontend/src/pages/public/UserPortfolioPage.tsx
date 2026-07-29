@@ -70,15 +70,6 @@ export function UserPortfolioPage() {
           if (!prev) return nextProfile;
           return {
             ...nextProfile,
-            // Keep live engagement if a FollowButton fetch already reported higher counts.
-            follower_count: Math.max(
-              Number(prev.follower_count) || 0,
-              Number(nextProfile.follower_count) || 0,
-            ),
-            following_count: Math.max(
-              Number(prev.following_count) || 0,
-              Number(nextProfile.following_count) || 0,
-            ),
             is_following: nextProfile.is_following ?? prev.is_following,
           };
         });

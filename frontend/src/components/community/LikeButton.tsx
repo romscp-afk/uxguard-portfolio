@@ -52,8 +52,9 @@ export function LikeButton({
     };
   }, [caseStudyId, user?.id]);
 
-  // Align sticky + footer buttons via shared parent state.
+  // Align sticky + footer buttons via shared parent state (before live fetch completes).
   useEffect(() => {
+    if (liveLoaded.current) return;
     setLiked(Boolean(initialLiked));
     setCount(Number(initialCount) || 0);
   }, [initialLiked, initialCount]);
