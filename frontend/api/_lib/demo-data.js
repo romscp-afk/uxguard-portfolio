@@ -596,9 +596,11 @@ export async function updateCaseStudy(id, authorId, payload) {
 
     const current = store.caseStudies[index];
     const nextStatus = payload.status ?? current.status;
+    const { attachments: payloadAttachments, content_blocks: payloadBlocks, ...payloadRest } =
+      payload || {};
     const next = {
       ...current,
-      ...payload,
+      ...payloadRest,
       id: current.id,
       author_id: uid,
       updated_at: now,
@@ -608,6 +610,12 @@ export async function updateCaseStudy(id, authorId, payload) {
           : nextStatus === "draft"
             ? null
             : current.published_at,
+      // Attachments are managed via dedicated endpoints — never wipe on empty PATCH payload.
+      attachments:
+        Array.isArray(payloadAttachments) && payloadAttachments.length > 0
+          ? payloadAttachments
+          : current.attachments || [],
+      content_blocks: Array.isArray(payloadBlocks) ? payloadBlocks : current.content_blocks || [],
     };
 
     if (payload.title && !payload.slug) {
@@ -680,12 +688,24 @@ export async function syncCaseStudies(authorId, studies) {
 
       const current = store.caseStudies[index];
       const nextStatus = incoming.status ?? current.status;
+      const incomingAttachments = Array.isArray(incoming.attachments) ? incoming.attachments : null;
+      const incomingBlocks = Array.isArray(incoming.content_blocks) ? incoming.content_blocks : null;
       store.caseStudies[index] = {
         ...current,
         ...incoming,
         id: current.id,
         author_id: uid,
         status: nextStatus,
+        // Never wipe server media with an empty offline cache payload.
+        attachments:
+          incomingAttachments && incomingAttachments.length > 0
+            ? incomingAttachments
+            : current.attachments || [],
+        content_blocks:
+          incomingBlocks && incomingBlocks.length > 0
+            ? incomingBlocks
+            : current.content_blocks || [],
+        cover_image: incoming.cover_image || current.cover_image || null,
         updated_at: incoming.updated_at || now,
         published_at:
           nextStatus === "published"

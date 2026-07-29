@@ -260,19 +260,32 @@ export function CaseStudyEditorPage() {
     updateBlock(blockIndex, { images: images.length ? images : [{ url: "", caption: "" }] });
   }
 
+  function patchCachedAttachments(attachments: CaseStudy["attachments"]) {
+    if (studyId == null) return;
+    const cached = getCaseStudyFromCache(studyId);
+    if (!cached) return;
+    saveCaseStudyToCache({
+      ...cached,
+      attachments: attachments || [],
+      updated_at: new Date().toISOString(),
+    });
+  }
+
   async function handleAttachmentUpload(files: FileList | null) {
     if (!files?.[0] || studyId == null) return;
     setUploadingAttachment(true);
     try {
       const file = files[0];
-      const asset = await api.uploadMedia(file);
+      const asset = await api.uploadMedia(file, { purpose: "media" });
       const attachment = await api.addAttachment(studyId, {
         title: file.name.replace(/\.[^.]+$/, "") || "Research report",
         file_url: asset.url,
         file_type: asset.mime_type,
         size_bytes: asset.size_bytes,
       });
-      updateField("attachments", [...(form.attachments || []), attachment]);
+      const nextAttachments = [...(form.attachments || []), attachment];
+      updateField("attachments", nextAttachments);
+      patchCachedAttachments(nextAttachments);
       setMessage("Attachment added.");
       setMessageType("success");
     } catch (err) {
@@ -288,10 +301,9 @@ export function CaseStudyEditorPage() {
     if (!confirm("Remove this attachment?")) return;
     try {
       await api.deleteAttachment(attachmentId);
-      updateField(
-        "attachments",
-        (form.attachments || []).filter((item) => item.id !== attachmentId),
-      );
+      const nextAttachments = (form.attachments || []).filter((item) => item.id !== attachmentId);
+      updateField("attachments", nextAttachments);
+      patchCachedAttachments(nextAttachments);
     } catch {
       setMessageType("error");
       setMessage("Failed to remove attachment.");
@@ -365,9 +377,21 @@ export function CaseStudyEditorPage() {
       const updated = await api.updateCaseStudy(studyId, payload);
       const coverImage =
         nextCoverUrl !== undefined ? nextCoverUrl || undefined : updated.cover_image;
-      const merged = { ...updated, cover_image: coverImage };
+      const merged = {
+        ...updated,
+        cover_image: coverImage,
+        content_blocks: payload.content_blocks ?? updated.content_blocks,
+        attachments:
+          updated.attachments && updated.attachments.length > 0
+            ? updated.attachments
+            : form.attachments || [],
+      };
       saveCaseStudyToCache(merged);
-      setForm((prev) => ({ ...prev, ...merged }));
+      setForm((prev) => ({
+        ...prev,
+        ...merged,
+        attachments: merged.attachments?.length ? merged.attachments : prev.attachments,
+      }));
     } catch {
       const cached = buildCachedStudy(form.status === "published" ? "published" : "draft");
       if (cached) {
@@ -466,6 +490,11 @@ export function CaseStudyEditorPage() {
         const merged = {
           ...updated,
           cover_image: payload.cover_image ?? updated.cover_image,
+          content_blocks: payload.content_blocks ?? updated.content_blocks,
+          attachments:
+            updated.attachments && updated.attachments.length > 0
+              ? updated.attachments
+              : form.attachments || [],
         };
         saveCaseStudyToCache(merged);
         if (user) {
@@ -524,6 +553,11 @@ export function CaseStudyEditorPage() {
       const merged = {
         ...updated,
         cover_image: payload.cover_image ?? updated.cover_image,
+        content_blocks: payload.content_blocks ?? updated.content_blocks,
+        attachments:
+          updated.attachments && updated.attachments.length > 0
+            ? updated.attachments
+            : form.attachments || [],
       };
       saveCaseStudyToCache(merged);
       setForm(merged);
@@ -749,6 +783,8 @@ export function CaseStudyEditorPage() {
               <div className="sm:col-span-2">
                 <UrlOrUploadField
                   variant="cover"
+                  // Case-study covers must NOT use purpose "cover" — that overwrites portfolio hero.
+                  uploadPurpose="media"
                   label={`Cover Image${form.status === "published" || fieldErrors.cover_image ? " *" : ""}`}
                   value={form.cover_image || ""}
                   onChange={(url) => {

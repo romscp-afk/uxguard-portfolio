@@ -5,18 +5,47 @@ import { api } from "../../api/client";
 import { CaseStudyArticle } from "../../components/case-study/CaseStudyArticle";
 import { useAuth } from "../../context/AuthContext";
 import { getCaseStudyFromCache, saveCaseStudyToCache } from "../../lib/caseStudyStore";
-import type { CaseStudy } from "../../types";
+import type { CaseStudy, ContentBlock } from "../../types";
 
 function parseStudyId(raw: string | undefined): number | null {
   if (!raw || !/^\d+$/.test(raw)) return null;
   return Number(raw);
 }
 
-function pickNewerStudy(cached: CaseStudy | null, remote: CaseStudy | null): CaseStudy | null {
-  if (cached && remote) {
-    return new Date(cached.updated_at) >= new Date(remote.updated_at) ? cached : remote;
+function countBlockMedia(blocks: ContentBlock[] | undefined): number {
+  let count = 0;
+  for (const block of blocks || []) {
+    if (block.type === "image" && String(block.data?.url || "").trim()) count += 1;
+    if (block.type === "gallery") {
+      const images = (block.data?.images as Array<{ url?: string }> | undefined) || [];
+      count += images.filter((img) => String(img?.url || "").trim()).length;
+    }
   }
-  return cached || remote;
+  return count;
+}
+
+/** Prefer server study, but keep richer attachments/content media from cache when needed. */
+function mergePreviewStudy(cached: CaseStudy | null, remote: CaseStudy | null): CaseStudy | null {
+  if (!cached) return remote;
+  if (!remote) return cached;
+
+  const remoteAttachments = remote.attachments || [];
+  const cachedAttachments = cached.attachments || [];
+  const attachments =
+    remoteAttachments.length >= cachedAttachments.length ? remoteAttachments : cachedAttachments;
+
+  const remoteBlocks = remote.content_blocks || [];
+  const cachedBlocks = cached.content_blocks || [];
+  const content_blocks =
+    countBlockMedia(remoteBlocks) >= countBlockMedia(cachedBlocks) ? remoteBlocks : cachedBlocks;
+
+  // Admin preview should prefer the API payload for text/status, then restore media if cache is richer.
+  return {
+    ...remote,
+    cover_image: remote.cover_image || cached.cover_image,
+    content_blocks,
+    attachments,
+  };
 }
 
 export function CaseStudyPreviewPage() {
@@ -43,7 +72,7 @@ export function CaseStudyPreviewPage() {
     api
       .adminGetCaseStudy(studyId)
       .then((loaded) => {
-        const best = pickNewerStudy(cached, loaded);
+        const best = mergePreviewStudy(cached, loaded);
         if (best) {
           setStudy(best);
           saveCaseStudyToCache(best);
