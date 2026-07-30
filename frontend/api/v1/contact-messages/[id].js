@@ -10,7 +10,7 @@ import { requireAuthUser } from "../../_lib/auth.js";
 import { isAdmin } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
 
-const CONTACT_TO = String(process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase();
+const CONTACT_TO = String(process.env.CONTACT_TO || "hello@uxguard.studio").toLowerCase();
 
 function assertMailboxAdmin(user, res) {
   const email = String(user.email || "").toLowerCase();

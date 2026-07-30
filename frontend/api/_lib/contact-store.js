@@ -29,11 +29,11 @@ export function normalizeMessage(raw) {
     from_name: raw.from_name || (direction === "inbound" ? raw.name : "UXGuard Studio"),
     from_email:
       raw.from_email ||
-      (direction === "inbound" ? raw.email : process.env.CONTACT_TO || "uxguardstudio@gmail.com"),
+      (direction === "inbound" ? raw.email : process.env.CONTACT_TO || "hello@uxguard.studio"),
     to_name: raw.to_name || (direction === "outbound" ? raw.name : "UXGuard Studio"),
     to_email:
       raw.to_email ||
-      (direction === "outbound" ? raw.email : process.env.CONTACT_TO || "uxguardstudio@gmail.com"),
+      (direction === "outbound" ? raw.email : process.env.CONTACT_TO || "hello@uxguard.studio"),
     inquiry_type: raw.inquiry_type || "General",
     subject: raw.subject || "(No subject)",
     message: raw.message || "",
@@ -72,7 +72,7 @@ export async function saveContactMessage({
       from_name: name,
       from_email: email,
       to_name: "UXGuard Studio",
-      to_email: process.env.CONTACT_TO || "uxguardstudio@gmail.com",
+      to_email: process.env.CONTACT_TO || "hello@uxguard.studio",
       inquiry_type: inquiryType || "General",
       subject,
       message,
@@ -227,7 +227,7 @@ export async function composeContactMessage({
   fromName = "UXGuard Studio",
   fromEmail = null,
 }) {
-  const adminEmail = fromEmail || process.env.CONTACT_TO || "uxguardstudio@gmail.com";
+  const adminEmail = fromEmail || process.env.CONTACT_TO || "hello@uxguard.studio";
   const trimmedTo = String(toEmail || "").trim();
   const trimmedSubject = String(subject || "").trim() || "(No subject)";
   const trimmedMessage = String(message || "").trim();

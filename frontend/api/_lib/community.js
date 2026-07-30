@@ -348,7 +348,7 @@ export async function markNotificationsRead(userId, ids = null) {
 export async function notifyPlatformAdmins({ type, title, message, link }) {
   const store = normalizeStore(await readStore());
   const { isAdmin } = await import("./roles.js");
-  const contactTo = String(process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase();
+  const contactTo = String(process.env.CONTACT_TO || "hello@uxguard.studio").toLowerCase();
   const admins = (store.users || []).filter(
     (u) => isAdmin(u) || String(u.email || "").toLowerCase() === contactTo,
   );

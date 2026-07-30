@@ -1,4 +1,4 @@
-const ADMIN_EMAIL = (process.env.CONTACT_TO || "uxguardstudio@gmail.com").toLowerCase();
+const ADMIN_EMAIL = (process.env.CONTACT_TO || "hello@uxguard.studio").toLowerCase();
 
 export const PLATFORM_INTENTS = [
   "build_portfolio",

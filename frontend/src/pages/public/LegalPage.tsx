@@ -21,7 +21,7 @@ const COPY: Record<
       },
       {
         heading: "Contact",
-        body: "Questions about privacy: uxguardstudio@gmail.com",
+        body: "Questions about privacy: hello@uxguard.studio",
       },
     ],
   },
@@ -39,7 +39,7 @@ const COPY: Record<
       },
       {
         heading: "Contact",
-        body: "Questions about these terms: uxguardstudio@gmail.com",
+        body: "Questions about these terms: hello@uxguard.studio",
       },
     ],
   },
