@@ -64,7 +64,7 @@ export function AdminLoginPage() {
               className="input-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="Email"
               autoComplete="username"
               required
             />
@@ -88,7 +88,7 @@ export function AdminLoginPage() {
               className="input-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
+              placeholder="Password"
               autoComplete="current-password"
               required
             />

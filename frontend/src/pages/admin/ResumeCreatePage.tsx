@@ -212,7 +212,7 @@ export function ResumeCreatePage() {
               <input
                 className="input-field"
                 value={title}
-                placeholder={defaultTitle}
+                placeholder="Resume name"
                 onChange={(e) => setTitle(e.target.value)}
               />
             </label>
@@ -223,7 +223,7 @@ export function ResumeCreatePage() {
                 className="input-field"
                 value={targetRole}
                 onChange={(e) => setTargetRole(e.target.value)}
-                placeholder="e.g. Senior Product Designer"
+                placeholder="Target job title"
               />
             </label>
 

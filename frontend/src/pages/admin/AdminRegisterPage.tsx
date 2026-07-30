@@ -92,21 +92,21 @@ export function AdminRegisterPage() {
             <>
               <div className="mb-4">
                 <label htmlFor="name" className="label-field">
-                  Full name
+                  Name
                 </label>
                 <input
                   id="name"
                   className="input-field"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Alex Rivera"
+                  placeholder="Name"
                   required
                 />
               </div>
 
               <div className="mb-4">
                 <label htmlFor="username" className="label-field">
-                  Portfolio username
+                  Username
                 </label>
                 <div className="flex items-center gap-0">
                   <span className="rounded-l-lg border border-r-0 border-ink-200 bg-ink-50 px-3 py-2.5 text-sm text-ink-500">
@@ -117,7 +117,7 @@ export function AdminRegisterPage() {
                     className="input-field rounded-l-none"
                     value={username}
                     onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                    placeholder={slugify(name) || "alex-rivera"}
+                    placeholder="Username"
                   />
                 </div>
                 <p className="mt-1.5 truncate text-xs text-ink-400">Your link: {portfolioPreview}</p>
@@ -132,7 +132,7 @@ export function AdminRegisterPage() {
                   className="input-field"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Senior UX Researcher"
+                  placeholder="Title"
                 />
               </div>
 
@@ -146,6 +146,7 @@ export function AdminRegisterPage() {
                   className="input-field"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
                   required
                 />
               </div>
@@ -160,6 +161,7 @@ export function AdminRegisterPage() {
                   className="input-field"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
                   minLength={8}
                   required
                 />

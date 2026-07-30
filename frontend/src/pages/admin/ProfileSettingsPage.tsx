@@ -284,7 +284,7 @@ export function ProfileSettingsPage() {
                 className="input-field rounded-l-none"
                 value={form.username || ""}
                 onChange={(e) => updateField("username", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                placeholder="your-name"
+                placeholder="Username"
                 required
                 disabled={!canEditPlatform(user)}
               />
@@ -358,7 +358,7 @@ export function ProfileSettingsPage() {
               className="input-field"
               value={form.title || ""}
               onChange={(e) => updateField("title", e.target.value)}
-              placeholder="Senior UX Researcher"
+              placeholder="Title"
               disabled={!canEditPlatform(user)}
             />
           </div>
@@ -368,7 +368,7 @@ export function ProfileSettingsPage() {
               className="input-field min-h-[100px]"
               value={form.bio || ""}
               onChange={(e) => updateField("bio", e.target.value)}
-              placeholder="Short intro for your portfolio page"
+              placeholder="Bio"
               disabled={!canEditPlatform(user)}
             />
           </div>
@@ -378,7 +378,7 @@ export function ProfileSettingsPage() {
               className="input-field"
               value={form.location || ""}
               onChange={(e) => updateField("location", e.target.value)}
-              placeholder="City, Country"
+              placeholder="Location"
               disabled={!canEditPlatform(user)}
             />
           </div>
@@ -399,7 +399,7 @@ export function ProfileSettingsPage() {
               className="input-field"
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
-              placeholder="https://linkedin.com/in/your-profile"
+              placeholder="LinkedIn URL"
               disabled={!canEditPlatform(user)}
             />
           </div>

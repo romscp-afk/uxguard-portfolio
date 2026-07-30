@@ -124,7 +124,7 @@ export function ContactPage() {
               <div className="mt-8 grid gap-5 sm:grid-cols-2">
                 <div>
                   <label htmlFor="contact-name" className="label-field">
-                    Your name
+                    Name
                   </label>
                   <input
                     id="contact-name"
@@ -133,13 +133,13 @@ export function ContactPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="input-field"
-                    placeholder="Jane Doe"
+                    placeholder="Name"
                     disabled={submitting}
                   />
                 </div>
                 <div>
                   <label htmlFor="contact-email" className="label-field">
-                    Your email
+                    Email
                   </label>
                   <input
                     id="contact-email"
@@ -148,7 +148,7 @@ export function ContactPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input-field"
-                    placeholder="you@company.com"
+                    placeholder="Email"
                     disabled={submitting}
                   />
                 </div>
@@ -184,7 +184,7 @@ export function ContactPage() {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   className="input-field"
-                  placeholder="How can we help?"
+                  placeholder="Subject"
                   disabled={submitting}
                 />
               </div>
@@ -200,7 +200,7 @@ export function ContactPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="input-field resize-y"
-                  placeholder="Tell us about your project, goals, or question..."
+                  placeholder="Message"
                   disabled={submitting}
                 />
               </div>

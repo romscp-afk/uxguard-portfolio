@@ -54,7 +54,7 @@ export function AdminForgotPasswordPage() {
               className="input-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="Account email"
               required
             />
             <p className="mt-2 text-xs text-ink-400">

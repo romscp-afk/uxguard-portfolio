@@ -71,7 +71,7 @@ export function SearchPage() {
                 className="input-field pl-10"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search people, projects, methods, impact..."
+                placeholder="Search"
               />
             </div>
             <button type="submit" className="btn-primary shrink-0">
