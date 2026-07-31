@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
@@ -34,15 +34,24 @@ function confidenceLabel(fields: Record<string, ResumeExtractionField> | undefin
 export function ResumeReviewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const readOnly = !canEditPlatform(user);
   const resumeId = Number(id);
+  const seededResume =
+    (location.state as { resume?: Resume; fromImport?: boolean } | null)?.resume || null;
 
-  const [resume, setResume] = useState<Resume | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [resume, setResume] = useState<Resume | null>(
+    seededResume && Number(seededResume.id) === resumeId ? seededResume : null,
+  );
+  const [loading, setLoading] = useState(!resume);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [skillsText, setSkillsText] = useState("");
+  const [skillsText, setSkillsText] = useState(
+    seededResume && Number(seededResume.id) === resumeId
+      ? (seededResume.skills || []).map((s) => s.name).join(", ")
+      : "",
+  );
 
   useEffect(() => {
     if (!Number.isFinite(resumeId) || resumeId <= 0) {
@@ -50,31 +59,47 @@ export function ResumeReviewPage() {
       return;
     }
     let cancelled = false;
-    api
-      .getResume(resumeId)
-      .then((data) => {
-        if (cancelled) return;
-        setResume(data.resume);
-        setSkillsText((data.resume.skills || []).map((s) => s.name).join(", "));
-        if (
-          data.resume.extraction?.status === "confirmed" ||
-          data.resume.extraction?.status === "skipped"
-        ) {
-          navigate(`/admin/resume-builder/${resumeId}`, { replace: true });
+
+    async function load() {
+      // Prefer fresh server copy, but keep seeded import payload if Blob lags.
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+          const data = await api.getResume(resumeId);
+          if (cancelled) return;
+          setResume(data.resume);
+          setSkillsText((data.resume.skills || []).map((s) => s.name).join(", "));
+          setError("");
+          if (
+            data.resume.extraction?.status === "confirmed" ||
+            data.resume.extraction?.status === "skipped"
+          ) {
+            navigate(`/admin/resume-builder/${resumeId}`, { replace: true });
+          }
+          return;
+        } catch (err) {
+          lastError = err;
+          const notFound = err instanceof ApiError && err.status === 404;
+          if (!notFound || attempt === 5) break;
+          await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
         }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "Could not load extraction.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+      if (cancelled) return;
+      if (seededResume && Number(seededResume.id) === resumeId) {
+        // Keep showing seeded import data.
+        setError("");
+        return;
+      }
+      setError(lastError instanceof ApiError ? lastError.message : "Could not load extraction.");
+    }
+
+    void load().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [resumeId, navigate]);
+  }, [resumeId, navigate, seededResume]);
 
   const fields = resume?.extraction?.fields || {};
   const warnings = resume?.extraction?.warnings || [];

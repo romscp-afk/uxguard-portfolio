@@ -46,7 +46,12 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "GET") {
-    const resume = await getResumeByIdForUser(id, user.id);
+    let resume = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      resume = await getResumeByIdForUser(id, user.id, { forceRefresh: true });
+      if (resume) break;
+      await new Promise((r) => setTimeout(r, 120 * (attempt + 1)));
+    }
     if (!resume) {
       res.status(404).json({ detail: "Resume not found" });
       return;

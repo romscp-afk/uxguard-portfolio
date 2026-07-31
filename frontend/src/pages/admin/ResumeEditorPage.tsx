@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Check,
@@ -103,16 +103,21 @@ function sectionComplete(resume: Resume, id: SectionId): boolean {
 export function ResumeEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const readOnly = !canEditPlatform(user);
   const resumeId = Number(id);
+  const seededResume =
+    (location.state as { resume?: Resume; fromImport?: boolean } | null)?.resume || null;
 
-  const [resume, setResume] = useState<Resume | null>(null);
+  const [resume, setResume] = useState<Resume | null>(
+    seededResume && Number(seededResume.id) === resumeId ? seededResume : null,
+  );
   const [section, setSection] = useState<SectionId>(
     searchParams.get("tab") === "preview" ? "preview" : "basics",
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!resume);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -120,7 +125,7 @@ export function ResumeEditorPage() {
   const [skillCategory, setSkillCategory] = useState("Other");
   const [previewZoom, setPreviewZoom] = useState(0.85);
 
-  const resumeRef = useRef<Resume | null>(null);
+  const resumeRef = useRef<Resume | null>(resume);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextAutosave = useRef(true);
   const saveSeq = useRef(0);
@@ -135,12 +140,12 @@ export function ResumeEditorPage() {
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    if (!resume) setLoading(true);
     setError("");
 
     async function load() {
       let lastError: unknown = null;
-      for (let attempt = 0; attempt < 4; attempt++) {
+      for (let attempt = 0; attempt < 8; attempt++) {
         try {
           const data = await api.getResume(resumeId);
           if (cancelled) return;
@@ -152,15 +157,16 @@ export function ResumeEditorPage() {
         } catch (err) {
           lastError = err;
           const notFound = err instanceof ApiError && err.status === 404;
-          if (!notFound || attempt === 3) break;
-          await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+          if (!notFound || attempt === 7) break;
+          await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
         }
       }
-      if (!cancelled) {
-        setError(
-          lastError instanceof ApiError ? lastError.message : "Could not load resume.",
-        );
+      if (cancelled) return;
+      if (resumeRef.current && Number(resumeRef.current.id) === resumeId) {
+        setError("");
+        return;
       }
+      setError(lastError instanceof ApiError ? lastError.message : "Could not load resume.");
     }
 
     void load().finally(() => {

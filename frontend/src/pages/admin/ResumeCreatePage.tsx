@@ -119,16 +119,17 @@ export function ResumeCreatePage() {
     setNotice("Uploading and reading your resume…");
     try {
       const result = await api.importResume(file, meta);
-      await refreshUser();
-      if (result.message) setNotice(result.message);
       const nextId = result.resume?.id;
       if (!nextId) {
         throw new Error("Resume was imported but no id was returned. Open My Resumes and try again.");
       }
+      if (result.message) setNotice(result.message);
+      void refreshUser().catch(() => {});
+      const navState = { resume: result.resume, fromImport: true };
       if (result.needs_review || result.resume.extraction?.status === "pending_review") {
-        navigate(`/admin/resume-builder/${nextId}/review`);
+        navigate(`/admin/resume-builder/${nextId}/review`, { state: navState, replace: true });
       } else {
-        navigate(`/admin/resume-builder/${nextId}`);
+        navigate(`/admin/resume-builder/${nextId}`, { state: navState, replace: true });
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not import resume.");

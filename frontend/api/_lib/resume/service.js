@@ -8,6 +8,11 @@ import {
 import { extractResumeText, assertResumeUploadType, resolveResumeUploadMime } from "./extract.js";
 import { structureResumeWithAi } from "./parse.js";
 import { uploadMediaAsset } from "../media.js";
+import {
+  deleteResumeRecord,
+  loadResumeRecord,
+  persistResumeRecord,
+} from "./blob.js";
 
 function nextResumeId(resumes) {
   return (resumes || []).reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
@@ -22,7 +27,7 @@ function isOwnedActive(item, userId) {
 }
 
 export async function listResumesForUser(userId, { includeArchived = true } = {}) {
-  const store = await readStore();
+  const store = await readStore({ forceRefresh: true });
   return (store.resumes || [])
     .filter((item) => isOwnedActive(item, userId))
     .filter((item) => (includeArchived ? true : item.status !== "archived"))
@@ -31,8 +36,8 @@ export async function listResumesForUser(userId, { includeArchived = true } = {}
     .map(toResumeSummary);
 }
 
-export async function getResumeByIdForUser(resumeId, userId) {
-  const store = await readStore();
+export async function getResumeByIdForUser(resumeId, userId, options = {}) {
+  const store = await readStore({ forceRefresh: Boolean(options.forceRefresh) });
   const resume = (store.resumes || []).find(
     (item) =>
       Number(item.id) === Number(resumeId) &&
@@ -40,7 +45,39 @@ export async function getResumeByIdForUser(resumeId, userId) {
       item.status !== "deleted" &&
       !item.deleted_at,
   );
-  return resume ? normalizeResume(resume, userId) : null;
+  if (resume) return normalizeResume(resume, userId);
+
+  // Platform-store reads can lag a create/import on another instance.
+  const sidecar = await loadResumeRecord(resumeId, userId);
+  if (!sidecar) return null;
+
+  // Best-effort rehydrate so subsequent list/get from this instance see it.
+  try {
+    await updateStore(
+      (draft) => {
+        if (!draft.resumes) draft.resumes = [];
+        const idx = draft.resumes.findIndex((item) => Number(item.id) === Number(resumeId));
+        const normalized = normalizeResume(sidecar, userId);
+        if (idx >= 0) draft.resumes[idx] = normalized;
+        else draft.resumes.push(normalized);
+        return draft;
+      },
+      { forceRefresh: true },
+    );
+  } catch {
+    // Sidecar is enough for this request.
+  }
+
+  return normalizeResume(sidecar, userId);
+}
+
+async function waitForResumeVisible(resumeId, userId, savedFallback = null) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const found = await getResumeByIdForUser(resumeId, userId, { forceRefresh: true });
+    if (found) return found;
+    await sleep(100 * (attempt + 1));
+  }
+  return savedFallback ? normalizeResume(savedFallback, userId) : null;
 }
 
 /** Backward compatible: most recently updated non-deleted resume. */
@@ -145,6 +182,14 @@ async function writeResume(userId, payload, { existingId = null, forceId = null 
     { forceRefresh: true },
   );
 
+  if (saved) {
+    try {
+      await persistResumeRecord(saved);
+    } catch (err) {
+      console.error("[resume] persistResumeRecord failed", saved?.id, err);
+    }
+  }
+
   return saved;
 }
 
@@ -172,12 +217,8 @@ export async function createResumeForUser(userId, payload = {}) {
   });
   const saved = await writeResume(userId, blank);
   // Confirm visibility after Blob write (guards against stale follow-up GETs).
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const found = await getResumeByIdForUser(saved.id, userId);
-    if (found) return found;
-    await sleep(80 * (attempt + 1));
-  }
-  return saved;
+  const visible = await waitForResumeVisible(saved.id, userId, saved);
+  return visible || saved;
 }
 
 export async function updateResumeForUser(resumeId, userId, payload = {}) {
@@ -231,7 +272,7 @@ export async function softDeleteResumeForUser(resumeId, userId) {
     throw err;
   }
   const now = new Date().toISOString();
-  return writeResume(
+  const deleted = await writeResume(
     userId,
     {
       ...existing,
@@ -240,6 +281,12 @@ export async function softDeleteResumeForUser(resumeId, userId) {
     },
     { existingId: resumeId },
   );
+  try {
+    await deleteResumeRecord(resumeId, userId);
+  } catch {
+    // Ignore sidecar cleanup failures.
+  }
+  return deleted;
 }
 
 export async function archiveResumeForUser(resumeId, userId) {
@@ -333,8 +380,9 @@ export async function importResumeForUser(userId, file, meta = {}) {
       parsed_at: new Date().toISOString(),
       extraction: failedExtraction,
     });
+    const visibleFailed = await waitForResumeVisible(failed.id, userId, failed);
     return {
-      resume: failed,
+      resume: visibleFailed || failed,
       ai_used: false,
       credits_used: 0,
       message: err.message || "Could not extract text from this file.",
@@ -404,8 +452,9 @@ export async function importResumeForUser(userId, file, meta = {}) {
       parsed_at: new Date().toISOString(),
       extraction,
     });
+    const visibleFailed = await waitForResumeVisible(failed.id, userId, failed);
     return {
-      resume: failed,
+      resume: visibleFailed || failed,
       ai_used: false,
       credits_used: 0,
       message:
@@ -430,12 +479,15 @@ export async function importResumeForUser(userId, file, meta = {}) {
     extraction: structured.extraction || structured.resume.extraction,
   });
 
+  const visible = await waitForResumeVisible(saved.id, userId, saved);
+  const resume = visible || saved;
+
   return {
-    resume: saved,
+    resume,
     ai_used: structured.ai_used,
     credits_used: structured.credits_used || 0,
     message: structured.message,
-    needs_review: saved.extraction?.status === "pending_review",
+    needs_review: resume.extraction?.status === "pending_review",
   };
 }
 
