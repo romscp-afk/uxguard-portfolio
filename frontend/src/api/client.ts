@@ -598,7 +598,7 @@ export const api = {
     const form = new FormData();
     form.append("file", file);
     Object.entries(meta).forEach(([key, value]) => {
-      if (value) form.append(key, value);
+      if (value != null && String(value).length > 0) form.append(key, String(value));
     });
     return request<ResumeImportResult>("/resumes/me/import", {
       method: "POST",

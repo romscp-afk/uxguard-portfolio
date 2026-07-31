@@ -16,6 +16,31 @@ const ALLOWED_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
+const EXT_TO_MIME = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+
+function resolveUploadMimeType(filename, mimeType) {
+  const mime = String(mimeType || "").toLowerCase().trim();
+  if (ALLOWED_TYPES.has(mime)) return mime;
+
+  const ext = String(filename || "")
+    .split(".")
+    .pop()
+    ?.toLowerCase();
+  if (ext && EXT_TO_MIME[ext]) return EXT_TO_MIME[ext];
+
+  return mime;
+}
+
 function fileExtension(filename, mimeType) {
   const fromName = String(filename || "")
     .split(".")
@@ -30,6 +55,8 @@ function fileExtension(filename, mimeType) {
     "image/gif": ".gif",
     "image/svg+xml": ".svg",
     "application/pdf": ".pdf",
+    "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
   };
   return map[mimeType] || ".bin";
 }
@@ -69,14 +96,15 @@ export async function getMediaAssetById(assetId, options = {}) {
  * in the same store write so billing races cannot orphan the upload.
  */
 export async function uploadMediaAsset(userId, file, altText, purpose = "media") {
-  if (!ALLOWED_TYPES.has(file.mimeType)) {
+  const mimeType = resolveUploadMimeType(file.filename, file.mimeType);
+  if (!ALLOWED_TYPES.has(mimeType)) {
     throw new Error("File type not allowed. Use images, PDF, or Word documents.");
   }
 
   const isCover = purpose === "cover";
   const isAvatar = purpose === "avatar";
   const isCv = purpose === "cv";
-  if ((isCover || isAvatar) && !file.mimeType.startsWith("image/")) {
+  if ((isCover || isAvatar) && !mimeType.startsWith("image/")) {
     throw new Error(isCover ? "Cover image must be JPG, PNG, or WebP." : "Profile photo must be an image.");
   }
 
@@ -85,13 +113,13 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
     throw new Error(isCover ? "Cover image must be 5 MB or smaller" : "File exceeds 10MB limit");
   }
 
-  const ext = fileExtension(file.filename, file.mimeType);
+  const ext = fileExtension(file.filename, mimeType);
   const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const pathname = `${MEDIA_PREFIX}/${userId}/${unique}${ext}`;
 
   await put(pathname, file.buffer, {
     access: "private",
-    contentType: file.mimeType,
+    contentType: mimeType,
     addRandomSuffix: false,
     allowOverwrite: true,
   });
@@ -106,7 +134,7 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
       id,
       filename: `${unique}${ext}`,
       original_name: file.filename || `${unique}${ext}`,
-      mime_type: file.mimeType,
+      mime_type: mimeType,
       size_bytes: file.buffer.length,
       pathname,
       url: mediaPublicUrl(id),

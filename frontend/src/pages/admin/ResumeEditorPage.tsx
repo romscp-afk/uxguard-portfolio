@@ -123,6 +123,7 @@ export function ResumeEditorPage() {
   const resumeRef = useRef<Resume | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextAutosave = useRef(true);
+  const saveSeq = useRef(0);
 
   useEffect(() => {
     resumeRef.current = resume;
@@ -173,6 +174,7 @@ export function ResumeEditorPage() {
   const persist = useCallback(
     async (payload: Resume, { manual = false }: { manual?: boolean } = {}) => {
       if (readOnly) return;
+      const requestId = ++saveSeq.current;
       setSaveState("saving");
       setError("");
       try {
@@ -184,6 +186,8 @@ export function ResumeEditorPage() {
           ...payload,
           status,
         });
+        // Ignore stale responses so overlapping autosaves don't clobber newer edits.
+        if (requestId !== saveSeq.current) return;
         setResume(saved);
         resumeRef.current = saved;
         setDirty(false);
@@ -192,6 +196,7 @@ export function ResumeEditorPage() {
           window.setTimeout(() => setSaveState((s) => (s === "saved" ? "idle" : s)), 2000);
         }
       } catch (err) {
+        if (requestId !== saveSeq.current) return;
         setSaveState("failed");
         setError(err instanceof ApiError ? err.message : "Save failed. Your changes are still here.");
       }

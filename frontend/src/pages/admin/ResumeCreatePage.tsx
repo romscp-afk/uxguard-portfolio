@@ -121,7 +121,10 @@ export function ResumeCreatePage() {
       const result = await api.importResume(file, meta);
       await refreshUser();
       if (result.message) setNotice(result.message);
-      const nextId = result.resume.id;
+      const nextId = result.resume?.id;
+      if (!nextId) {
+        throw new Error("Resume was imported but no id was returned. Open My Resumes and try again.");
+      }
       if (result.needs_review || result.resume.extraction?.status === "pending_review") {
         navigate(`/admin/resume-builder/${nextId}/review`);
       } else {

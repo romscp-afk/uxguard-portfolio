@@ -11,11 +11,26 @@ function extensionOf(filename = "") {
   return parts.length > 1 ? parts.pop() : "";
 }
 
-export function assertResumeUploadType(mimeType, filename) {
-  const mime = String(mimeType || "").toLowerCase();
+/** Prefer real PDF/DOCX MIME when browsers send octet-stream or mislabel DOCX as msword. */
+export function resolveResumeUploadMime(mimeType, filename) {
+  const mime = String(mimeType || "").toLowerCase().trim();
   const ext = extensionOf(filename);
 
-  if (mime === DOC_MIME || ext === "doc") {
+  if (ext === "pdf") return PDF_MIME;
+  if (ext === "docx") return DOCX_MIME;
+  if (mime === PDF_MIME || mime === DOCX_MIME) return mime;
+  if (mime && mime !== "application/octet-stream" && mime !== "binary/octet-stream") {
+    return mime;
+  }
+  return mime || "application/octet-stream";
+}
+
+export function assertResumeUploadType(mimeType, filename) {
+  const mime = resolveResumeUploadMime(mimeType, filename);
+  const ext = extensionOf(filename);
+
+  // Only reject true legacy .doc — some browsers send DOCX as application/msword.
+  if (ext === "doc" || (mime === DOC_MIME && ext !== "docx" && ext !== "pdf")) {
     const error = new Error("Legacy .doc files are not supported. Please re-save as PDF or DOCX.");
     error.status = 400;
     error.code = "unsupported_doc";
@@ -39,8 +54,16 @@ export function assertResumeUploadType(mimeType, filename) {
 async function extractPdfText(buffer) {
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
-  const result = await parser.getText();
-  return String(result?.text || "").trim();
+  try {
+    const result = await parser.getText();
+    return String(result?.text || "").trim();
+  } finally {
+    try {
+      await parser.destroy?.();
+    } catch {
+      /* ignore cleanup errors */
+    }
+  }
 }
 
 async function extractDocxText(buffer) {
@@ -49,8 +72,8 @@ async function extractDocxText(buffer) {
 }
 
 export async function extractResumeText({ buffer, mimeType, filename }) {
-  assertResumeUploadType(mimeType, filename);
-  const mime = String(mimeType || "").toLowerCase();
+  const mime = resolveResumeUploadMime(mimeType, filename);
+  assertResumeUploadType(mime, filename);
   const ext = extensionOf(filename);
 
   let text = "";

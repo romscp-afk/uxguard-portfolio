@@ -5,7 +5,7 @@ import {
   normalizeResume,
   toResumeSummary,
 } from "./schema.js";
-import { extractResumeText, assertResumeUploadType } from "./extract.js";
+import { extractResumeText, assertResumeUploadType, resolveResumeUploadMime } from "./extract.js";
 import { structureResumeWithAi } from "./parse.js";
 import { uploadMediaAsset } from "../media.js";
 
@@ -149,15 +149,26 @@ async function writeResume(userId, payload, { existingId = null, forceId = null 
 }
 
 export async function createResumeForUser(userId, payload = {}) {
+  const {
+    id: _omitId,
+    created_at: _omitCreated,
+    updated_at: _omitUpdated,
+    deleted_at: _omitDeleted,
+    user_id: _omitUser,
+    ...rest
+  } = payload || {};
+
   const blank = createBlankResume(userId, {
-    title: payload.title || "My Resume",
-    target_role: payload.target_role || "",
-    target_company: payload.target_company || "",
-    target_industry: payload.target_industry || "",
-    target_country: payload.target_country || "",
-    experience_level: payload.experience_level || "mid",
-    creation_method: payload.creation_method || "manual",
-    basics: payload.basics || {},
+    title: rest.title || "My Resume",
+    target_role: rest.target_role || "",
+    target_company: rest.target_company || "",
+    target_industry: rest.target_industry || "",
+    target_country: rest.target_country || "",
+    experience_level: rest.experience_level || "mid",
+    creation_method: rest.creation_method || "manual",
+    ...rest,
+    basics: rest.basics || {},
+    deleted_at: null,
   });
   const saved = await writeResume(userId, blank);
   // Confirm visibility after Blob write (guards against stale follow-up GETs).
@@ -279,9 +290,12 @@ export async function renameResumeForUser(resumeId, userId, title) {
 }
 
 export async function importResumeForUser(userId, file, meta = {}) {
-  assertResumeUploadType(file.mimeType, file.filename);
+  const mimeType = resolveResumeUploadMime(file.mimeType, file.filename);
+  assertResumeUploadType(mimeType, file.filename);
+  const normalizedFile = { ...file, mimeType };
 
-  const asset = await uploadMediaAsset(userId, file, "Resume upload", "cv");
+  // Use "media" so resume imports do not overwrite the profile CV link.
+  const asset = await uploadMediaAsset(userId, normalizedFile, "Resume upload", "media");
   const base = createBlankResume(userId, {
     title: meta.title || "Imported Resume",
     target_role: meta.target_role || "",
@@ -295,9 +309,9 @@ export async function importResumeForUser(userId, file, meta = {}) {
   let extracted = "";
   try {
     extracted = await extractResumeText({
-      buffer: file.buffer,
-      mimeType: file.mimeType,
-      filename: file.filename,
+      buffer: normalizedFile.buffer,
+      mimeType,
+      filename: normalizedFile.filename,
     });
   } catch (err) {
     const { buildExtractionPayload } = await import("./extraction.js");
@@ -312,8 +326,8 @@ export async function importResumeForUser(userId, file, meta = {}) {
     const failed = await writeResume(userId, {
       ...base,
       source_media_id: asset.id,
-      source_filename: asset.original_name || file.filename,
-      source_mime: file.mimeType,
+      source_filename: asset.original_name || normalizedFile.filename,
+      source_mime: mimeType,
       parse_status: "failed",
       parse_error: err.message || "Could not extract text",
       parsed_at: new Date().toISOString(),
@@ -336,8 +350,8 @@ export async function importResumeForUser(userId, file, meta = {}) {
       existingResume: {
         ...base,
         source_media_id: asset.id,
-        source_filename: asset.original_name || file.filename,
-        source_mime: file.mimeType,
+        source_filename: asset.original_name || normalizedFile.filename,
+        source_mime: mimeType,
       },
     });
   } catch (err) {
@@ -352,8 +366,8 @@ export async function importResumeForUser(userId, file, meta = {}) {
         {
           ...base,
           source_media_id: asset.id,
-          source_filename: asset.original_name || file.filename,
-          source_mime: file.mimeType,
+          source_filename: asset.original_name || normalizedFile.filename,
+          source_mime: mimeType,
         },
         heuristic,
       );
@@ -383,8 +397,8 @@ export async function importResumeForUser(userId, file, meta = {}) {
     const failed = await writeResume(userId, {
       ...fallbackResume,
       source_media_id: asset.id,
-      source_filename: asset.original_name || file.filename,
-      source_mime: file.mimeType,
+      source_filename: asset.original_name || normalizedFile.filename,
+      source_mime: mimeType,
       parse_status: extraction?.status === "failed" ? "failed" : "ready",
       parse_error: err.message || "AI parse failed",
       parsed_at: new Date().toISOString(),
@@ -408,8 +422,8 @@ export async function importResumeForUser(userId, file, meta = {}) {
     target_role: meta.target_role || structured.resume.target_role || "",
     creation_method: "upload",
     source_media_id: asset.id,
-    source_filename: asset.original_name || file.filename,
-    source_mime: file.mimeType,
+    source_filename: asset.original_name || normalizedFile.filename,
+    source_mime: mimeType,
     parse_status: "ready",
     parse_error: structured.ai_used ? null : structured.message || null,
     parsed_at: new Date().toISOString(),

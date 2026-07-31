@@ -5,6 +5,10 @@ import {
   detectScannedPdf,
 } from "./extraction.js";
 import { createBlankResume, mergeParsedIntoResume } from "./schema.js";
+import {
+  assertResumeUploadType,
+  resolveResumeUploadMime,
+} from "./extract.js";
 
 function test(name, fn) {
   try {
@@ -64,6 +68,27 @@ test("confidence marks email high when present in source", () => {
 test("scanned pdf detection", () => {
   assert.equal(detectScannedPdf("hi"), true);
   assert.equal(detectScannedPdf(SAMPLE), false);
+});
+
+test("resolves octet-stream PDF/DOCX by extension", () => {
+  assert.equal(
+    resolveResumeUploadMime("application/octet-stream", "cv.pdf"),
+    "application/pdf",
+  );
+  assert.equal(
+    resolveResumeUploadMime("application/octet-stream", "cv.docx"),
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  );
+  assert.doesNotThrow(() =>
+    assertResumeUploadType("application/octet-stream", "resume.pdf"),
+  );
+  assert.doesNotThrow(() =>
+    assertResumeUploadType("application/msword", "resume.docx"),
+  );
+  assert.throws(
+    () => assertResumeUploadType("application/msword", "resume.doc"),
+    /Legacy \.doc/,
+  );
 });
 
 console.log("extraction tests passed");

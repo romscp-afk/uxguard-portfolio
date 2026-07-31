@@ -32,8 +32,10 @@ export default withApi(async (req, res) => {
     res.status(200).json(result);
   } catch (err) {
     const status = err.status || 400;
+    const detail = err.message || "Resume import failed";
+    // Media / blob errors often lack status — surface a clear message.
     res.status(status).json({
-      detail: err.message || "Resume import failed",
+      detail,
       code: err.code || undefined,
     });
   }
