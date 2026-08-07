@@ -54,6 +54,8 @@ import type {
   User,
   UserProfile,
   RegisterPayload,
+  Article,
+  ArticleListItem,
   TestLabProject,
   TestLabProjectDetail,
   TestLabTarget,
@@ -1060,6 +1062,45 @@ export const api = {
 
   unlikeCaseStudy: (caseStudyId: number) =>
     request<LikeStats>(`/case-studies/${caseStudyId}/like`, { method: "DELETE" }),
+
+  listArticles: (params?: { featured?: boolean; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.featured !== undefined) q.set("featured", String(params.featured));
+    if (params?.limit) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return request<{ articles: ArticleListItem[] }>(`/articles${qs ? `?${qs}` : ""}`);
+  },
+
+  getArticleBySlug: (slug: string) =>
+    request<{ article: Article }>(`/articles/${encodeURIComponent(slug)}`),
+
+  adminListArticles: () => request<{ articles: ArticleListItem[] }>("/articles/admin/all"),
+
+  getArticleAdmin: (id: number) => request<{ article: Article }>(`/articles/${id}`),
+
+  createArticle: (data: Partial<Article>) =>
+    request<{ article: Article }>("/articles", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateArticle: (id: number, data: Partial<Article>) =>
+    request<{ article: Article }>(`/articles/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteArticle: (id: number) =>
+    request<void>(`/articles/${id}`, { method: "DELETE" }),
+
+  getArticleLikeStats: (articleId: number) =>
+    request<LikeStats>(`/articles/${articleId}/like?_=${Date.now()}`),
+
+  likeArticle: (articleId: number) =>
+    request<LikeStats>(`/articles/${articleId}/like`, { method: "POST" }),
+
+  unlikeArticle: (articleId: number) =>
+    request<LikeStats>(`/articles/${articleId}/like`, { method: "DELETE" }),
 
   listProjects: () => request<Project[]>("/projects"),
 

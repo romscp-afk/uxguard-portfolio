@@ -63,6 +63,10 @@ import { BillingSettingsPage } from "./pages/admin/BillingSettingsPage";
 import { MockCheckoutPage } from "./pages/admin/MockCheckoutPage";
 import { CheckoutCancelledPage, CheckoutSuccessPage } from "./pages/admin/CheckoutResultPages";
 import { PaypalReturnPage } from "./pages/admin/PaypalReturnPage";
+import { ArticlesListPage } from "./pages/admin/ArticlesListPage";
+import { ArticleEditorPage } from "./pages/admin/ArticleEditorPage";
+import { ArticlesIndexPage } from "./pages/public/ArticlesIndexPage";
+import { ArticleDetailPage } from "./pages/public/ArticleDetailPage";
 
 export default function App() {
   return (
@@ -76,6 +80,8 @@ export default function App() {
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/articles" element={<ArticlesIndexPage />} />
+          <Route path="/articles/:slug" element={<ArticleDetailPage />} />
           <Route path="/search" element={<Navigate to="/discover" replace />} />
           <Route path="/u/:username" element={<UserPortfolioPage />} />
           <Route path="/u/:username/:slug" element={<CaseStudyDetailPage />} />
@@ -123,6 +129,9 @@ export default function App() {
             <Route path="case-studies" element={<CaseStudiesListPage />} />
             <Route path="case-studies/new" element={<CaseStudyEditorPage />} />
             <Route path="case-studies/:id" element={<CaseStudyEditorPage />} />
+            <Route path="articles" element={<ArticlesListPage />} />
+            <Route path="articles/new" element={<ArticleEditorPage />} />
+            <Route path="articles/:id" element={<ArticleEditorPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="testlab" element={<TestLabDashboardPage />} />
             <Route path="testlab/create" element={<TestLabCreatePage />} />

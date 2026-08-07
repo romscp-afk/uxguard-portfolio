@@ -5,7 +5,10 @@ import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 
 type LikeButtonProps = {
-  caseStudyId: number;
+  /** Case study target (default path). */
+  caseStudyId?: number;
+  /** Article target — mutually exclusive with caseStudyId in practice. */
+  articleId?: number;
   initialCount?: number;
   initialLiked?: boolean;
   compact?: boolean;
@@ -14,6 +17,7 @@ type LikeButtonProps = {
 
 export function LikeButton({
   caseStudyId,
+  articleId,
   initialCount = 0,
   initialLiked = false,
   compact = false,
@@ -28,12 +32,20 @@ export function LikeButton({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  const targetKey = articleId != null ? `article:${articleId}` : `case:${caseStudyId}`;
+
   useEffect(() => {
     liveLoaded.current = false;
     let cancelled = false;
 
-    api
-      .getLikeStats(caseStudyId)
+    const fetchStats =
+      articleId != null
+        ? api.getArticleLikeStats(articleId)
+        : caseStudyId != null
+          ? api.getLikeStats(caseStudyId)
+          : Promise.reject(new Error("missing like target"));
+
+    fetchStats
       .then((stats) => {
         if (cancelled) return;
         liveLoaded.current = true;
@@ -50,7 +62,7 @@ export function LikeButton({
     return () => {
       cancelled = true;
     };
-  }, [caseStudyId, user?.id]);
+  }, [targetKey, articleId, caseStudyId, user?.id]);
 
   // Align sticky + footer buttons via shared parent state (before live fetch completes).
   useEffect(() => {
@@ -79,9 +91,18 @@ export function LikeButton({
     setLoading(true);
     setError("");
     try {
-      const stats = liked
-        ? await api.unlikeCaseStudy(caseStudyId)
-        : await api.likeCaseStudy(caseStudyId);
+      let stats;
+      if (articleId != null) {
+        stats = liked
+          ? await api.unlikeArticle(articleId)
+          : await api.likeArticle(articleId);
+      } else if (caseStudyId != null) {
+        stats = liked
+          ? await api.unlikeCaseStudy(caseStudyId)
+          : await api.likeCaseStudy(caseStudyId);
+      } else {
+        throw new Error("Nothing to like");
+      }
       liveLoaded.current = true;
       const nextCount = Number(stats.like_count) || 0;
       const nextLiked = Boolean(stats.is_liked);
@@ -107,7 +128,7 @@ export function LikeButton({
             : "border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700"
         }`}
         aria-pressed={liked}
-        aria-label={liked ? "Unlike case study" : "Like case study"}
+        aria-label={liked ? "Unlike" : "Like"}
       >
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />

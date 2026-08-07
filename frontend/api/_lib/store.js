@@ -243,7 +243,9 @@ function normalizeLoadedStore(data) {
     comments: data.comments || [],
     notifications: data.notifications || [],
     likes: data.likes || [],
+    article_likes: data.article_likes || [],
     case_study_views: data.case_study_views || [],
+    articles: data.articles || [],
     contact_messages: data.contact_messages || [],
     internal_message_threads: data.internal_message_threads || [],
     internal_messages: data.internal_messages || [],
@@ -344,7 +346,9 @@ function seedStore() {
     comments: [],
     notifications: [],
     likes: [],
+    article_likes: [],
     case_study_views: [],
+    articles: [],
     contact_messages: [],
     internal_message_threads: [],
     internal_messages: [],
@@ -973,6 +977,38 @@ function mergeLikes(remoteList = [], localList = [], deletedKeys = []) {
   return [...byKey.values()];
 }
 
+function mergeArticleLikes(remoteList = [], localList = [], deletedKeys = []) {
+  const deleted = new Set((deletedKeys || []).map(String));
+  const byKey = new Map();
+  let maxId = 0;
+
+  for (const item of [...remoteList, ...localList]) {
+    const userId = Number(item?.user_id);
+    const articleId = Number(item?.article_id);
+    if (!Number.isFinite(userId) || !Number.isFinite(articleId)) continue;
+    const key = `${userId}:${articleId}`;
+    if (deleted.has(key)) continue;
+    const id = Number(item?.id);
+    if (Number.isFinite(id)) maxId = Math.max(maxId, id);
+    const prev = byKey.get(key);
+    if (prev && Number.isFinite(Number(prev.id)) && !Number.isFinite(id)) continue;
+    byKey.set(key, {
+      ...item,
+      user_id: userId,
+      article_id: articleId,
+    });
+  }
+
+  for (const like of byKey.values()) {
+    if (!Number.isFinite(Number(like.id))) {
+      maxId += 1;
+      like.id = maxId;
+    }
+  }
+
+  return [...byKey.values()];
+}
+
 function mergeCaseStudyViews(remoteList = [], localList = [], deletedIds = []) {
   return mergeByNumericId(remoteList, localList, deletedIds);
 }
@@ -997,6 +1033,8 @@ function applyPersistedDeletionMarkers(store) {
     ...store,
     follows: mergeFollows(store.follows || [], [], deleted.follows || []),
     likes: mergeLikes(store.likes || [], [], deleted.likes || []),
+    article_likes: mergeArticleLikes(store.article_likes || [], [], deleted.article_likes || []),
+    articles: mergeByNumericId(store.articles || [], [], deleted.articles || []),
   };
 }
 
@@ -1010,6 +1048,7 @@ function takeDeletionMarkers(store) {
   return {
     users: markers.users || [],
     caseStudies: markers.caseStudies || [],
+    articles: markers.articles || [],
     projects: markers.projects || [],
     resumes: markers.resumes || [],
     career_profiles: markers.career_profiles || [],
@@ -1026,6 +1065,7 @@ function takeDeletionMarkers(store) {
     mediaAssets: markers.mediaAssets || [],
     follows: markers.follows || [],
     likes: markers.likes || [],
+    article_likes: markers.article_likes || [],
     comments: markers.comments || [],
     notifications: markers.notifications || [],
     case_study_views: markers.case_study_views || [],
@@ -1065,6 +1105,11 @@ function mergeStoresForWrite(localStore, remote, deleted) {
       remote.caseStudies || [],
       localStore.caseStudies || [],
       deleted.caseStudies,
+    ),
+    articles: mergeByNumericId(
+      remote.articles || [],
+      localStore.articles || [],
+      deleted.articles,
     ),
     projects: mergeByNumericId(
       remote.projects || [],
@@ -1121,6 +1166,11 @@ function mergeStoresForWrite(localStore, remote, deleted) {
     ),
     follows: mergeFollows(remote.follows || [], localStore.follows || [], deleted.follows),
     likes: mergeLikes(remote.likes || [], localStore.likes || [], deleted.likes),
+    article_likes: mergeArticleLikes(
+      remote.article_likes || [],
+      localStore.article_likes || [],
+      deleted.article_likes,
+    ),
     comments: mergeByNumericId(
       remote.comments || [],
       localStore.comments || [],
@@ -1182,6 +1232,8 @@ export async function writeStore(store) {
         users: mergeUsersPreservingMedia(store.users || [], store.users || [], deleted.users),
         follows: mergeFollows(store.follows || [], [], deleted.follows),
         likes: mergeLikes(store.likes || [], [], deleted.likes),
+        article_likes: mergeArticleLikes(store.article_likes || [], [], deleted.article_likes),
+        articles: mergeByNumericId(store.articles || [], [], deleted.articles),
         comments: mergeByNumericId(store.comments || [], [], deleted.comments),
         notifications: mergeByNumericId(store.notifications || [], [], deleted.notifications),
         internal_message_threads: mergeByStringId(

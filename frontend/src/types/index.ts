@@ -80,6 +80,45 @@ export interface FeedCaseStudyItem extends CaseStudyListItem {
   author: AuthorSummary | null;
 }
 
+export interface Article {
+  id: number;
+  slug: string;
+  title: string;
+  subtitle?: string;
+  excerpt?: string;
+  body_html: string;
+  cover_image?: string | null;
+  tags: string[];
+  status: "draft" | "published";
+  featured: boolean;
+  author_id: number;
+  reading_time_min: number;
+  created_at: string;
+  updated_at: string;
+  published_at?: string | null;
+  like_count?: number;
+  is_liked?: boolean;
+  author?: AuthorSummary | null;
+}
+
+export interface ArticleListItem {
+  id: number;
+  slug: string;
+  title: string;
+  subtitle?: string;
+  excerpt?: string;
+  cover_image?: string | null;
+  tags: string[];
+  status: string;
+  featured: boolean;
+  reading_time_min: number;
+  author_id: number;
+  published_at?: string | null;
+  updated_at: string;
+  like_count?: number;
+  author?: AuthorSummary | null;
+}
+
 export interface UserPublic {
   id: number;
   username: string;
@@ -687,7 +726,8 @@ export interface Notification {
 }
 
 export interface LikeStats {
-  case_study_id: number;
+  case_study_id?: number;
+  article_id?: number;
   like_count: number;
   is_liked: boolean;
 }

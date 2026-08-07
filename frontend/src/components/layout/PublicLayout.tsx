@@ -56,6 +56,7 @@ export function PublicHeader() {
         <nav className="hidden items-center gap-3 text-sm font-medium md:flex">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/discover">Discover</NavLink>
+          <NavLink to="/articles">Articles</NavLink>
           <NavLink to="/pricing">Pricing</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/contact">Contact</NavLink>
@@ -104,6 +105,7 @@ export function PublicHeader() {
               {[
                 { to: "/", label: "Home" },
                 { to: "/discover", label: "Discover" },
+                { to: "/articles", label: "Articles" },
                 { to: "/pricing", label: "Pricing" },
                 { to: "/about", label: "About" },
                 { to: "/contact", label: "Contact" },

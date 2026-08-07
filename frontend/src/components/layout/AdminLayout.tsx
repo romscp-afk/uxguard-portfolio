@@ -26,6 +26,7 @@ import {
   Users,
   X,
   FlaskConical,
+  BookOpen,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
 import { NotificationBell } from "../community/NotificationBell";
@@ -47,6 +48,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   templates: LayoutTemplate,
   portfolio: Palette,
   "case-studies": FileText,
+  articles: BookOpen,
   media: Image,
   notifications: Bell,
   contact: Mail,
@@ -190,6 +192,11 @@ export function AdminLayout() {
 
   // TestLab is admin-only while in private testing
   if (location.pathname.startsWith("/admin/testlab") && !isAdmin(user)) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Articles management is admin-only for now
+  if (location.pathname.startsWith("/admin/articles") && !isAdmin(user)) {
     return <Navigate to="/admin" replace />;
   }
 
