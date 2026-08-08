@@ -1,11 +1,13 @@
 import {
-  assertAdminOnly,
+  assertCanManageArticles,
+  canAccessArticleAsAuthor,
   deleteArticle,
   getArticleById,
   getPublishedArticleBySlug,
   updateArticle,
 } from "../../_lib/articles.js";
 import { getAuthUser, requireAuthUser } from "../../_lib/auth.js";
+import { isAdmin } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
 
 function parseParam(req) {
@@ -39,12 +41,12 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "GET") {
-    // Numeric id — author preview (auth); slug — public published
+    // Numeric id — author/editor preview (auth); slug — public published
     if (/^\d+$/.test(param)) {
       const user = await requireAuthUser(req, res);
       if (!user) return;
       try {
-        assertAdminOnly(user);
+        assertCanManageArticles(user);
       } catch (err) {
         res.status(err.status || 403).json({ detail: err.message });
         return;
@@ -52,6 +54,10 @@ export default withApi(async (req, res) => {
       const article = await getArticleById(Number(param));
       if (!article) {
         res.status(404).json({ detail: "Article not found" });
+        return;
+      }
+      if (!canAccessArticleAsAuthor(user, article)) {
+        res.status(403).json({ detail: "Not allowed" });
         return;
       }
       res.status(200).json({ article });
@@ -72,7 +78,7 @@ export default withApi(async (req, res) => {
     const user = await requireAuthUser(req, res);
     if (!user) return;
     try {
-      assertAdminOnly(user);
+      assertCanManageArticles(user);
     } catch (err) {
       res.status(err.status || 403).json({ detail: err.message });
       return;
@@ -85,13 +91,24 @@ export default withApi(async (req, res) => {
     }
 
     try {
+      const existing = await getArticleById(id);
+      if (!existing) {
+        res.status(404).json({ detail: "Article not found" });
+        return;
+      }
+      if (!canAccessArticleAsAuthor(user, existing)) {
+        res.status(403).json({ detail: "Not allowed" });
+        return;
+      }
+
+      const adminBypass = isAdmin(user);
       if (req.method === "DELETE") {
-        await deleteArticle(id, user.id, { adminBypass: true });
+        await deleteArticle(id, user.id, { adminBypass });
         res.status(204).end();
         return;
       }
       const body = await readBody(req);
-      const article = await updateArticle(id, user.id, body || {}, { adminBypass: true });
+      const article = await updateArticle(id, user.id, body || {}, { adminBypass });
       res.status(200).json({ article });
     } catch (err) {
       res.status(err.status || 500).json({ detail: err.message || "Failed to update article" });

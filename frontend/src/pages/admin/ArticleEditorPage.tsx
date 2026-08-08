@@ -6,7 +6,7 @@ import { RichTextEditor } from "../../components/ui/RichTextEditor";
 import { EditGuard, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAuth } from "../../context/AuthContext";
 import { api, ApiError, toStoredAssetUrl } from "../../api/client";
-import { isAdmin } from "../../lib/roles";
+import { canEditPlatform } from "../../lib/roles";
 import type { Article } from "../../types";
 
 const emptyForm: Partial<Article> = {
@@ -27,7 +27,7 @@ export function ArticleEditorPage() {
   const articleId = Number(id);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const admin = isAdmin(user);
+  const canEdit = canEditPlatform(user);
 
   const [form, setForm] = useState<Partial<Article>>(emptyForm);
   const [tagsInput, setTagsInput] = useState("");
@@ -37,11 +37,6 @@ export function ArticleEditorPage() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    if (!admin) {
-      setLoading(false);
-      setError("Only admins can edit articles for now.");
-      return;
-    }
     if (isNew) {
       setForm(emptyForm);
       setTagsInput("");
@@ -73,7 +68,7 @@ export function ArticleEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [admin, isNew, articleId, navigate]);
+  }, [isNew, articleId, navigate]);
 
   function updateField<K extends keyof Article>(key: K, value: Article[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -81,7 +76,7 @@ export function ArticleEditorPage() {
 
   async function handleSave(e: FormEvent, publish?: boolean) {
     e.preventDefault();
-    if (!admin) return;
+    if (!canEdit) return;
     setSaving(true);
     setError("");
     setNotice("");
@@ -182,7 +177,6 @@ export function ArticleEditorPage() {
               value={form.title || ""}
               onChange={(e) => updateField("title", e.target.value)}
               placeholder="Article title"
-              disabled={!admin}
               required
             />
           </label>
@@ -194,7 +188,6 @@ export function ArticleEditorPage() {
               value={form.subtitle || ""}
               onChange={(e) => updateField("subtitle", e.target.value)}
               placeholder="Optional deck line"
-              disabled={!admin}
             />
           </label>
 
@@ -205,7 +198,6 @@ export function ArticleEditorPage() {
               value={form.excerpt || ""}
               onChange={(e) => updateField("excerpt", e.target.value)}
               placeholder="Short blurb for cards and SEO"
-              disabled={!admin}
             />
           </label>
 
@@ -216,7 +208,6 @@ export function ArticleEditorPage() {
               value={form.slug || ""}
               onChange={(e) => updateField("slug", e.target.value)}
               placeholder="auto-from-title"
-              disabled={!admin}
             />
             <span className="mt-1 block text-xs text-ink-400">
               Public URL: /articles/{form.slug || "your-slug"}
@@ -238,7 +229,6 @@ export function ArticleEditorPage() {
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="design, product, career"
-              disabled={!admin}
             />
           </label>
 
@@ -247,7 +237,6 @@ export function ArticleEditorPage() {
               type="checkbox"
               checked={Boolean(form.featured)}
               onChange={(e) => updateField("featured", e.target.checked)}
-              disabled={!admin}
             />
             Feature on Articles page
           </label>
@@ -266,7 +255,7 @@ export function ArticleEditorPage() {
             <button
               type="button"
               className="btn-secondary"
-              disabled={saving || !admin}
+              disabled={saving || !canEdit}
               onClick={(e) => void handleSave(e, false)}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -275,7 +264,7 @@ export function ArticleEditorPage() {
             <button
               type="button"
               className="btn-primary"
-              disabled={saving || !admin}
+              disabled={saving || !canEdit}
               onClick={(e) => void handleSave(e, true)}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

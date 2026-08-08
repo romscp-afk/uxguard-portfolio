@@ -1,5 +1,9 @@
-import { assertAdminOnly, listArticlesForAdmin } from "../../_lib/articles.js";
+import {
+  assertCanManageArticles,
+  listArticlesForUser,
+} from "../../_lib/articles.js";
 import { requireAuthUser } from "../../_lib/auth.js";
+import { isAdmin } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
 
 export default withApi(async (req, res) => {
@@ -12,8 +16,9 @@ export default withApi(async (req, res) => {
   if (!user) return;
 
   try {
-    assertAdminOnly(user);
-    const articles = await listArticlesForAdmin();
+    assertCanManageArticles(user);
+    // Admins see all articles; everyone else sees only their own.
+    const articles = await listArticlesForUser(user.id, { includeAll: isAdmin(user) });
     res.status(200).json({ articles });
   } catch (err) {
     res.status(err.status || 500).json({ detail: err.message || "Failed to list articles" });

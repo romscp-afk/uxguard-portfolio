@@ -1,5 +1,5 @@
 import {
-  assertAdminOnly,
+  assertCanManageArticles,
   createArticle,
   listPublishedArticles,
 } from "../_lib/articles.js";
@@ -34,7 +34,7 @@ export default withApi(async (req, res) => {
     const user = await requireAuthUser(req, res);
     if (!user) return;
     try {
-      assertAdminOnly(user);
+      assertCanManageArticles(user);
       const body = await readBody(req);
       const created = await createArticle(user.id, body || {});
       res.status(201).json({ article: created });

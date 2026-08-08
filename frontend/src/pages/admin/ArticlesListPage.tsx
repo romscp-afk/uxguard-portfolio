@@ -4,7 +4,7 @@ import { FileText, Plus, Trash2 } from "lucide-react";
 import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import { EditGuard, EditLink, ReadOnlyNotice } from "../../components/platform/ReadOnlyNotice";
 import { useAuth } from "../../context/AuthContext";
-import { isAdmin } from "../../lib/roles";
+import { canEditPlatform } from "../../lib/roles";
 import type { ArticleListItem } from "../../types";
 
 function formatDate(value?: string | null) {
@@ -22,7 +22,7 @@ function formatDate(value?: string | null) {
 
 export function ArticlesListPage() {
   const { user } = useAuth();
-  const admin = isAdmin(user);
+  const canEdit = canEditPlatform(user);
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,11 +30,6 @@ export function ArticlesListPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!admin) {
-      setLoading(false);
-      setError("Only admins can manage articles for now.");
-      return;
-    }
     let cancelled = false;
     api
       .adminListArticles()
@@ -52,7 +47,7 @@ export function ArticlesListPage() {
     return () => {
       cancelled = true;
     };
-  }, [admin]);
+  }, []);
 
   async function handleDelete(article: ArticleListItem) {
     if (!window.confirm(`Delete "${article.title}"? This cannot be undone.`)) return;
@@ -78,10 +73,10 @@ export function ArticlesListPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Articles</h1>
           <p className="mt-1 text-ink-500">
-            Write Medium-style stories for the public site. Publishing is admin-only for now.
+            Write Medium-style stories for the public site. Draft private, publish when ready.
           </p>
         </div>
-        {admin ? (
+        {canEdit ? (
           <EditLink to="/admin/articles/new">
             <Plus className="h-4 w-4" />
             New Article
@@ -95,8 +90,7 @@ export function ArticlesListPage() {
         </div>
       ) : null}
 
-      {admin ? (
-        <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
           {(["all", "published", "draft"] as const).map((key) => (
             <button
               key={key}
@@ -112,7 +106,6 @@ export function ArticlesListPage() {
             </button>
           ))}
         </div>
-      ) : null}
 
       {loading ? (
         <div className="card h-40 animate-pulse bg-ink-100" />
@@ -120,7 +113,7 @@ export function ArticlesListPage() {
         <div className="card p-10 text-center">
           <FileText className="mx-auto h-10 w-10 text-ink-300" />
           <p className="mt-3 text-ink-600">No articles yet.</p>
-          {admin ? (
+          {canEdit ? (
             <EditLink to="/admin/articles/new" className="btn-primary mt-4 inline-flex">
               Write your first article
             </EditLink>

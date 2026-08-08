@@ -1,9 +1,11 @@
 /**
  * Medium-style long-form articles.
- * Create/edit: admins only. Public read of published articles.
+ * Create/edit: any professional/admin (canEditPlatform). Public read of published articles.
  */
 import { readStore, updateStore } from "./store.js";
-import { isAdmin } from "./roles.js";
+import { assertCanEdit, isAdmin } from "./roles.js";
+
+export { assertCanEdit };
 
 function nextId(items) {
   return (items || []).reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
@@ -108,12 +110,14 @@ async function uniqueSlug(title, excludeId = null) {
   return candidate;
 }
 
-export function assertAdminOnly(user) {
-  if (!isAdmin(user)) {
-    const error = new Error("Only admins can manage articles for now.");
-    error.status = 403;
-    throw error;
-  }
+export function assertCanManageArticles(user) {
+  assertCanEdit(user);
+}
+
+export function canAccessArticleAsAuthor(user, article) {
+  if (!user || !article) return false;
+  if (isAdmin(user)) return true;
+  return Number(article.author_id) === Number(user.id);
 }
 
 function authorSummary(user) {
@@ -147,12 +151,19 @@ export async function listPublishedArticles({ featured, limit } = {}) {
   }));
 }
 
-export async function listArticlesForAdmin() {
+export async function listArticlesForUser(userId, { includeAll = false } = {}) {
   const store = await readStore({ forceRefresh: true });
+  const uid = Number(userId);
   return (store.articles || [])
     .map((a) => normalizeArticle(a, store.article_likes || []))
+    .filter((a) => (includeAll ? true : Number(a.author_id) === uid))
     .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))
     .map(toArticleListItem);
+}
+
+/** @deprecated use listArticlesForUser */
+export async function listArticlesForAdmin() {
+  return listArticlesForUser(0, { includeAll: true });
 }
 
 export async function getArticleById(id) {

@@ -195,11 +195,6 @@ export function AdminLayout() {
     return <Navigate to="/admin" replace />;
   }
 
-  // Articles management is admin-only for now
-  if (location.pathname.startsWith("/admin/articles") && !isAdmin(user)) {
-    return <Navigate to="/admin" replace />;
-  }
-
   const dashboardTo = isEmployerPortal ? "/admin/employer" : "/admin";
 
   const navLinks = (
