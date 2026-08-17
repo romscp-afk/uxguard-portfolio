@@ -12,8 +12,14 @@ backend/uploads/*
 frontend/node_modules/
 frontend/dist/
 frontend/tsconfig.tsbuildinfo
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/ios/
+mobile/android/
 .vercel/
 *.egg-info/
 .pytest_cache/
 .vercel
-.env*
+supabase/.temp/
+supabase/.branches/

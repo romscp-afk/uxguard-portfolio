@@ -133,10 +133,35 @@ function authorSummary(user) {
 }
 
 export async function listPublishedArticles({ featured, limit } = {}) {
-  const store = await readStore({ forceRefresh: true });
-  let list = (store.articles || [])
-    .map((a) => normalizeArticle(a, store.article_likes || []))
-    .filter((a) => a.status === "published");
+  const store = await readStore();
+  const likes = store.article_likes || [];
+  const users = store.users || [];
+  let list = (Array.isArray(store.articles) ? store.articles : [])
+    .filter((a) => a && a.status === "published")
+    .map((a) => {
+      const id = Number(a.id) || 0;
+      const likeCount = likes.filter((l) => sameId(l.article_id, id)).length;
+      return {
+        id,
+        slug: String(a.slug || "").trim() || `article-${id || "draft"}`,
+        title: String(a.title || "").trim(),
+        subtitle: String(a.subtitle || "").trim(),
+        excerpt: String(a.excerpt || "").trim(),
+        cover_image: a.cover_image || null,
+        tags: normalizeTags(a.tags),
+        status: "published",
+        featured: Boolean(a.featured),
+        reading_time_min:
+          Number(a.reading_time_min) > 0
+            ? Math.round(Number(a.reading_time_min))
+            : estimateReadingTime(a.excerpt || ""),
+        author_id: Number(a.author_id) || 0,
+        published_at: a.published_at || a.updated_at || null,
+        updated_at: a.updated_at || a.published_at || null,
+        like_count: likeCount,
+        author: authorSummary(users.find((u) => sameId(u.id, a.author_id))),
+      };
+    });
   if (featured !== undefined) {
     list = list.filter((a) => a.featured === featured);
   }
@@ -144,11 +169,7 @@ export async function listPublishedArticles({ featured, limit } = {}) {
     String(b.published_at || b.updated_at).localeCompare(String(a.published_at || a.updated_at)),
   );
   if (limit && Number(limit) > 0) list = list.slice(0, Number(limit));
-  const users = store.users || [];
-  return list.map((article) => ({
-    ...toArticleListItem(article),
-    author: authorSummary(users.find((u) => sameId(u.id, article.author_id))),
-  }));
+  return list;
 }
 
 export async function listArticlesForUser(userId, { includeAll = false } = {}) {
@@ -174,7 +195,7 @@ export async function getArticleById(id) {
 }
 
 export async function getPublishedArticleBySlug(slug, viewerId = null) {
-  const store = await readStore({ forceRefresh: true });
+  const store = await readStore();
   const needle = String(slug || "").trim().toLowerCase();
   const article = (store.articles || []).find(
     (a) => String(a.slug).toLowerCase() === needle && a.status === "published",

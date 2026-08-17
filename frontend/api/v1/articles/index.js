@@ -6,6 +6,8 @@ import {
 import { requireAuthUser } from "../_lib/auth.js";
 import { withApi } from "../_lib/withApi.js";
 
+export const maxDuration = 30;
+
 async function readBody(req) {
   if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
     return req.body;
