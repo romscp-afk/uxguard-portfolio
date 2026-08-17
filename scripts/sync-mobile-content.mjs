@@ -47,25 +47,30 @@ function readingTime(html) {
   return Math.max(1, Math.ceil(words / 220));
 }
 
-const articlesPayload = await loadJson('/api/v1/articles');
-const articles = (articlesPayload.articles || []).map((article) => ({
-  legacy_id: Number(article.id),
-  slug: article.slug,
-  title: article.title,
-  subtitle: article.subtitle || null,
-  excerpt: article.excerpt || null,
-  body_html: article.body_html || null,
-  cover_image_url: article.cover_image || null,
-  author_name: article.author?.name || null,
-  author_title: article.author?.title || null,
-  status: 'published',
-  featured: Boolean(article.featured),
-  reading_time_min: Number(article.reading_time_min) || readingTime(article.body_html || article.excerpt),
-  tags: article.tags || [],
-  is_sponsored: false,
-  published_at: article.published_at || article.updated_at || null,
-  synced_at: new Date().toISOString(),
-}));
+let articles = [];
+try {
+  const articlesPayload = await loadJson('/api/v1/articles');
+  articles = (articlesPayload.articles || []).map((article) => ({
+    legacy_id: Number(article.id),
+    slug: article.slug,
+    title: article.title,
+    subtitle: article.subtitle || null,
+    excerpt: article.excerpt || null,
+    body_html: article.body_html || null,
+    cover_image_url: article.cover_image || null,
+    author_name: article.author?.name || null,
+    author_title: article.author?.title || null,
+    status: 'published',
+    featured: Boolean(article.featured),
+    reading_time_min: Number(article.reading_time_min) || readingTime(article.body_html || article.excerpt),
+    tags: article.tags || [],
+    is_sponsored: false,
+    published_at: article.published_at || article.updated_at || null,
+    synced_at: new Date().toISOString(),
+  }));
+} catch (error) {
+  console.warn(`Articles sync skipped: ${error instanceof Error ? error.message : error}`);
+}
 
 const feed = await loadJson('/api/v1/feed/case-studies?limit=100');
 const studies = (Array.isArray(feed) ? feed : feed.items || []).map((study) => ({

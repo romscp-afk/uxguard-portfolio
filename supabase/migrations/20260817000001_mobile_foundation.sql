@@ -320,7 +320,7 @@ create unique index campaign_events_hourly_dedup
     campaign_id,
     user_id,
     event_type,
-    (date_trunc('hour', created_at))
+    (date_trunc('hour', timezone('utc', created_at)))
   )
   where user_id is not null;
 
