@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 
+import { Logo } from '@/components/ui/Logo';
 import { color } from '@/theme/tokens';
 
 const colors = color.light;
@@ -20,6 +21,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
+          headerTitle: () => <Logo compact />,
+          headerTitleAlign: 'left',
           tabBarIcon: ({ color: tint, size }) => <Ionicons name="home-outline" color={tint} size={size} />,
         }}
       />

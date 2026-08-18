@@ -15,7 +15,9 @@ The existing website stays on Vercel Blob + JWT. This app uses a **new Supabase 
 - Push tokens can be stored; **sending stays off** until you confirm backend config.
 - Points are not cash and are never awarded for ads.
 
-You can run the app immediately with `cd mobile && npm start`. Home and Discover load published case studies from `https://uxguard.studio`. Sign-in, challenges, points, and rewards stay disabled until you add a Supabase project.
+You can run the app immediately with `cd mobile && npm start`. Home and Discover load published case studies from `https://uxguard.studio`, then from Supabase after sync.
+
+**Use Expo Go on a phone, not the browser.** The browser is not the product and will not behave like iOS/Android.
 
 ## 1. Create Supabase
 
@@ -44,14 +46,27 @@ EXPO_PUBLIC_APP_URL=https://uxguard.studio
 EXPO_PUBLIC_CONTENT_API_URL=https://uxguard.studio
 ```
 
-## 3. Run
+## 3. Run on a phone (Expo Go)
+
+1. Install **Expo Go** from the App Store (iPhone) or Play Store (Android). Update it if it is old.
+2. Put the phone on the **same Wi-Fi** as this computer.
+3. From this repo:
 
 ```bash
 cd mobile
-npm start
+npx expo start --lan
 ```
 
-Then press `i` or `a`, or scan the QR code with Expo Go / a dev client.
+4. On iPhone: open the Camera app, scan the QR code in the terminal, open in Expo Go.
+5. On Android: open Expo Go → Scan QR code.
+6. If the phone cannot connect, stop Metro and use a tunnel instead:
+
+```bash
+cd mobile
+npx expo start --tunnel
+```
+
+Do not open `http://localhost:8081` in Safari or Chrome. That is the web fallback, not the native app.
 
 Local Supabase (optional, requires Docker):
 

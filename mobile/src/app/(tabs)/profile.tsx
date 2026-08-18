@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Alert, StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { EXPERIENCE_LEVELS } from '@/lib/config';
 import { useAuth } from '@/providers/AuthProvider';
@@ -16,6 +17,7 @@ export default function ProfileScreen() {
   if (!session) {
     return (
       <Screen scroll>
+        <Logo compact />
         <Text style={styles.name}>Guest</Text>
         <Text style={styles.meta}>
           Browse published case studies without an account. Sign in to save content, complete challenges, and redeem

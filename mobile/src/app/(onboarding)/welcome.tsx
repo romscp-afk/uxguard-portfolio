@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { color, type } from '@/theme/tokens';
 
@@ -10,6 +11,7 @@ const colors = color.light;
 export default function WelcomeScreen() {
   return (
     <Screen scroll>
+      <Logo />
       <Text style={styles.kicker}>Welcome</Text>
       <Text style={styles.title}>Professional UX learning, on your phone.</Text>
       <Text style={styles.body}>

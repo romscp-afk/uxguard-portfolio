@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/providers/AuthProvider';
@@ -39,7 +40,7 @@ export default function LoginScreen() {
 
   return (
     <Screen scroll>
-      <Text style={styles.kicker}>UXGuard Studio</Text>
+      <Logo />
       <Text style={styles.title}>Learn UX with evidence, not ads.</Text>
       <Text style={styles.body}>
         Browse published case studies without an account. Sign in to save work, complete challenges, and redeem points.
@@ -95,7 +96,6 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  kicker: { ...type.label, color: colors.brandText, textTransform: 'uppercase', letterSpacing: 1.4 },
   title: { ...type.display, color: colors.text },
   body: { ...type.body, color: colors.textSecondary },
   warning: { ...type.body, color: colors.danger },

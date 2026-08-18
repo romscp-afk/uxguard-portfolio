@@ -6,6 +6,7 @@ import { StyleSheet, Text } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/providers/AuthProvider';
@@ -30,6 +31,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <Screen scroll>
+      <Logo />
       <Text style={styles.title}>Reset password</Text>
       <Text style={styles.body}>We’ll email a link that opens this app so you can choose a new password.</Text>
       <Controller
