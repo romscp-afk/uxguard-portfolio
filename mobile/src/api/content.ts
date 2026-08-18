@@ -58,6 +58,8 @@ function mapCaseStudy(row: Record<string, unknown>, source: CaseStudy['source'])
     featured: Boolean(row.featured),
     is_sponsored: Boolean(row.is_sponsored),
     published_at: (row.published_at as string) || null,
+    status: (row.status as CaseStudy['status']) || null,
+    author_id: (row.author_id as string) || null,
     source,
   };
 }

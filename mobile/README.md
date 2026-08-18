@@ -7,6 +7,8 @@ The existing website stays on Vercel Blob + JWT. This app uses a **new Supabase 
 ## Product decisions (MVP)
 
 - Guests can browse published website content without an account.
+- Signed-in users can draft and publish their own case studies from Profile → My case studies.
+- Profile matches the website portfolio: photo, cover, bio, contact, LinkedIn, and published case studies.
 - Mobile-only Supabase Auth. Website passwords are not reused yet.
 - Account deletion removes the mobile account, not the website portfolio.
 - Password reset uses the `uxguard://reset-password` deep link.

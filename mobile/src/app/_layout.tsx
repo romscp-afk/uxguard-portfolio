@@ -26,6 +26,10 @@ export default function RootLayout() {
         <Stack.Screen name="campaign/[id]" options={{ title: 'Sponsored' }} />
         <Stack.Screen name="points" options={{ title: 'UXGuard Points' }} />
         <Stack.Screen name="saved" options={{ title: 'Saved' }} />
+        <Stack.Screen name="studio/index" options={{ title: 'My case studies' }} />
+        <Stack.Screen name="studio/[id]" options={{ title: 'Case study' }} />
+        <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
+        <Stack.Screen name="u/[username]" options={{ title: 'Profile' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="preferences" options={{ title: 'Preferences' }} />
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />

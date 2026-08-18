@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getCaseStudy, isBookmarked, listRelatedCaseStudies, toggleBookmark, upsertReadingProgress } from '@/api/content';
 import { FeedCard } from '@/components/content/FeedCard';
@@ -55,7 +55,15 @@ export default function CaseStudyScreen() {
       {item.is_sponsored ? <Badge label="Sponsored" tone="warning" /> : null}
       <Text style={styles.title}>{item.title}</Text>
       {item.subtitle ? <Text style={styles.subtitle}>{item.subtitle}</Text> : null}
-      {item.author_name ? <Text style={styles.meta}>{item.author_name}</Text> : null}
+      {item.author_name ? (
+        item.author_username ? (
+          <Pressable onPress={() => router.push(`/u/${item.author_username}`)} accessibilityRole="link">
+            <Text style={styles.meta}>{item.author_name}</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.meta}>{item.author_name}</Text>
+        )
+      ) : null}
       {meta ? <Text style={styles.meta}>{meta}</Text> : null}
       {item.methods.length ? (
         <View style={styles.row}>
@@ -80,6 +88,9 @@ export default function CaseStudyScreen() {
         />
       ) : null}
       <Button label="Share" variant="secondary" onPress={() => shareContent(item.title, shareUrl, item.summary || undefined)} />
+      {session?.user.id && item.author_id === session.user.id ? (
+        <Button label="Edit case study" variant="secondary" onPress={() => router.push(`/studio/${item.id}`)} />
+      ) : null}
       {item.prototype_url ? (
         <Button label="Open prototype" variant="ghost" onPress={() => openExternalUrl(item.prototype_url!)} />
       ) : null}

@@ -16,7 +16,8 @@ export function TextField({ label, error, ...rest }: Props) {
       <TextInput
         accessibilityLabel={label}
         placeholderTextColor={colors.textMuted}
-        style={[styles.input, error ? styles.inputError : null]}
+        textAlignVertical={rest.multiline ? 'top' : 'center'}
+        style={[styles.input, rest.multiline ? styles.area : null, error ? styles.inputError : null]}
         {...rest}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -37,6 +38,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
   },
+  area: { minHeight: 120, paddingVertical: space.md },
   inputError: { borderColor: colors.danger },
   error: { ...type.caption, color: colors.danger },
 });

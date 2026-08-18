@@ -71,6 +71,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
+          headerShown: false,
           tabBarIcon: ({ color: tint, size }) => <Ionicons name="person-outline" color={tint} size={size} />,
         }}
       />

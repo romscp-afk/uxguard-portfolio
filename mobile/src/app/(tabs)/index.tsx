@@ -37,15 +37,18 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={onRefresh} />}
         contentContainerStyle={styles.content}>
         {session ? (
-          <Text style={styles.hello} accessibilityRole="header">
-            Hello{name ? `, ${name}` : ''}
-          </Text>
+          <>
+            <Text style={styles.hello} accessibilityRole="header">
+              Hello{name ? `, ${name}` : ''}
+            </Text>
+            <Button label="My case studies" variant="secondary" onPress={() => router.push('/studio')} />
+          </>
         ) : (
           <View style={styles.banner} accessibilityRole="summary">
             <Text style={styles.bannerKicker}>Studio library</Text>
             <Text style={styles.bannerTitle}>Learn UX with evidence</Text>
             <Text style={styles.bannerBody}>
-              Published case studies from UXGuard Studio. Sign in to save work, take challenges, and earn points.
+              Published case studies from UXGuard Studio. Sign in to upload your own, save work, and take challenges.
             </Text>
           </View>
         )}

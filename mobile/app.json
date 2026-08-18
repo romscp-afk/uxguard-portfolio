@@ -74,6 +74,12 @@
           "color": "#0eb5bd",
           "defaultChannel": "default"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "UXGuard Studio uses your photos so you can add a cover image to your case studies."
+        }
       ]
     ],
     "experiments": {

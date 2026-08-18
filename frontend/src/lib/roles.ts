@@ -25,13 +25,18 @@ export function isAdmin(user?: User | null): boolean {
   return normalizeRole(user?.role) === "admin";
 }
 
-/** Intents shown on registration (portfolio launch = build portfolio only). */
+/** Intents shown on registration. */
 export const INTENT_OPTIONS = PORTFOLIO_LAUNCH_ONLY
   ? [
       {
         id: "build_portfolio" as const,
         title: "Build my portfolio",
         description: "Organize projects, case studies, and your public portfolio page.",
+      },
+      {
+        id: "publish_case_studies" as const,
+        title: "Publish case studies",
+        description: "Write evidence-driven stories and share them from the portal or the mobile app.",
       },
     ]
   : [

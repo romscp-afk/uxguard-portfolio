@@ -66,6 +66,8 @@ export type CaseStudy = {
   featured: boolean;
   is_sponsored: boolean;
   published_at?: string | null;
+  status?: 'draft' | 'published' | 'archived' | string | null;
+  author_id?: string | null;
   source: 'supabase' | 'web';
 };
 
@@ -117,6 +119,11 @@ export type Profile = {
   title?: string | null;
   bio?: string | null;
   avatar_url?: string | null;
+  cover_image_url?: string | null;
+  location?: string | null;
+  contact_email?: string | null;
+  cv_url?: string | null;
+  social_links?: Record<string, string> | null;
   experience_level?: string | null;
   onboarding_completed_at?: string | null;
   points_balance_cached: number;
