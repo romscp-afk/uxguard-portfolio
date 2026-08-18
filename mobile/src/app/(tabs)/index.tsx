@@ -10,13 +10,14 @@ import { FeedCard } from '@/components/content/FeedCard';
 import { Button } from '@/components/ui/Button';
 import { ErrorState, LoadingState } from '@/components/ui/States';
 import { useAuth } from '@/providers/AuthProvider';
-import { color, space, type } from '@/theme/tokens';
+import { color, palette, radius, space, type } from '@/theme/tokens';
 
 const colors = color.light;
 
 export default function HomeScreen() {
   const { session, profile } = useAuth();
   const feed = useQuery({ queryKey: ['home-feed'], queryFn: buildHomeFeed });
+  const name = profile?.display_name || profile?.username;
 
   const onRefresh = useCallback(() => {
     feed.refetch();
@@ -35,15 +36,19 @@ export default function HomeScreen() {
       <ScrollView
         refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={onRefresh} />}
         contentContainerStyle={styles.content}>
-        <Text style={styles.hello}>Hello{profile?.display_name ? `, ${profile.display_name}` : ''}</Text>
-        <Text style={styles.sub}>
-          {session
-            ? 'Articles, featured case studies, challenges, and clearly labelled sponsored cards.'
-            : 'Published case studies from UXGuard Studio. Sign in to save, earn points, and take challenges.'}
-        </Text>
-        {!session ? (
-          <Button label="Sign in" variant="secondary" onPress={() => router.push('/(auth)/login')} />
-        ) : null}
+        {session ? (
+          <Text style={styles.hello} accessibilityRole="header">
+            Hello{name ? `, ${name}` : ''}
+          </Text>
+        ) : (
+          <View style={styles.banner} accessibilityRole="summary">
+            <Text style={styles.bannerKicker}>Studio library</Text>
+            <Text style={styles.bannerTitle}>Learn UX with evidence</Text>
+            <Text style={styles.bannerBody}>
+              Published case studies from UXGuard Studio. Sign in to save work, take challenges, and earn points.
+            </Text>
+          </View>
+        )}
         {feed.isLoading ? <LoadingState label="Loading your feed" /> : null}
         {feed.error ? (
           <ErrorState
@@ -76,8 +81,23 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: space.lg, gap: space.lg, paddingBottom: 40 },
-  hello: { ...type.display, color: colors.text },
+  content: { paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: 32, gap: space.md },
+  hello: { ...type.title, color: colors.text },
   sub: { ...type.body, color: colors.textSecondary },
+  banner: {
+    backgroundColor: palette.ink[950],
+    borderRadius: radius.lg,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    gap: 6,
+  },
+  bannerKicker: {
+    ...type.label,
+    color: palette.brand[400],
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+  },
+  bannerTitle: { fontFamily: 'Fraunces_700Bold', fontSize: 22, lineHeight: 26, color: palette.white },
+  bannerBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, color: palette.ink[200] },
   list: { gap: space.md },
 });

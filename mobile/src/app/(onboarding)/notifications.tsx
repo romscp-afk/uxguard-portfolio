@@ -18,19 +18,22 @@ export default function NotificationPermissionScreen() {
   const [message, setMessage] = useState('');
 
   async function finish(requestPush: boolean) {
+    if (busy) return;
     setBusy(true);
     setMessage('');
     try {
       if (requestPush && session?.user.id) {
-        const result = await registerPushDevice(session.user.id);
-        if (!result.sendingEnabled) {
-          setMessage('Permission saved. Push sending stays off until the backend is confirmed.');
+        try {
+          await registerPushDevice(session.user.id);
+        } catch {
+          // Continue into the app even if the permission prompt or token fetch fails.
         }
       }
       await completeOnboarding({ interestIds, experienceLevel });
       router.replace('/(tabs)');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not finish onboarding.');
+    } finally {
       setBusy(false);
     }
   }
@@ -43,7 +46,7 @@ export default function NotificationPermissionScreen() {
         configuration is confirmed. You can skip this and change it later in Settings.
       </Text>
       {message ? <Text style={styles.body}>{message}</Text> : null}
-      <Button label="Allow notifications" disabled={busy} onPress={() => finish(true)} />
+      <Button label={busy ? 'Finishing…' : 'Allow notifications'} disabled={busy} onPress={() => finish(true)} />
       <Button label="Not now" variant="secondary" disabled={busy} onPress={() => finish(false)} />
     </Screen>
   );

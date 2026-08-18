@@ -1,17 +1,35 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { Logo } from '@/components/ui/Logo';
-import { color } from '@/theme/tokens';
+import { useAuth } from '@/providers/AuthProvider';
+import { color, radius, type } from '@/theme/tokens';
 
 const colors = color.light;
 
+function HeaderSignIn() {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Sign in"
+      onPress={() => router.push('/(auth)/login')}
+      style={({ pressed }) => [styles.signIn, pressed && styles.pressed]}
+      hitSlop={8}>
+      <Text style={styles.signInLabel}>Sign in</Text>
+    </Pressable>
+  );
+}
+
 export default function TabsLayout() {
+  const { session } = useAuth();
+
   return (
     <Tabs
       screenOptions={{
         headerShadowVisible: false,
         headerTitleStyle: { fontFamily: 'Fraunces_700Bold' },
+        headerStyle: { backgroundColor: colors.surface },
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
@@ -23,6 +41,8 @@ export default function TabsLayout() {
           title: 'Home',
           headerTitle: () => <Logo compact />,
           headerTitleAlign: 'left',
+          headerRight: session ? undefined : () => <HeaderSignIn />,
+          headerRightContainerStyle: { paddingRight: 12 },
           tabBarIcon: ({ color: tint, size }) => <Ionicons name="home-outline" color={tint} size={size} />,
         }}
       />
@@ -57,3 +77,16 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  signIn: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signInLabel: { ...type.label, color: '#ffffff' },
+  pressed: { opacity: 0.85 },
+});

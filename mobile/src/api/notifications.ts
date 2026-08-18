@@ -1,8 +1,24 @@
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import type { NotificationPreferences } from '@/types/domain';
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Timed out')), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -59,13 +75,24 @@ export async function registerPushDevice(userId: string) {
   const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'push_sending_enabled').maybeSingle();
   const sendingEnabled = settings?.value === true || settings?.value === 'true';
 
-  const permission = await Notifications.requestPermissionsAsync();
+  const permission = await withTimeout(Notifications.requestPermissionsAsync(), 20000);
   if (permission.status !== 'granted') {
     return { granted: false, sendingEnabled };
   }
 
+  // iOS Simulator / Expo Go can hang forever on getExpoPushTokenAsync.
+  // Permission is enough for onboarding; token storage can wait for a device build.
+  if (!Device.isDevice) {
+    return { granted: true, sendingEnabled };
+  }
+
   try {
-    const token = await Notifications.getExpoPushTokenAsync();
+    const projectId =
+      Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+    const token = await withTimeout(
+      Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined),
+      8000,
+    );
     await supabase.from('push_devices').upsert(
       {
         user_id: userId,
