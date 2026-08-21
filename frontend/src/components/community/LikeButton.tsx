@@ -74,9 +74,9 @@ export function LikeButton({
   if (!user) {
     return (
       <div className={compact ? "inline-flex items-center gap-2" : "flex flex-wrap items-center gap-3"}>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1.5 text-sm font-semibold text-ink-800">
-          <Heart className="h-4 w-4" />
-          {count}
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700">
+          <Heart className="h-4 w-4 fill-current" />
+          {count} {count === 1 ? "like" : "likes"}
         </span>
         {!compact ? (
           <Link to="/admin/login" className="text-sm font-medium text-brand-600 hover:text-brand-500">
@@ -136,7 +136,9 @@ export function LikeButton({
           <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
         )}
         {liked ? "Liked" : "Like"}
-        <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold">{count}</span>
+        <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold">
+          {count} {count === 1 ? "like" : "likes"}
+        </span>
       </button>
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </div>

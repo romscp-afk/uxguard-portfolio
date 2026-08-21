@@ -238,7 +238,7 @@ export function CaseStudyDetailPage() {
         </div>
       ) : null}
 
-      <section className="sticky top-0 z-20 border-y border-ink-100 bg-white/95 backdrop-blur">
+      <section className="sticky top-[57px] z-40 border-y border-ink-100 bg-white/95 backdrop-blur sm:top-[61px]">
         <div className="mx-auto flex w-full max-w-none flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12 xl:px-16">
           <LikeButton
             caseStudyId={study.id}
