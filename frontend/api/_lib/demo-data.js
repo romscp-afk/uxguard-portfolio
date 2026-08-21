@@ -353,7 +353,8 @@ export function toListItem(cs, likeCount = 0) {
     sort_order: cs.sort_order,
     project_id: cs.project_id ?? null,
     like_count: likeCount,
-    updated_at: cs.updated_at,
+    updated_at: cs.updated_at || cs.published_at || cs.created_at || null,
+    published_at: cs.published_at || (String(cs.status || "").toLowerCase() === "published" ? (cs.updated_at || cs.created_at || null) : null) || null,
   };
 }
 
@@ -371,7 +372,6 @@ export async function getFeedItems(limit) {
       if (!author) return null;
       return {
         ...toListItem(cs, likeCounts.get(Number(cs.id)) || 0),
-        published_at: cs.published_at || cs.updated_at || null,
         author: authorSummary(author),
       };
     })

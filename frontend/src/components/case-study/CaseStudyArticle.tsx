@@ -11,6 +11,19 @@ import { RichText } from "../ui/RichText";
 import { isEmptyHtml } from "../../lib/htmlContent";
 import type { CaseStudy, UserProfile } from "../../types";
 
+function formatPublishedDate(value?: string | null) {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
 function Section({ title, children }: { title: string; children?: string | null }) {
   if (!children?.trim() || isEmptyHtml(children)) return null;
   return (
@@ -44,6 +57,9 @@ export function CaseStudyArticle({
   const prototypeUrl = String(study.prototype_url || "").trim();
   const hasPrototype = isValidHttpUrl(prototypeUrl);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const publishedLabel = formatPublishedDate(
+    study.published_at || (!preview ? study.updated_at : null),
+  );
 
   return (
     <>
@@ -95,6 +111,9 @@ export function CaseStudyArticle({
           </div>
           <h1 className="font-display text-4xl font-bold text-ink-950 sm:text-5xl">{study.title}</h1>
           {study.subtitle ? <p className="text-xl text-ink-500">{study.subtitle}</p> : null}
+          {publishedLabel ? (
+            <p className="text-sm font-medium text-ink-400">Published {publishedLabel}</p>
+          ) : null}
 
           <dl className="grid gap-4 pt-4 sm:grid-cols-3">
             {study.role ? (

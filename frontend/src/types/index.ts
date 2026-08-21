@@ -64,6 +64,7 @@ export interface CaseStudyListItem {
   status: string;
   like_count?: number;
   updated_at: string;
+  published_at?: string | null;
 }
 
 export interface AuthorSummary {

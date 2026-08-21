@@ -7,6 +7,17 @@ import type { AuthorSummary, CaseStudyListItem } from "../../types";
 
 type CardStudy = CaseStudyListItem & { author?: AuthorSummary | null };
 
+function formatCardDate(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function studyHref(study: CardStudy, username?: string): string | null {
   const authorUsername = username || study.author?.username;
   if (!authorUsername || !study.slug) return null;
@@ -23,6 +34,7 @@ export function CaseStudyCard({
   showSummary?: boolean;
 }) {
   const href = studyHref(study, username);
+  const updatedLabel = formatCardDate(study.updated_at || study.published_at);
 
   if (!href) {
     return (
@@ -52,10 +64,15 @@ export function CaseStudyCard({
         </div>
         <div className="p-6">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
-              {study.client || "Case Study"}
-            </span>
-            <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
+                {study.client || "Case Study"}
+              </span>
+              {updatedLabel ? (
+                <p className="mt-1 text-xs font-medium text-ink-500">Updated {updatedLabel}</p>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-400">
                 <Heart className="h-3.5 w-3.5" />
                 {Number(study.like_count) || 0}
