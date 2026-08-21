@@ -1,8 +1,28 @@
 export function stripHtml(value: string | null | undefined) {
-  return String(value || '')
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
+  let text = String(value || '');
+  // Decode escaped markup first so `&lt;p&gt;` does not become a visible `<p>`.
+  for (let pass = 0; pass < 3; pass += 1) {
+    const hadEscaped = /&lt;\/?[a-z]/i.test(text);
+    const hadTags = /<\/?[a-z][\s\S]*>/i.test(text);
+    if (hadEscaped && !hadTags) {
+      text = text
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&amp;/gi, '&');
+    }
+    if (/<\/?[a-z][\s\S]*>/i.test(text)) {
+      text = text
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ');
+    } else {
+      break;
+    }
+  }
+  return text
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')

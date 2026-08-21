@@ -1,20 +1,53 @@
 import DOMPurify from "dompurify";
 
 const HTML_TAG_RE = /<\/?[a-z][\s\S]*>/i;
+const ESCAPED_TAG_RE = /&lt;\/?[a-z]/i;
 
 export function looksLikeHtml(value: string | null | undefined): boolean {
-  return Boolean(value && HTML_TAG_RE.test(value));
+  return Boolean(value && (HTML_TAG_RE.test(value) || ESCAPED_TAG_RE.test(value)));
+}
+
+function decodeHtmlEntities(value: string): string {
+  if (typeof document !== "undefined") {
+    const el = document.createElement("textarea");
+    el.innerHTML = value;
+    return el.value;
+  }
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&");
 }
 
 export function stripHtml(value: string | null | undefined): string {
   if (!value) return "";
-  if (typeof document !== "undefined") {
-    const el = document.createElement("div");
-    el.innerHTML = value;
-    return (el.textContent || el.innerText || "").replace(/\u00a0/g, " ").trim();
+  let text = String(value);
+
+  // Decode escaped markup first (`&lt;p&gt;…`), then strip real tags.
+  // One pass is not enough when content was double-escaped for storage/sharing.
+  for (let pass = 0; pass < 3; pass += 1) {
+    if (ESCAPED_TAG_RE.test(text) && !HTML_TAG_RE.test(text)) {
+      text = decodeHtmlEntities(text);
+    }
+
+    if (typeof document !== "undefined" && HTML_TAG_RE.test(text)) {
+      const el = document.createElement("div");
+      el.innerHTML = text;
+      text = el.textContent || el.innerText || "";
+    } else if (HTML_TAG_RE.test(text)) {
+      text = text.replace(/<[^>]+>/g, " ");
+    } else {
+      break;
+    }
   }
-  return value
-    .replace(/<[^>]+>/g, " ")
+
+  return text
+    .replace(/\u00a0/g, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")

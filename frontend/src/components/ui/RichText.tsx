@@ -15,16 +15,34 @@ export function RichText({
 }) {
   if (!text?.trim() || isEmptyHtml(text)) return null;
 
-  if (looksLikeHtml(text)) {
+  let value = text.trim();
+  // Stored as entity-encoded HTML (`&lt;p&gt;…`) — decode once so we render, not show tags.
+  if (/&lt;\/?[a-z]/i.test(value) && !/<\/?[a-z][\s\S]*>/i.test(value)) {
+    const el =
+      typeof document !== "undefined" ? document.createElement("textarea") : null;
+    if (el) {
+      el.innerHTML = value;
+      value = el.value;
+    } else {
+      value = value
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/gi, "&");
+    }
+  }
+
+  if (looksLikeHtml(value)) {
     return (
       <div
         className={`rich-text-content ${className}`}
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }}
       />
     );
   }
 
-  const blocks = parseRichText(text);
+  const blocks = parseRichText(value);
 
   return (
     <div className={`space-y-4 ${className}`}>

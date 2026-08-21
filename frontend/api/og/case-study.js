@@ -10,6 +10,35 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function stripHtml(value) {
+  return String(value || "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function plainText(value) {
+  // Decode once if summary was stored as escaped HTML, then strip remaining tags.
+  let text = String(value || "");
+  if (/&lt;\/?[a-z]/i.test(text) && !/<\/?[a-z][\s\S]*>/i.test(text)) {
+    text = text
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/gi, "&");
+  }
+  return stripHtml(text);
+}
+
 function siteOrigin(req) {
   const host = req.headers["x-forwarded-host"] || req.headers.host || "uxguard-portfolio.vercel.app";
   const proto = req.headers["x-forwarded-proto"] || "https";
@@ -62,7 +91,12 @@ export default async function handler(req, res) {
 
     const title = `${study.title} · ${author?.name || username} · UXGuard Studio`;
     const description = truncate(
-      study.summary || study.subtitle || study.challenge || `Case study by ${author?.name || username} on UXGuard Studio`,
+      plainText(
+        study.summary ||
+          study.subtitle ||
+          study.challenge ||
+          `Case study by ${author?.name || username} on UXGuard Studio`,
+      ),
     );
     const image = absoluteAsset(origin, study.cover_image);
     const authorName = author?.name || username;

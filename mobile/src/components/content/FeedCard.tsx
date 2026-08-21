@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { stripHtml } from '@/lib/html';
 import type { FeedItem } from '@/types/domain';
 import { color, radius, space, type } from '@/theme/tokens';
 
@@ -17,6 +18,7 @@ export function FeedCard({ item, onPress }: { item: FeedItem; onPress: () => voi
         : item.contentType === 'case_study'
           ? 'Case study'
           : 'Article';
+  const excerpt = stripHtml(item.excerpt);
 
   return (
     <Card onPress={onPress} accessibilityLabel={`${item.sponsored ? 'Sponsored. ' : ''}${item.title}`}>
@@ -29,9 +31,9 @@ export function FeedCard({ item, onPress }: { item: FeedItem; onPress: () => voi
         <Badge label={meta} tone="muted" />
       </View>
       <Text style={styles.title}>{item.title}</Text>
-      {item.excerpt ? (
+      {excerpt ? (
         <Text style={styles.excerpt} numberOfLines={3}>
-          {item.excerpt}
+          {excerpt}
         </Text>
       ) : null}
     </Card>
