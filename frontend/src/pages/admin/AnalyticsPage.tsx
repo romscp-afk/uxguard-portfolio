@@ -97,14 +97,14 @@ export function AnalyticsPage() {
               )
               .finally(() => setLoading(false));
           }}
-          className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50"
+          className="rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50"
         >
           {loading ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-lg border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -121,7 +121,7 @@ export function AnalyticsPage() {
             label: "Likes",
             value: summary?.totals.likes ?? "—",
             icon: Heart,
-            color: "text-rose-600",
+            color: "text-danger-500",
           },
           {
             label: "Comments",

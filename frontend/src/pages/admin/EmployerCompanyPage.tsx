@@ -32,7 +32,7 @@ export function EmployerCompanyPage() {
   }
 
   if (!company) {
-    return error ? <p className="text-sm text-red-600">{error}</p> : (
+    return error ? <p className="text-sm text-danger-500">{error}</p> : (
       <div className="flex justify-center py-16">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
@@ -58,9 +58,9 @@ export function EmployerCompanyPage() {
         </p>
       ) : null}
       <ReadOnlyNotice />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       <EditGuard>
-        <div className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
+        <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-200 p-5">
           {(["display_name", "legal_name", "industry", "website", "headquarters", "contact_email"] as const).map(
             (key) => (
               <label key={key} className="block text-sm">
@@ -129,9 +129,9 @@ export function EmployerTeamPage() {
         <ArrowLeft className="h-4 w-4" /> Company
       </Link>
       <h1 className="font-display text-3xl font-bold text-ink-950">Team</h1>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       <EditGuard>
-        <div className="rounded-xl border border-ink-200 bg-white p-4">
+        <div className="rounded-xl border border-ink-200 bg-ink-200 p-4">
           <h2 className="text-sm font-semibold">Invite member</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <input className="input-field flex-1" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -149,7 +149,7 @@ export function EmployerTeamPage() {
       </EditGuard>
       <ul className="space-y-2">
         {members.map((m) => (
-          <li key={m.id} className="rounded-lg border border-ink-200 bg-white px-4 py-3 text-sm">
+          <li key={m.id} className="rounded-lg border border-ink-200 bg-ink-200 px-4 py-3 text-sm">
             <span className="font-medium">{m.email}</span>
             <span className="ml-2 capitalize text-ink-500">{m.role.replace(/_/g, " ")} · {m.status}</span>
           </li>

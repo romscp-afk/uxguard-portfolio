@@ -78,7 +78,7 @@ export function SearchPage() {
               Search
             </button>
           </form>
-          {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="mt-3 text-sm text-danger-500">{error}</p> : null}
         </div>
       </section>
 

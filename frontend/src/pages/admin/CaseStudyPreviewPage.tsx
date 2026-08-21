@@ -126,7 +126,7 @@ export function CaseStudyPreviewPage() {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <div className="sticky top-0 z-40 border-b border-ink-200 bg-white/95 backdrop-blur">
+      <div className="sticky top-0 z-40 border-b border-ink-200 bg-ink-100/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link
             to={`/admin/case-studies/${studyId}`}

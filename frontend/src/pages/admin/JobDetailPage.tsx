@@ -79,7 +79,7 @@ export function JobDetailPage() {
   }
 
   if (!job) {
-    return <p className="text-sm text-red-600">{error || "Job not found"}</p>;
+    return <p className="text-sm text-danger-500">{error || "Job not found"}</p>;
   }
 
   const closed = ["closed", "expired", "suspended", "paused", "archived"].includes(job.status);
@@ -107,7 +107,7 @@ export function JobDetailPage() {
       </div>
 
       {closed ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p className="rounded-lg border border-ink-300 bg-ink-200 px-3 py-2 text-sm text-ink-700">
           This job is {job.status.replace(/_/g, " ")} and may not accept applications.
         </p>
       ) : null}
@@ -126,10 +126,10 @@ export function JobDetailPage() {
       ) : null}
 
       <ReadOnlyNotice />
-      {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-danger-500">{error}</p> : null}
       {success ? <p className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-900">{success}</p> : null}
 
-      <article className="space-y-4 rounded-xl border border-ink-200 bg-white p-5 text-sm text-ink-700">
+      <article className="space-y-4 rounded-xl border border-ink-200 bg-ink-200 p-5 text-sm text-ink-700">
         {job.summary ? <p>{job.summary}</p> : null}
         {job.description ? <p className="whitespace-pre-wrap">{job.description}</p> : null}
         {job.responsibilities?.length ? (
@@ -174,7 +174,7 @@ export function JobDetailPage() {
 
       {!closed && !external ? (
         <EditGuard>
-          <div className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
+          <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-200 p-5">
             <h2 className="font-display text-xl font-semibold text-ink-950">Apply now</h2>
             <label className="block text-sm">
               <span className="mb-1 block font-medium">Select resume</span>

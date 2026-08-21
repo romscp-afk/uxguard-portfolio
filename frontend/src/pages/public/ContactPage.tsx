@@ -109,14 +109,14 @@ export function ContactPage() {
               </p>
 
               {success ? (
-                <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-success-50 px-4 py-3 text-sm text-emerald-900">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                   <p>Thanks for reaching out. Your message was saved to our Contact Inbox—we&apos;ll reply soon.</p>
                 </div>
               ) : null}
 
               {error ? (
-                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <div className="mt-6 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
                   {error}
                 </div>
               ) : null}

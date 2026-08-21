@@ -238,7 +238,7 @@ export function CaseStudyDetailPage() {
         </div>
       ) : null}
 
-      <section className="sticky top-[57px] z-40 border-y border-ink-100 bg-white/95 backdrop-blur sm:top-[61px]">
+      <section className="sticky top-[57px] z-40 border-y border-ink-300 bg-ink-100/95 backdrop-blur sm:top-[61px]">
         <div className="mx-auto flex w-full max-w-none flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12 xl:px-16">
           <LikeButton
             caseStudyId={study.id}
@@ -271,7 +271,7 @@ export function CaseStudyDetailPage() {
       </section>
 
       {relatedStudies.length > 0 ? (
-        <section className="border-t border-ink-100 bg-white">
+        <section className="border-t border-ink-100 bg-ink-200">
           <div className="mx-auto w-full max-w-none px-4 py-12 sm:px-8 lg:px-12 xl:px-16">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -288,7 +288,7 @@ export function CaseStudyDetailPage() {
                     type="button"
                     onClick={() => scrollRelated("left")}
                     disabled={!canScrollLeft}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-35"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 bg-ink-200 text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-35"
                     aria-label="Scroll related case studies left"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -297,7 +297,7 @@ export function CaseStudyDetailPage() {
                     type="button"
                     onClick={() => scrollRelated("right")}
                     disabled={!canScrollRight}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 bg-white text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-35"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 bg-ink-200 text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-35"
                     aria-label="Scroll related case studies right"
                   >
                     <ChevronRight className="h-4 w-4" />

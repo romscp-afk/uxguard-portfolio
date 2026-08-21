@@ -123,37 +123,37 @@ const VALUES = [
     title: "People First",
     desc: "Technology exists to improve people's lives. Every product begins with understanding human needs.",
     icon: Heart,
-    accent: "from-rose-50 to-white",
+    accent: "from-danger-50 to-ink-200",
   },
   {
     title: "Evidence Over Assumptions",
     desc: "Research before opinions. Data before decisions. Evidence before assumptions.",
     icon: Target,
-    accent: "from-brand-50 to-white",
+    accent: "from-brand-50 to-ink-200",
   },
   {
     title: "Professional Excellence",
     desc: "We strive to create products, services, and experiences that inspire trust, quality, and continuous improvement.",
     icon: Sparkles,
-    accent: "from-amber-50 to-white",
+    accent: "from-amber-50 to-ink-200",
   },
   {
     title: "Continuous Learning",
     desc: "Great professionals never stop learning. Neither do we.",
     icon: Compass,
-    accent: "from-sky-50 to-white",
+    accent: "from-sky-50 to-ink-200",
   },
   {
     title: "Meaningful Impact",
     desc: "Success isn't measured by beautiful screens. It's measured by the value we create for people, businesses, and communities.",
     icon: BarChart3,
-    accent: "from-emerald-50 to-white",
+    accent: "from-emerald-50 to-ink-200",
   },
   {
     title: "Building Together",
     desc: "Innovation happens through collaboration. We believe in sharing knowledge, supporting one another, and growing together as a global professional community.",
     icon: Layers,
-    accent: "from-violet-50 to-white",
+    accent: "from-violet-50 to-ink-200",
   },
 ] as const;
 
@@ -201,11 +201,11 @@ export function AboutPage() {
     <div className="min-h-screen surface-page">
       <PublicHeader />
 
-      <section className="relative overflow-hidden border-b border-brand-700 bg-gradient-to-br from-brand-600 via-brand-700 to-ink-950 text-white">
-        <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+      <section className="relative overflow-hidden border-b border-brand-700 bg-gradient-to-br from-brand-600 via-brand-700 to-ink-50 text-white">
+        <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-ink-200/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-100">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-ink-200/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-100">
             <Sparkles className="h-3.5 w-3.5" />
             About UXGuard Studio · Professional portfolios
           </p>
@@ -222,7 +222,7 @@ export function AboutPage() {
             {BRAND_PILLARS.map((pillar) => (
               <span
                 key={pillar}
-                className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold text-white"
+                className="rounded-full border border-white/20 bg-ink-200/10 px-4 py-1.5 text-sm font-semibold text-white"
               >
                 {pillar}
               </span>
@@ -231,20 +231,20 @@ export function AboutPage() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/admin/register"
-              className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-ink-200 px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50"
             >
               Join as a professional
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/admin/register"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-ink-200/10"
             >
               Create your portfolio
             </Link>
             <Link
               to="/pricing"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition hover:border-white hover:bg-ink-200/10"
             >
               View pricing
             </Link>
@@ -271,7 +271,7 @@ export function AboutPage() {
               </div>
             ))}
           </div>
-          <p className="mt-8 rounded-xl bg-ink-950 px-6 py-5 text-center text-sm font-medium leading-relaxed text-white sm:text-base">
+          <p className="mt-8 rounded-xl bg-ink-50 px-6 py-5 text-center text-sm font-medium leading-relaxed text-white sm:text-base">
             We believe professional experience deserves better. Your portfolio should become your{" "}
             <span className="text-brand-300">professional legacy</span> — not just a gallery of screenshots.
           </p>
@@ -334,7 +334,7 @@ export function AboutPage() {
                 unlock new opportunities — starting free, upgrading only when they need more.
               </p>
             </div>
-            <div className="card bg-ink-950 p-8 text-white lg:rotate-1 lg:translate-y-6">
+            <div className="card bg-ink-50 p-8 text-white lg:rotate-1 lg:translate-y-6">
               <Compass className="h-8 w-8 text-brand-400" />
               <h3 className="mt-4 font-display text-2xl font-bold">Our Vision</h3>
               <p className="mt-4 leading-relaxed text-ink-300">
@@ -360,7 +360,7 @@ export function AboutPage() {
             {JOURNEY_STEPS.map((step, i) => (
               <span
                 key={step}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-ink-700 shadow-sm ring-1 ring-ink-100"
+                className="inline-flex items-center gap-2 rounded-full bg-ink-200 px-4 py-2 text-sm font-medium text-ink-700 shadow-sm ring-1 ring-ink-100"
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
                   {i + 1}
@@ -404,7 +404,7 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section className="border-b border-ink-100 bg-ink-950 text-white">
+      <section className="border-b border-ink-100 bg-ink-50 text-white">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="05">
             <span className="text-white">What&apos;s Live at Launch</span>
@@ -418,7 +418,7 @@ export function AboutPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-brand-300">Available now</p>
               <ul className="mt-5 grid gap-4 sm:grid-cols-2">
                 {LIVE_NOW.map((item) => (
-                  <li key={item.title} className="rounded-xl bg-ink-950/40 p-4">
+                  <li key={item.title} className="rounded-xl bg-ink-50/40 p-4">
                     <p className="flex items-center gap-2 text-sm font-semibold text-white">
                       <Check className="h-3.5 w-3.5 shrink-0 text-brand-300" />
                       {item.title}
@@ -428,7 +428,7 @@ export function AboutPage() {
                 ))}
               </ul>
             </div>
-            <div className="rounded-2xl border border-ink-700 bg-ink-900/80 p-6 lg:col-span-2">
+            <div className="rounded-2xl border border-ink-700 bg-ink-100/80 p-6 lg:col-span-2">
               <p className="text-xs font-bold uppercase tracking-wider text-ink-400">Coming next</p>
               <div className="mt-5 space-y-3">
                 {COMING_SOON.map(({ name, desc }) => (
@@ -443,7 +443,7 @@ export function AboutPage() {
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {LAUNCH_PLANS.map((plan) => (
-              <div key={plan.name} className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5">
+              <div key={plan.name} className="rounded-2xl border border-ink-700 bg-ink-100/60 p-5">
                 <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">{plan.name}</p>
                 <p className="mt-2 font-display text-2xl font-bold text-white">{plan.price}</p>
                 <p className="mt-2 text-xs leading-relaxed text-ink-400">{plan.detail}</p>
@@ -527,7 +527,7 @@ export function AboutPage() {
                     href={FOUNDER_LINKEDIN}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-ink-200 px-4 py-2.5 text-sm font-semibold text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
                   >
                     <Linkedin className="h-4 w-4" />
                     Connect on LinkedIn
@@ -570,7 +570,7 @@ export function AboutPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-ink-950 p-8 text-white">
+              <div className="rounded-2xl bg-ink-50 p-8 text-white">
                 <p className="font-display text-xl font-bold">Welcome to UXGuard Studio.</p>
                 <p className="mt-2 text-brand-200">
                   Start free. Build your portfolio and publish case studies when you are ready.
@@ -607,14 +607,14 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-ink-950 text-white">
+      <section className="bg-ink-50 text-white">
         <div className="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand-400">Our Brand Promise</p>
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {BRAND_PILLARS.map((pillar) => (
               <div
                 key={pillar}
-                className="rounded-2xl border border-ink-800 bg-ink-900/50 px-4 py-6 transition hover:border-brand-500/50"
+                className="rounded-2xl border border-ink-300 bg-ink-100/50 px-4 py-6 transition hover:border-brand-500/50"
               >
                 <p className="font-display text-2xl font-bold text-brand-300 sm:text-3xl">{pillar}</p>
               </div>
@@ -635,13 +635,13 @@ export function AboutPage() {
             </Link>
             <Link
               to="/admin/register"
-              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-white transition hover:border-brand-400 hover:bg-ink-900"
+              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-white transition hover:border-brand-400 hover:bg-ink-100"
             >
               Create your portfolio
             </Link>
             <Link
               to="/pricing"
-              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-white transition hover:border-brand-400 hover:bg-ink-900"
+              className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-8 py-3.5 font-semibold text-white transition hover:border-brand-400 hover:bg-ink-100"
             >
               Compare plans
             </Link>

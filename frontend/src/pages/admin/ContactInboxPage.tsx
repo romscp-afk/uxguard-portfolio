@@ -276,8 +276,7 @@ export function ContactInboxPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Mail</h1>
           <p className="mt-1 text-sm text-ink-500">
-            Contact form inbox for UXGuard Studio. Replies are saved in Sent (portal mail — no external
-            email required).
+            Contact form inbox for UXGuard Studio. Replies are sent via email and saved in Sent.
           </p>
         </div>
         <button type="button" className="btn-primary" onClick={startCompose}>
@@ -287,7 +286,7 @@ export function ContactInboxPage() {
       </div>
 
       {error ? (
-        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-3 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -314,7 +313,7 @@ export function ContactInboxPage() {
                     setThread([]);
                   }}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    active ? "bg-brand-600 text-white" : "text-ink-700 hover:bg-white"
+                    active ? "bg-brand-600 text-white" : "text-ink-700 hover:bg-ink-200"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -324,7 +323,7 @@ export function ContactInboxPage() {
                   {count > 0 ? (
                     <span
                       className={`rounded-full px-1.5 text-[10px] font-semibold ${
-                        active ? "bg-white/20 text-white" : "bg-ink-200 text-ink-700"
+                        active ? "bg-ink-200/20 text-white" : "bg-ink-200 text-ink-700"
                       }`}
                     >
                       {id === "inbox" ? counts.inbox_unread || count : count}
@@ -337,7 +336,7 @@ export function ContactInboxPage() {
           {folder === "trash" && counts.trash > 0 ? (
             <button
               type="button"
-              className="mt-4 w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"
+              className="mt-4 w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-danger-500 hover:bg-danger-50"
               disabled={busy}
               onClick={() => runBulk("empty_trash")}
             >
@@ -460,7 +459,7 @@ export function ContactInboxPage() {
                     <li key={msg.id} className="border-b border-ink-50">
                       <div
                         className={`flex gap-2 px-2 py-2.5 transition ${
-                          active ? "bg-brand-50" : msg.read ? "bg-white hover:bg-ink-50" : "bg-white hover:bg-brand-50/40"
+                          active ? "bg-brand-50" : msg.read ? "bg-ink-200 hover:bg-ink-50" : "bg-ink-200 hover:bg-brand-50/40"
                         }`}
                       >
                         <input
@@ -515,7 +514,7 @@ export function ContactInboxPage() {
 
         {/* Reading / compose pane */}
         <section
-          className={`min-w-0 flex-1 flex-col bg-white ${
+          className={`min-w-0 flex-1 flex-col bg-ink-200 ${
             selectedId || composeOpen ? "flex" : "hidden md:flex"
           }`}
         >
@@ -524,7 +523,7 @@ export function ContactInboxPage() {
               <div className="border-b border-ink-100 px-5 py-4">
                 <h2 className="font-display text-xl font-bold text-ink-950">New message</h2>
                 <p className="mt-1 text-xs text-ink-500">
-                  Stored in Sent inside the portal. External email delivery can be enabled later.
+                  Sends a real email and saves a copy in Sent.
                 </p>
               </div>
               <div className="space-y-3 border-b border-ink-100 px-5 py-4">
@@ -665,7 +664,7 @@ export function ContactInboxPage() {
                           To: {msg.to_name || msg.to_email} · {new Date(msg.created_at).toLocaleString()}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500">
+                      <span className="rounded-full bg-ink-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500">
                         {msg.direction === "outbound" ? "Sent" : "Received"}
                       </span>
                     </div>
@@ -694,7 +693,7 @@ export function ContactInboxPage() {
                     Send reply
                   </button>
                   <p className="self-center text-xs text-ink-400">
-                    Reply is saved to Sent in this mailbox.
+                    Reply is emailed and saved to Sent in this mailbox.
                   </p>
                 </div>
               </form>

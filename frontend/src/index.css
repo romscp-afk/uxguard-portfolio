@@ -10,35 +10,39 @@
   body {
     @apply bg-ink-50 text-ink-900 antialiased;
   }
+
+  ::selection {
+    @apply bg-brand-500/40 text-white;
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-ink-50;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-ink-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-300 bg-ink-200 px-4 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-ink-50;
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+    @apply w-full rounded-lg border border-ink-300 bg-ink-100 px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
   }
 
   .input-field-error {
-    @apply border-red-400 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100;
+    @apply border-danger-500 ring-2 ring-danger-100 focus:border-danger-500 focus:ring-danger-100;
   }
 
   .label-field-error {
-    @apply text-red-700;
+    @apply text-danger-500;
   }
 
   .label-field {
-    @apply mb-1.5 block text-sm font-medium text-ink-700;
+    @apply mb-1.5 block text-sm font-medium text-ink-600;
   }
 
   .card {
-    @apply rounded-2xl border border-ink-100 bg-white shadow-sm;
+    @apply rounded-2xl border border-ink-300 bg-ink-200 shadow-sm shadow-black/20;
   }
 
   .surface-page {
@@ -46,7 +50,7 @@
   }
 
   .surface-section {
-    @apply bg-white;
+    @apply bg-ink-100;
   }
 
   .surface-section-alt {
@@ -54,7 +58,7 @@
   }
 
   .surface-hero-glow {
-    @apply bg-[radial-gradient(circle_at_top_right,_rgba(14,181,189,0.12)_0%,_transparent_55%)];
+    @apply bg-[radial-gradient(circle_at_top_right,_rgba(8,124,250,0.18)_0%,_transparent_55%)];
   }
 
   .rich-text-content {
@@ -82,15 +86,15 @@
   }
 
   .rich-text-content a {
-    @apply font-medium text-brand-700 underline underline-offset-2 hover:text-brand-600;
+    @apply font-medium text-brand-300 underline underline-offset-2 hover:text-brand-400;
   }
 
   .rich-text-content blockquote {
-    @apply border-l-4 border-brand-400 pl-4 italic text-ink-700;
+    @apply border-l-4 border-brand-400 pl-4 italic text-ink-600;
   }
 
   .rich-text-editor-content {
-    @apply leading-relaxed;
+    @apply leading-relaxed text-ink-900;
   }
 
   .rich-text-editor-content p {
@@ -114,7 +118,7 @@
   }
 
   .rich-text-editor-content a {
-    @apply text-brand-700 underline;
+    @apply text-brand-300 underline;
   }
 
   .rich-text-editor-content p.is-editor-empty:first-child::before {

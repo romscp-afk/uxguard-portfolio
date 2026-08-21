@@ -6,12 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uxguard",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#001334"
+      "backgroundColor": "#020B24"
     },
     "ios": {
       "supportsTablet": true,
@@ -32,7 +32,7 @@
     "android": {
       "package": "studio.uxguard.app",
       "adaptiveIcon": {
-        "backgroundColor": "#001334",
+        "backgroundColor": "#020B24",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE", "POST_NOTIFICATIONS"],
@@ -60,7 +60,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#001334",
+          "backgroundColor": "#020B24",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 180
         }
@@ -71,7 +71,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0eb5bd",
+          "color": "#087CFA",
           "defaultChannel": "default"
         }
       ],

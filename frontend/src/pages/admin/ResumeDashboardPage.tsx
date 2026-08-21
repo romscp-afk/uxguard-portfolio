@@ -219,7 +219,7 @@ export function ResumeDashboardPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-6 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -234,7 +234,7 @@ export function ResumeDashboardPage() {
             value: stats.lastUpdated ? formatDate(stats.lastUpdated.updated_at) : "—",
           },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-ink-100 bg-white px-4 py-3">
+          <div key={stat.label} className="rounded-xl border border-ink-100 bg-ink-200 px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-ink-400">{stat.label}</p>
             <p className="mt-1 text-lg font-semibold text-ink-900">{stat.value}</p>
           </div>
@@ -365,7 +365,7 @@ export function ResumeDashboardPage() {
                     <EditGuard>
                       <button
                         type="button"
-                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-2 py-2 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
+                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-danger-50 px-2 py-2 text-sm font-semibold text-danger-500 transition hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
                         disabled={busyId === resume.id}
                         onClick={() => void handleDelete(resume)}
                         aria-label={`Delete ${resume.title}`}
@@ -399,7 +399,7 @@ export function ResumeDashboardPage() {
                           />
                           <div
                             role="menu"
-                            className="absolute bottom-full left-0 right-0 z-30 mb-2 rounded-xl border border-ink-200 bg-white py-1 shadow-xl"
+                            className="absolute bottom-full left-0 right-0 z-30 mb-2 rounded-xl border border-ink-200 bg-ink-200 py-1 shadow-xl"
                           >
                             <EditGuard>
                               <button
@@ -431,7 +431,7 @@ export function ResumeDashboardPage() {
                               <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-red-700 hover:bg-red-50"
+                                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-danger-500 hover:bg-danger-50"
                                 onClick={() => void handleDelete(resume)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" /> Delete resume

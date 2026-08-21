@@ -380,7 +380,7 @@ export function ResumeEditorPage() {
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> {saveLabel}
               </span>
             ) : saveState === "saved" ? (
-              <span className="inline-flex items-center gap-1.5 text-emerald-700">
+              <span className="inline-flex items-center gap-1.5 text-success-500">
                 <Check className="h-3.5 w-3.5" /> {saveLabel}
               </span>
             ) : (
@@ -401,7 +401,7 @@ export function ResumeEditorPage() {
               <ExportPdfButton resumeId={resume.id} readOnly={readOnly} />
               <button
                 type="button"
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-danger-50 px-4 py-2.5 text-sm font-semibold text-danger-500 transition hover:bg-red-100 disabled:opacity-50"
                 disabled={readOnly || saveState === "saving"}
                 onClick={() => void handleDelete()}
               >
@@ -414,13 +414,13 @@ export function ResumeEditorPage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
 
       {resume.parse_status === "failed" && resume.parse_error ? (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="mb-4 rounded-xl border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-ink-700">
           Import note: {resume.parse_error} You can still edit fields manually.
         </div>
       ) : null}
@@ -480,7 +480,7 @@ export function ResumeEditorPage() {
               );
             })}
           </ul>
-          <div className="mt-4 rounded-lg border border-ink-100 bg-white p-3">
+          <div className="mt-4 rounded-lg border border-ink-100 bg-ink-200 p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-ink-400">Completion</p>
             <p className="mt-1 text-2xl font-semibold text-ink-900">
               {resume.completion_percentage}%
@@ -765,7 +765,7 @@ export function ResumeEditorPage() {
                   <EditGuard>
                     <button
                       type="button"
-                      className="btn-ghost text-sm text-red-700"
+                      className="btn-ghost text-sm text-danger-500"
                       disabled={readOnly}
                       onClick={() =>
                         patchResume((prev) => ({
@@ -867,7 +867,7 @@ export function ResumeEditorPage() {
                   <EditGuard>
                     <button
                       type="button"
-                      className="btn-ghost text-sm text-red-700"
+                      className="btn-ghost text-sm text-danger-500"
                       disabled={readOnly}
                       onClick={() =>
                         patchResume((prev) => ({
@@ -935,7 +935,7 @@ export function ResumeEditorPage() {
                     <EditGuard>
                       <button
                         type="button"
-                        className="btn-ghost px-2 text-red-700"
+                        className="btn-ghost px-2 text-danger-500"
                         aria-label={`Remove ${skill.name}`}
                         disabled={readOnly}
                         onClick={() =>
@@ -1031,7 +1031,7 @@ export function ResumeEditorPage() {
                   <EditGuard>
                     <button
                       type="button"
-                      className="btn-ghost text-sm text-red-700"
+                      className="btn-ghost text-sm text-danger-500"
                       disabled={readOnly}
                       onClick={() =>
                         patchResume((prev) => ({
@@ -1106,7 +1106,7 @@ export function ResumeEditorPage() {
                   <EditGuard>
                     <button
                       type="button"
-                      className="btn-ghost text-sm text-red-700"
+                      className="btn-ghost text-sm text-danger-500"
                       disabled={readOnly}
                       onClick={() =>
                         patchResume((prev) => ({
@@ -1189,7 +1189,7 @@ export function ResumeEditorPage() {
                   <EditGuard>
                     <button
                       type="button"
-                      className="btn-ghost self-end text-red-700"
+                      className="btn-ghost self-end text-danger-500"
                       disabled={readOnly}
                       onClick={() =>
                         patchResume((prev) => ({
@@ -1300,7 +1300,7 @@ export function ResumeEditorPage() {
         </aside>
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-ink-100 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-ink-100 bg-ink-100/95 px-4 py-3 backdrop-blur lg:hidden">
         <div className="flex gap-2">
           <EditGuard>
             <button

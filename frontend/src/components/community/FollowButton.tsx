@@ -64,9 +64,9 @@ export function FollowButton({
 
   const countClass =
     variant === "dark"
-      ? "inline-flex items-center rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-900 shadow-sm"
+      ? "inline-flex items-center rounded-full bg-ink-200 px-3 py-1.5 text-sm font-semibold text-ink-900 shadow-sm"
       : "inline-flex items-center rounded-full bg-ink-100 px-3 py-1.5 text-sm font-semibold text-ink-800";
-  const errorClass = variant === "dark" ? "mt-2 text-xs text-rose-100" : "mt-2 text-xs text-red-600";
+  const errorClass = variant === "dark" ? "mt-2 text-xs text-rose-100" : "mt-2 text-xs text-danger-500";
 
   const countLabel = (
     <span className={countClass}>
@@ -111,7 +111,7 @@ export function FollowButton({
 
   const followingBtn =
     variant === "dark"
-      ? "inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+      ? "inline-flex items-center gap-2 rounded-lg border border-white/30 bg-ink-200/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-ink-200/20"
       : "btn-secondary py-2 text-sm";
   const followBtn =
     variant === "dark"

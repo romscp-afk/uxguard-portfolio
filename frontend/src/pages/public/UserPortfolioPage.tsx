@@ -148,7 +148,7 @@ export function UserPortfolioPage() {
 
       {/* Hero band */}
       <section className="relative overflow-hidden border-b border-ink-100">
-        <div className="absolute inset-0 bg-gradient-to-br from-ink-950 via-ink-900 to-brand-800" />
+        <div className="absolute inset-0 bg-gradient-to-br from-ink-50 via-ink-900 to-brand-800" />
         <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl" />
         <div className="absolute bottom-0 left-10 h-56 w-56 rounded-full bg-brand-500/10 blur-3xl" />
 
@@ -159,7 +159,7 @@ export function UserPortfolioPage() {
               alt=""
               className="h-full w-full object-cover object-center opacity-80"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink-50 via-ink-50/40 to-transparent" />
           </div>
         ) : (
           <div className="relative h-40 sm:h-48" />
@@ -197,7 +197,7 @@ export function UserPortfolioPage() {
                     href={resolveAssetUrl(profile.cv_url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition hover:bg-brand-50"
+                    className="inline-flex items-center gap-2 rounded-lg bg-ink-200 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition hover:bg-brand-50"
                   >
                     <FileText className="h-4 w-4 text-brand-600" />
                     View CV
@@ -228,7 +228,7 @@ export function UserPortfolioPage() {
       </section>
 
       {showProfile ? (
-        <section className="border-b border-ink-100 bg-white">
+        <section className="border-b border-ink-100 bg-ink-200">
           <div className="mx-auto w-full max-w-none px-4 py-10 sm:px-8 lg:px-12 xl:px-16">
             <div className="grid gap-8 lg:grid-cols-12">
               <div className="lg:col-span-7">
@@ -314,7 +314,7 @@ export function UserPortfolioPage() {
                 ].map(({ label, value, icon: Icon }) => (
                   <div
                     key={label}
-                    className="rounded-2xl border border-ink-100 bg-gradient-to-br from-white to-ink-50 p-5 shadow-sm"
+                    className="rounded-2xl border border-ink-100 bg-gradient-to-br from-ink-200 to-ink-50 p-5 shadow-sm"
                   >
                     <Icon className="h-5 w-5 text-brand-600" />
                     <p className="mt-4 font-display text-3xl font-bold text-ink-950">{value}</p>
@@ -348,7 +348,7 @@ export function UserPortfolioPage() {
               {profile.projects.map((project, index) => (
                 <div
                   key={project.id}
-                  className="group overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                  className="group overflow-hidden rounded-3xl border border-ink-100 bg-ink-200 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                 >
                   {project.cover_image ? (
                     <img
@@ -405,7 +405,7 @@ export function UserPortfolioPage() {
         </div>
 
         {profile.case_studies.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-ink-200 bg-white p-12 text-center text-ink-500">
+          <div className="rounded-3xl border border-dashed border-ink-200 bg-ink-200 p-12 text-center text-ink-500">
             No published case studies yet.
           </div>
         ) : (

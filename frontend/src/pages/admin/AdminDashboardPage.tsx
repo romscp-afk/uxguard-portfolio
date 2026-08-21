@@ -71,7 +71,7 @@ export function AdminDashboardPage() {
         {planName ? (
           <Link
             to="/admin/billing"
-            className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 shadow-sm transition hover:border-brand-300 hover:text-brand-700"
+            className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-ink-200 bg-ink-200 px-3 py-1.5 text-xs font-medium text-ink-700 shadow-sm transition hover:border-brand-300 hover:text-brand-700"
           >
             <CreditCard className="h-3.5 w-3.5 shrink-0 text-brand-600" />
             <span className="truncate">{planName}</span>
@@ -81,7 +81,7 @@ export function AdminDashboardPage() {
       </div>
 
       {portfolioOnly ? (
-        <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-ink-200 p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-3 sm:gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600 sm:h-12 sm:w-12">
               <FolderKanban className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -103,7 +103,7 @@ export function AdminDashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-white p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="card mb-6 flex flex-col gap-4 border-brand-200 bg-gradient-to-r from-brand-50 to-ink-200 p-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-3 sm:gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600 sm:h-12 sm:w-12">
               <Bot className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -128,9 +128,9 @@ export function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="card mb-6 flex flex-col gap-4 border-ink-200 bg-gradient-to-r from-ink-950 to-ink-800 p-4 text-white sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="card mb-6 flex flex-col gap-4 border-ink-200 bg-gradient-to-r from-ink-50 to-ink-800 p-4 text-white sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brand-300 sm:h-12 sm:w-12">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink-200/10 text-brand-300 sm:h-12 sm:w-12">
             <LayoutTemplate className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div className="min-w-0">

@@ -89,7 +89,7 @@ export function ResumeTimelinePanel({ resumeId }: Props) {
         </Link>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       {savedMsg ? <p className="text-sm text-brand-800">{savedMsg}</p> : null}
 
       {entries.length === 0 ? (

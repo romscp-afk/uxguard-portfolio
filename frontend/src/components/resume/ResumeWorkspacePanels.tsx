@@ -60,7 +60,7 @@ export function DesignPanel({
             <p className="font-semibold text-ink-900">{tpl.name}</p>
             <p className="mt-1 text-xs text-ink-500">{tpl.description}</p>
             {tpl.ats_friendly ? (
-              <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-success-500">
                 ATS-friendly
               </p>
             ) : null}
@@ -187,15 +187,15 @@ export function QualityPanel({
           </button>
         </EditGuard>
       </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       {result ? (
         <>
           <p className="text-sm text-ink-500">{result.guidance}</p>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-800">
+            <span className="rounded-full bg-danger-50 px-2.5 py-1 text-red-800">
               {result.summary.critical} critical
             </span>
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-900">
+            <span className="rounded-full bg-ink-200 px-2.5 py-1 text-ink-700">
               {result.summary.recommended} recommended
             </span>
             <span className="rounded-full bg-ink-100 px-2.5 py-1 text-ink-700">
@@ -215,7 +215,7 @@ export function QualityPanel({
                       issue.severity === "critical"
                         ? "bg-red-100 text-red-800"
                         : issue.severity === "recommended"
-                          ? "bg-amber-100 text-amber-900"
+                          ? "bg-amber-100 text-ink-700"
                           : "bg-ink-100 text-ink-600"
                     }`}
                   >
@@ -321,7 +321,7 @@ export function VersionsPanel({
         Saving a version snapshots the current content. Creating a tailored copy leaves your master
         resume unchanged.
       </p>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
 
       <div className="space-y-3 rounded-xl border border-ink-100 p-4">
         <p className="text-sm font-medium text-ink-800">Save version snapshot</p>
@@ -509,7 +509,7 @@ export function TailorAiPanel({
             ? "AI writing assistance is available."
             : "AI writing assistance is not currently configured.")}
       </p>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       {notice ? <p className="text-sm text-brand-800">{notice}</p> : null}
 
       <label className="block">
@@ -678,7 +678,7 @@ export function ExportPdfButton({
           Download PDF
         </button>
       </EditGuard>
-      {error ? <span className="text-xs text-red-700">{error}</span> : null}
+      {error ? <span className="text-xs text-danger-500">{error}</span> : null}
     </div>
   );
 }

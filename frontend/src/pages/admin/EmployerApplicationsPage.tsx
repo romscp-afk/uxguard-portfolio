@@ -65,7 +65,7 @@ export function EmployerApplicationsPage() {
         ))}
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
@@ -73,7 +73,7 @@ export function EmployerApplicationsPage() {
       ) : apps.length === 0 ? (
         <p className="text-sm text-ink-500">No applications in this stage.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-ink-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-ink-200 bg-ink-200">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-ink-100 text-xs uppercase text-ink-500">
               <tr>
@@ -157,7 +157,7 @@ export function EmployerApplicationDetailPage() {
   }
 
   if (!data) {
-    return error ? <p className="text-sm text-red-600">{error}</p> : (
+    return error ? <p className="text-sm text-danger-500">{error}</p> : (
       <div className="flex justify-center py-16">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
@@ -174,11 +174,11 @@ export function EmployerApplicationDetailPage() {
       <h1 className="font-display text-3xl font-bold text-ink-950">
         {data.candidate?.name || app.candidate_name || "Candidate"}
       </h1>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <section className="rounded-xl border border-ink-200 bg-white p-4">
+          <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
             <h2 className="text-sm font-semibold">Submitted resume snapshot</h2>
             <pre className="mt-2 max-h-64 overflow-auto rounded bg-ink-50 p-3 text-xs text-ink-700">
               {JSON.stringify(
@@ -188,7 +188,7 @@ export function EmployerApplicationDetailPage() {
               )}
             </pre>
           </section>
-          <section className="rounded-xl border border-ink-200 bg-white p-4">
+          <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
             <h2 className="text-sm font-semibold">Approved career timeline</h2>
             <ul className="mt-2 space-y-2 text-sm">
               {(data.career_profile_snapshot as { entries?: Array<{ title: string; organisation: string }> })?.entries?.map((e, i) => (
@@ -199,7 +199,7 @@ export function EmployerApplicationDetailPage() {
             </ul>
           </section>
           {app.cover_letter ? (
-            <section className="rounded-xl border border-ink-200 bg-white p-4">
+            <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
               <h2 className="text-sm font-semibold">Cover letter</h2>
               <p className="mt-2 whitespace-pre-wrap text-sm text-ink-700">{app.cover_letter}</p>
             </section>
@@ -207,7 +207,7 @@ export function EmployerApplicationDetailPage() {
         </div>
         <div className="space-y-4">
           <EditGuard>
-            <section className="rounded-xl border border-ink-200 bg-white p-4">
+            <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
               <h2 className="text-sm font-semibold">Stage</h2>
               <select className="input-field mt-2" value={stage} onChange={(e) => setStage(e.target.value)}>
                 {STAGES.map((s) => (
@@ -223,7 +223,7 @@ export function EmployerApplicationDetailPage() {
                 </p>
               ) : null}
             </section>
-            <section className="rounded-xl border border-ink-200 bg-white p-4">
+            <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
               <h2 className="text-sm font-semibold">Internal notes</h2>
               <p className="mt-1 text-xs text-ink-500">Never visible to candidates.</p>
               <ul className="mt-2 max-h-40 space-y-2 overflow-auto text-sm">

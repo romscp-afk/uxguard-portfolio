@@ -155,7 +155,7 @@ export function AdminUserDetailPage() {
             type="button"
             onClick={() => void handleDelete()}
             disabled={form.id === actor?.id}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-ink-200 px-3 py-2 text-sm font-medium text-danger-500 hover:bg-danger-50 disabled:opacity-40"
           >
             <Trash2 className="h-4 w-4" />
             Delete user
@@ -167,8 +167,8 @@ export function AdminUserDetailPage() {
         <div
           className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
             messageType === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-red-200 bg-red-50 text-red-800"
+              ? "border-emerald-200 bg-success-50 text-emerald-800"
+              : "border-red-200 bg-danger-50 text-red-800"
           }`}
         >
           {message}

@@ -47,7 +47,7 @@ export function PublicHeader() {
   const close = () => setMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ink-100/80 bg-ink-50/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-ink-300/80 bg-ink-100/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 sm:py-4">
         <Link to="/" className="flex shrink-0 items-center" onClick={close}>
           <Logo variant="mark" theme="light" />
@@ -82,7 +82,7 @@ export function PublicHeader() {
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-ink-200 bg-white text-ink-700 shadow-sm transition hover:border-brand-400 hover:text-brand-600"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-ink-200 bg-ink-200 text-ink-700 shadow-sm transition hover:border-brand-400 hover:text-brand-600"
             aria-expanded={menuOpen}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
           >
@@ -95,11 +95,11 @@ export function PublicHeader() {
         <div className="fixed inset-0 top-[57px] z-40 md:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-ink-950/40 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-ink-50/40 backdrop-blur-[2px]"
             aria-label="Close menu"
             onClick={close}
           />
-          <nav className="relative max-h-[calc(100vh-57px)] overflow-y-auto border-b border-ink-100 bg-white px-4 py-5 shadow-xl">
+          <nav className="relative max-h-[calc(100vh-57px)] overflow-y-auto border-b border-ink-100 bg-ink-200 px-4 py-5 shadow-xl">
             <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink-400">Menu</p>
             <ul className="space-y-1">
               {[
@@ -172,7 +172,7 @@ export function PublicFooter() {
   }
 
   return (
-    <footer className="border-t border-ink-100 bg-white">
+    <footer className="border-t border-ink-100 bg-ink-200">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">

@@ -73,7 +73,7 @@ export function CaseStudyCard({
               ) : null}
             </div>
             <span
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-300"
               aria-label={`${Number(study.like_count) || 0} likes`}
             >
               <Heart className="h-3.5 w-3.5 fill-current" />

@@ -8,9 +8,9 @@ import { canEditPlatform } from "../../lib/roles";
 import type { Resume, ResumeExtractionField, ResumeSkill } from "../../types";
 
 const STATUS_STYLES: Record<string, string> = {
-  confirmed: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  needs_review: "bg-amber-50 text-amber-900 border-amber-200",
-  missing: "bg-red-50 text-red-800 border-red-200",
+  confirmed: "bg-success-50 text-emerald-800 border-emerald-200",
+  needs_review: "bg-ink-200 text-ink-700 border-ink-300",
+  missing: "bg-danger-50 text-red-800 border-red-200",
   not_imported: "bg-ink-50 text-ink-600 border-ink-200",
 };
 
@@ -240,7 +240,7 @@ export function ResumeReviewPage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -250,7 +250,7 @@ export function ResumeReviewPage() {
           {warnings.map((w, i) => (
             <div
               key={`${w.code || "w"}-${i}`}
-              className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              className="flex gap-2 rounded-xl border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-amber-950"
             >
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{w.message}</span>
@@ -260,10 +260,10 @@ export function ResumeReviewPage() {
       ) : null}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
+        <span className="rounded-full border border-ink-300 bg-ink-200 px-3 py-1 text-xs font-semibold text-ink-700">
           {reviewStats.needsReview} need review
         </span>
-        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+        <span className="rounded-full border border-emerald-200 bg-success-50 px-3 py-1 text-xs font-semibold text-emerald-800">
           {reviewStats.confirmed} high confidence
         </span>
         <EditGuard>
@@ -299,7 +299,7 @@ export function ResumeReviewPage() {
               <label key={key} className="block">
                 <span className="mb-1.5 flex flex-wrap items-center gap-2 text-sm font-medium text-ink-700">
                   {label}
-                  {required ? <span className="text-red-600">*</span> : null}
+                  {required ? <span className="text-danger-500">*</span> : null}
                   <span
                     className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLES[status]}`}
                   >

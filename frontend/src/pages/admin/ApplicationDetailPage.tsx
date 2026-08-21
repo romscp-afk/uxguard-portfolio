@@ -16,7 +16,7 @@ export function ApplicationDetailPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Could not load application."));
   }, [applicationId]);
 
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (error) return <p className="text-sm text-danger-500">{error}</p>;
   if (!data) {
     return (
       <div className="flex justify-center py-16">
@@ -40,7 +40,7 @@ export function ApplicationDetailPage() {
         Status: {(app.status || "").replace(/_/g, " ")}
       </p>
 
-      <section className="rounded-xl border border-ink-200 bg-white p-4">
+      <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
         <h2 className="text-sm font-semibold">Submitted resume snapshot</h2>
         <p className="mt-1 text-xs text-ink-500">Immutable — later resume edits do not change this submission.</p>
         <pre className="mt-3 max-h-72 overflow-auto rounded bg-ink-50 p-3 text-xs">
@@ -56,13 +56,13 @@ export function ApplicationDetailPage() {
       </section>
 
       {app.match_summary ? (
-        <section className="rounded-xl border border-ink-200 bg-white p-4 text-sm">
+        <section className="rounded-xl border border-ink-200 bg-ink-200 p-4 text-sm">
           <h2 className="font-semibold">Match guidance: {app.match_summary.percent}%</h2>
           <p className="mt-1 text-xs text-ink-500">{app.match_summary.disclaimer}</p>
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-ink-200 bg-white p-4">
+      <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
         <h2 className="text-sm font-semibold">Status history</h2>
         <ul className="mt-2 space-y-1 text-sm text-ink-600">
           {(data.history as Array<{ new_stage: string; created_at: string }> | undefined)?.map((h, i) => (
@@ -90,13 +90,13 @@ export function SavedJobsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <h1 className="font-display text-3xl font-bold text-ink-950">Saved jobs</h1>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
       {jobs.length === 0 ? (
         <p className="text-sm text-ink-500">No saved jobs yet.</p>
       ) : (
         <ul className="space-y-3">
           {jobs.map((job) => (
-            <li key={job.id} className="rounded-xl border border-ink-200 bg-white p-4">
+            <li key={job.id} className="rounded-xl border border-ink-200 bg-ink-200 p-4">
               <Link to={`/admin/jobs/${job.id}`} className="font-display text-lg font-semibold hover:text-brand-700">
                 {job.title}
               </Link>

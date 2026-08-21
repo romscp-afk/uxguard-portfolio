@@ -91,7 +91,7 @@ export const AI_ASSISTANTS: AiAssistantDef[] = [
     id: "research",
     name: "UX Research Assistant",
     description: "Create practical UX research plans and research materials.",
-    accent: "from-ink-800 to-ink-950",
+    accent: "from-ink-800 to-ink-50",
     defaultAction: "research-plan",
     actions: [
       { id: "research-plan", label: "Research plan", description: "Objectives, methods, timeline", credits: 3 },

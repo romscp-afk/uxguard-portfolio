@@ -156,12 +156,12 @@ export function EmployerJobEditorPage() {
 
       <ReadOnlyNotice />
       {!companyVerified ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+        <p className="rounded-lg border border-ink-300 bg-ink-200 px-3 py-2 text-sm text-amber-950">
           Your company is not verified yet. You can save drafts, but publishing is blocked until a
           super admin approves your employer profile.
         </p>
       ) : null}
-      {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-danger-500">{error}</p> : null}
 
       <div className="flex flex-wrap gap-1">
         {STEPS.map((label, i) => (
@@ -177,7 +177,7 @@ export function EmployerJobEditorPage() {
       </div>
 
       <EditGuard>
-        <div className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
+        <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-200 p-5">
           {step === 1 ? (
             <>
               <Field label="Job title" value={job.title || ""} onChange={(v) => setJob((p) => ({ ...p, title: v }))} />
@@ -406,7 +406,7 @@ export function EmployerJobEditorPage() {
                 {job.employment_type?.replace(/_/g, " ")} · {job.workplace_type} · {job.city || "Location TBD"}
               </p>
               {validation.length ? (
-                <ul className="list-disc pl-5 text-amber-800">
+                <ul className="list-disc pl-5 text-ink-600">
                   {validation.map((item) => (
                     <li key={item}>{item}</li>
                   ))}

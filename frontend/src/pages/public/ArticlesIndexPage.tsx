@@ -64,7 +64,7 @@ export function ArticlesIndexPage() {
         </header>
 
         {error ? (
-          <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="mt-8 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
             {error}
           </div>
         ) : null}
@@ -86,7 +86,7 @@ export function ArticlesIndexPage() {
               <li key={article.id}>
                 <Link
                   to={`/articles/${article.slug}`}
-                  className="group block overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:border-brand-200 hover:shadow-md"
+                  className="group block overflow-hidden rounded-2xl border border-ink-100 bg-ink-200 transition hover:border-brand-200 hover:shadow-md"
                 >
                   {article.cover_image ? (
                     <div className="aspect-[16/9] overflow-hidden bg-ink-100">

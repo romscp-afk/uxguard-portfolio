@@ -29,7 +29,7 @@ import type { TemplateCategory, TemplateDefinition } from "../../types";
 
 const ACCENT: Record<TemplateDefinition["accent"], string> = {
   teal: "from-brand-600 to-brand-800",
-  ink: "from-ink-800 to-ink-950",
+  ink: "from-ink-800 to-ink-50",
   amber: "from-amber-500 to-orange-700",
   violet: "from-violet-600 to-indigo-900",
 };
@@ -37,7 +37,7 @@ const ACCENT: Record<TemplateDefinition["accent"], string> = {
 const BADGE: Record<TemplateDefinition["accent"], string> = {
   teal: "bg-brand-50 text-brand-700",
   ink: "bg-ink-100 text-ink-700",
-  amber: "bg-amber-50 text-amber-800",
+  amber: "bg-ink-200 text-ink-600",
   violet: "bg-violet-50 text-violet-700",
 };
 
@@ -221,7 +221,7 @@ export function TemplatesPage() {
             className={`rounded-full px-4 py-2 text-sm font-medium transition ${
               category === cat.id
                 ? "bg-brand-600 text-white"
-                : "bg-white text-ink-600 ring-1 ring-ink-200 hover:bg-ink-50"
+                : "bg-ink-200 text-ink-600 ring-1 ring-ink-200 hover:bg-ink-50"
             }`}
           >
             {cat.label}
@@ -233,8 +233,8 @@ export function TemplatesPage() {
         <div
           className={`mb-6 rounded-xl px-4 py-3 text-sm ${
             messageType === "success"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border border-red-200 bg-red-50 text-red-700"
+              ? "border border-emerald-200 bg-success-50 text-emerald-800"
+              : "border border-red-200 bg-danger-50 text-danger-500"
           }`}
         >
           {message}
@@ -253,23 +253,23 @@ export function TemplatesPage() {
                 className={`overflow-hidden rounded-2xl border text-left transition ${
                   active
                     ? "border-brand-400 shadow-md ring-2 ring-brand-200"
-                    : "border-ink-100 bg-white hover:border-brand-200 hover:shadow-sm"
+                    : "border-ink-100 bg-ink-200 hover:border-brand-200 hover:shadow-sm"
                 }`}
               >
                 <div className={`h-24 bg-gradient-to-br ${ACCENT[template.accent]} p-4`}>
                   <div className="flex items-start justify-between gap-2">
-                    <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
+                    <span className="rounded-full bg-ink-200/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
                       {template.badge}
                     </span>
                     {appliedId === template.id ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-ink-100/90 px-2 py-0.5 text-[10px] font-semibold text-success-500">
                         <Check className="h-3 w-3" /> Applied
                       </span>
                     ) : null}
                   </div>
                   <p className="mt-4 font-display text-lg font-bold text-white">{template.name}</p>
                 </div>
-                <div className="bg-white p-4">
+                <div className="bg-ink-200 p-4">
                   <p className="text-sm font-medium text-ink-800">{template.tagline}</p>
                   <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-500">
                     {template.description}
@@ -294,7 +294,7 @@ export function TemplatesPage() {
           {selected ? (
             <div className="card sticky top-8 overflow-hidden">
               <div className={`bg-gradient-to-br ${ACCENT[selected.accent]} px-6 py-8 text-white`}>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase ${BADGE[selected.accent]} bg-white/90`}>
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase ${BADGE[selected.accent]} bg-ink-100/90`}>
                   {selected.category.replace("_", " ")}
                 </span>
                 <h2 className="mt-4 font-display text-2xl font-bold">{selected.name}</h2>

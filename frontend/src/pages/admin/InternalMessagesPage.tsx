@@ -496,14 +496,14 @@ export function InternalMessagesPage() {
       </div>
 
       {error ? (
-        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <div className="mb-3 rounded-xl border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-amber-950">
           {error}
         </div>
       ) : null}
 
       <div className="card flex min-h-0 flex-1 overflow-hidden border-ink-200 p-0 shadow-sm">
         <aside
-          className={`min-w-0 flex-col border-r border-ink-100 bg-white md:flex md:w-[330px] ${
+          className={`min-w-0 flex-col border-r border-ink-100 bg-ink-200 md:flex md:w-[330px] ${
             selected || composeOpen ? "hidden" : "flex w-full"
           }`}
         >
@@ -557,7 +557,7 @@ export function InternalMessagesPage() {
                     </button>
                     <button
                       type="button"
-                      className="px-3 text-ink-400 hover:text-red-600"
+                      className="px-3 text-ink-400 hover:text-danger-500"
                       title="Hide chat for me"
                       onClick={() => void removeThread(thread.id)}
                     >
@@ -576,7 +576,7 @@ export function InternalMessagesPage() {
           }`}
         >
           {composeOpen ? (
-            <form className="flex h-full flex-col bg-white" onSubmit={createThread}>
+            <form className="flex h-full flex-col bg-ink-200" onSubmit={createThread}>
               <div className="border-b border-ink-100 px-5 py-4">
                 <button
                   type="button"
@@ -620,7 +620,7 @@ export function InternalMessagesPage() {
                 />
               </div>
               <textarea
-                className="min-h-0 flex-1 resize-none border-0 bg-white p-5 text-sm leading-relaxed text-ink-900 outline-none"
+                className="min-h-0 flex-1 resize-none border-0 bg-ink-200 p-5 text-sm leading-relaxed text-ink-900 outline-none"
                 placeholder="Write your message…"
                 maxLength={20000}
                 value={composeBody}
@@ -672,7 +672,7 @@ export function InternalMessagesPage() {
             </form>
           ) : selected ? (
             <>
-              <div className="flex items-start justify-between gap-3 border-b border-ink-100 bg-white px-5 py-4">
+              <div className="flex items-start justify-between gap-3 border-b border-ink-100 bg-ink-200 px-5 py-4">
                 <div>
                   <button
                     type="button"
@@ -733,7 +733,7 @@ export function InternalMessagesPage() {
                         <article
                           key={message.id}
                           className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm italic text-ink-400 ${
-                            mine ? "ml-auto bg-ink-100" : "bg-white"
+                            mine ? "ml-auto bg-ink-100" : "bg-ink-200"
                           }`}
                         >
                           Message deleted
@@ -745,8 +745,8 @@ export function InternalMessagesPage() {
                         key={message.id}
                         className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
                           mine
-                            ? "ml-auto rounded-br-md bg-ink-950 text-white"
-                            : "rounded-bl-md border border-ink-100 bg-white text-ink-900"
+                            ? "ml-auto rounded-br-md bg-ink-50 text-white"
+                            : "rounded-bl-md border border-ink-100 bg-ink-200 text-ink-900"
                         }`}
                       >
                         <p className={`text-xs font-semibold ${mine ? "text-ink-200" : "text-ink-500"}`}>
@@ -755,7 +755,7 @@ export function InternalMessagesPage() {
                         {editingId === message.id ? (
                           <div className="mt-2 space-y-2">
                             <textarea
-                              className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
+                              className="w-full rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm text-ink-900"
                               rows={3}
                               value={editBody}
                               onChange={(event) => setEditBody(event.target.value)}
@@ -864,7 +864,7 @@ export function InternalMessagesPage() {
                   })
                 }
               />
-              <form onSubmit={sendReply} className="border-t border-ink-100 bg-white p-4">
+              <form onSubmit={sendReply} className="border-t border-ink-100 bg-ink-200 p-4">
                 <div className="flex items-end gap-2">
                   <EmojiMenu
                     open={emojiOpen}
@@ -931,7 +931,7 @@ export function InternalMessagesPage() {
       {lightbox ? (
         <button
           type="button"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/80 p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-50/80 p-6"
           onClick={() => setLightbox(null)}
         >
           <img src={lightbox} alt="Attachment preview" className="max-h-full max-w-full rounded-xl" />
@@ -1002,7 +1002,7 @@ function AttachmentStrip({
 }) {
   if (!attachments.length) return null;
   return (
-    <div className="flex flex-wrap gap-2 border-t border-ink-100 bg-white px-4 py-3">
+    <div className="flex flex-wrap gap-2 border-t border-ink-100 bg-ink-200 px-4 py-3">
       {attachments.map((attachment, index) => (
         <div key={`${attachment.url}-${index}`} className="relative">
           <ChatImage
@@ -1012,7 +1012,7 @@ function AttachmentStrip({
           />
           <button
             type="button"
-            className="absolute -right-1 -top-1 rounded-full bg-ink-950 px-1.5 text-[10px] text-white"
+            className="absolute -right-1 -top-1 rounded-full bg-ink-50 px-1.5 text-[10px] text-white"
             onClick={() => onRemove(index)}
           >
             ×
@@ -1038,7 +1038,7 @@ function EmojiMenu({
         <Smile className="h-4 w-4" />
       </button>
       {open ? (
-        <div className="absolute bottom-14 left-0 z-20 grid w-56 grid-cols-6 gap-1 rounded-xl border border-ink-200 bg-white p-2 shadow-lg">
+        <div className="absolute bottom-14 left-0 z-20 grid w-56 grid-cols-6 gap-1 rounded-xl border border-ink-200 bg-ink-200 p-2 shadow-lg">
           {EMOJIS.map((emoji) => (
             <button
               key={emoji}

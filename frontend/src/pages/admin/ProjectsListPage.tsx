@@ -113,7 +113,7 @@ export function ProjectsListPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-6 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -202,7 +202,7 @@ export function ProjectsListPage() {
                     type="button"
                     onClick={() => handleDelete(project)}
                     disabled={deletingId === project.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger-500 transition hover:bg-danger-50 disabled:opacity-50"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     {deletingId === project.id ? "Deleting..." : "Delete"}
