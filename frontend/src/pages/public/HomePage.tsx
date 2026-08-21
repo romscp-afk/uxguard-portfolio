@@ -98,8 +98,12 @@ export function HomePage() {
       ) : null}
 
       {/* Hero — community & action focus */}
-      <section className="relative overflow-hidden border-b border-ink-100 bg-ink-200">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-brand-600 to-ink-50" />
+      <section className="relative overflow-hidden border-b border-ink-300 bg-ink-100">
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary-gradient" />
+        <div className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-brand-400/30 blur-3xl" />
+          <div className="absolute bottom-0 left-10 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
+        </div>
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>

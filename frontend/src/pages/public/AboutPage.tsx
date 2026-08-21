@@ -201,7 +201,8 @@ export function AboutPage() {
     <div className="min-h-screen surface-page">
       <PublicHeader />
 
-      <section className="relative overflow-hidden border-b border-brand-700 bg-gradient-to-br from-brand-600 via-brand-700 to-ink-50 text-white">
+      <section className="relative overflow-hidden border-b border-brand-700 bg-primary-gradient text-white">
+        <div className="absolute inset-0 bg-ink-50/35" />
         <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-ink-200/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28">
@@ -282,7 +283,7 @@ export function AboutPage() {
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <SectionLabel n="01">Who We Are</SectionLabel>
           <div className="grid gap-4 lg:grid-cols-12">
-            <div className="card bg-gradient-to-br from-brand-600 to-brand-800 p-8 text-white lg:col-span-7">
+            <div className="card bg-primary-gradient p-8 text-white lg:col-span-7">
               <p className="text-xs font-semibold uppercase tracking-wider text-brand-200">Our platform</p>
               <p className="mt-4 font-display text-2xl font-bold leading-snug sm:text-3xl">
                 A Professional Experience Platform for people who create digital products and experiences.

@@ -3,22 +3,50 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #020b24;
+    --surface: #041638;
+    --surface-elevated: #082454;
+    --primary: #087cfa;
+    --primary-hover: #0758e8;
+    --accent: #08c8f4;
+    --accent-light: #29afff;
+    --text-primary: #ffffff;
+    --text-secondary: #afc3dd;
+    --border: #27466f;
+    --success: #21d4b4;
+    --error: #ff5d73;
+    --primary-gradient: linear-gradient(135deg, #08c8f4 0%, #087cfa 48%, #0758e8 100%);
+  }
+
   html {
     scroll-behavior: smooth;
   }
 
   body {
     @apply bg-ink-50 text-ink-900 antialiased;
+    background-color: var(--background);
+    color: var(--text-primary);
   }
 
   ::selection {
-    @apply bg-brand-500/40 text-white;
+    background: color-mix(in srgb, var(--primary) 40%, transparent);
+    color: var(--text-primary);
   }
 }
 
 @layer components {
+  .bg-primary-gradient {
+    background-image: var(--primary-gradient);
+  }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-ink-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-ink-50;
+    background-image: var(--primary-gradient);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.06);
   }
 
   .btn-secondary {
@@ -43,22 +71,27 @@
 
   .card {
     @apply rounded-2xl border border-ink-300 bg-ink-200 shadow-sm shadow-black/20;
+    background-color: var(--surface-elevated);
+    border-color: var(--border);
   }
 
   .surface-page {
-    @apply bg-ink-50;
+    background-color: var(--background);
   }
 
   .surface-section {
-    @apply bg-ink-100;
+    background-color: var(--surface);
   }
 
   .surface-section-alt {
-    @apply bg-ink-50;
+    background-color: var(--background);
   }
 
   .surface-hero-glow {
-    @apply bg-[radial-gradient(circle_at_top_right,_rgba(8,124,250,0.18)_0%,_transparent_55%)];
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 55%),
+      var(--primary-gradient);
+    opacity: 0.22;
   }
 
   .rich-text-content {

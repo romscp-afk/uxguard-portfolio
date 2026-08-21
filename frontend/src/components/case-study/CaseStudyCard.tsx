@@ -57,7 +57,7 @@ export function CaseStudyCard({
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700">
+            <div className="flex h-full items-center justify-center bg-primary-gradient text-white">
               <span className="font-display text-xl font-semibold">{study.title.charAt(0)}</span>
             </div>
           )}

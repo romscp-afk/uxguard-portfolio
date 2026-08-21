@@ -29,6 +29,28 @@ export const palette = {
   success: '#21D4B4',
 } as const;
 
+/** Matches web `--primary-gradient`. */
+export const primaryGradient = {
+  colors: ['#08C8F4', '#087CFA', '#0758E8'] as const,
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 1 },
+};
+
+export const tokens = {
+  background: '#020B24',
+  surface: '#041638',
+  surfaceElevated: '#082454',
+  primary: '#087CFA',
+  primaryHover: '#0758E8',
+  accent: '#08C8F4',
+  accentLight: '#29AFFF',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#AFC3DD',
+  border: '#27466F',
+  success: '#21D4B4',
+  error: '#FF5D73',
+} as const;
+
 export const color = {
   light: {
     text: palette.ink[950],

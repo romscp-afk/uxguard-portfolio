@@ -4,7 +4,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* Midnight navy system — Electric Blue brand */
+        /* Keep hex tokens so opacity modifiers (bg-brand-500/30) work.
+           Values match :root CSS variables in index.css. */
         brand: {
           DEFAULT: "#087CFA",
           50: "#071B3A",
@@ -49,6 +50,10 @@ export default {
           600: "#E84B61",
           700: "#C93A4E",
         },
+      },
+      backgroundImage: {
+        "primary-gradient":
+          "linear-gradient(135deg, #08C8F4 0%, #087CFA 48%, #0758E8 100%)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

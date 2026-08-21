@@ -147,10 +147,11 @@ export function UserPortfolioPage() {
       <PublicHeader />
 
       {/* Hero band */}
-      <section className="relative overflow-hidden border-b border-ink-100">
-        <div className="absolute inset-0 bg-gradient-to-br from-ink-50 via-ink-900 to-brand-800" />
-        <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl" />
-        <div className="absolute bottom-0 left-10 h-56 w-56 rounded-full bg-brand-500/10 blur-3xl" />
+      <section className="relative overflow-hidden border-b border-ink-300">
+        <div className="absolute inset-0 bg-primary-gradient opacity-90" />
+        <div className="absolute inset-0 bg-ink-50/55" />
+        <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-brand-400/25 blur-3xl" />
+        <div className="absolute bottom-0 left-10 h-56 w-56 rounded-full bg-brand-500/15 blur-3xl" />
 
         {profile.cover_image_url ? (
           <div className="relative h-52 w-full sm:h-64 md:h-72">
@@ -176,7 +177,7 @@ export function UserPortfolioPage() {
                     className="h-32 w-32 rounded-[1.75rem] object-cover object-center shadow-2xl ring-4 ring-white/90"
                   />
                 ) : (
-                  <div className="flex h-32 w-32 items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-brand-400 to-brand-700 font-display text-4xl font-bold text-white shadow-2xl ring-4 ring-white/90">
+                  <div className="flex h-32 w-32 items-center justify-center rounded-[1.75rem] bg-primary-gradient font-display text-4xl font-bold text-white shadow-2xl ring-4 ring-white/90">
                     {profile.name.charAt(0)}
                   </div>
                 )}
