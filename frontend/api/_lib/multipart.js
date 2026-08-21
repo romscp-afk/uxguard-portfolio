@@ -32,11 +32,28 @@ export async function parseMultipartForm(req) {
   }
 
   const buffer = Buffer.from(await fileEntry.arrayBuffer());
+  const filename = fileEntry.name || "upload";
+  let mimeType = fileEntry.type || "application/octet-stream";
+  if (!mimeType || mimeType === "application/octet-stream") {
+    const ext = String(filename).split(".").pop()?.toLowerCase();
+    const byExt = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+    if (ext && byExt[ext]) mimeType = byExt[ext];
+  }
   return {
     file: {
       buffer,
-      filename: fileEntry.name || "upload",
-      mimeType: fileEntry.type || "application/octet-stream",
+      filename,
+      mimeType,
     },
     fields,
     altText: typeof altText === "string" && altText.trim() ? altText.trim() : undefined,

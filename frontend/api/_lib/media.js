@@ -2,6 +2,7 @@ import { del, get, put } from "@vercel/blob";
 import { readStore, updateStore, touchMediaUpdatedAt } from "./store.js";
 
 const MEDIA_PREFIX = "uxguard/media";
+const MEDIA_META_PREFIX = "uxguard/media-meta";
 const MAX_BYTES = 10 * 1024 * 1024;
 const COVER_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -84,8 +85,72 @@ export async function listMediaAssets(userId) {
 }
 
 export async function getMediaAssetById(assetId, options = {}) {
+  const id = Number(assetId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+
   const store = await readStore(options);
-  return (store.mediaAssets || []).find((asset) => Number(asset.id) === Number(assetId)) || null;
+  const fromStore =
+    (store.mediaAssets || []).find((asset) => Number(asset.id) === id) || null;
+  if (fromStore) return fromStore;
+
+  // Platform-store reads can lag a put on another instance.
+  const fromSide = await loadMediaRecord(id);
+  if (!fromSide) return null;
+
+  try {
+    await updateStore(
+      (draft) => {
+        if (!draft.mediaAssets) draft.mediaAssets = [];
+        const idx = draft.mediaAssets.findIndex((asset) => Number(asset.id) === id);
+        if (idx >= 0) draft.mediaAssets[idx] = { ...draft.mediaAssets[idx], ...fromSide };
+        else draft.mediaAssets.push(fromSide);
+        return draft;
+      },
+      { forceRefresh: true },
+    );
+  } catch {
+    // Sidecar is enough for this request.
+  }
+
+  return fromSide;
+}
+
+async function persistMediaRecord(asset) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN || !asset?.id) return;
+  await put(`${MEDIA_META_PREFIX}/${Number(asset.id)}.json`, JSON.stringify(asset), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+}
+
+async function loadMediaRecord(assetId) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  const id = Number(assetId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  try {
+    const result = await get(`${MEDIA_META_PREFIX}/${id}.json`, {
+      access: "private",
+      headers: { "Cache-Control": "no-cache, no-store", Pragma: "no-cache" },
+    });
+    if (!result?.stream || result.statusCode !== 200) return null;
+    const text = await new Response(result.stream).text();
+    const asset = JSON.parse(text);
+    if (!asset || typeof asset !== "object" || Number(asset.id) !== id) return null;
+    return asset;
+  } catch {
+    return null;
+  }
+}
+
+async function deleteMediaRecord(assetId) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  try {
+    await del(`${MEDIA_META_PREFIX}/${Number(assetId)}.json`);
+  } catch {
+    // Missing sidecar is fine.
+  }
 }
 
 /**
@@ -161,6 +226,14 @@ export async function uploadMediaAsset(userId, file, altText, purpose = "media")
 
     return store;
   });
+
+  if (created) {
+    try {
+      await persistMediaRecord(created);
+    } catch (err) {
+      console.error("[media] persistMediaRecord failed", created?.id, err);
+    }
+  }
 
   return created;
 }
@@ -247,10 +320,22 @@ export async function deleteMediaAsset(userId, assetId) {
     };
     return store;
   }, { forceRefresh: true });
+
+  try {
+    await deleteMediaRecord(id);
+  } catch {
+    // Ignore sidecar cleanup failures.
+  }
 }
 
 export async function streamMediaAsset(assetId) {
-  const asset = await getMediaAssetById(assetId, { forceRefresh: true });
+  let asset = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    asset = await getMediaAssetById(assetId, { forceRefresh: true });
+    if (asset?.pathname) break;
+    asset = null;
+    await new Promise((resolve) => setTimeout(resolve, 80 * (attempt + 1)));
+  }
   if (!asset?.pathname) return null;
 
   // Blob get can lag briefly after put — same class of bug as profile image saves.

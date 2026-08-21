@@ -1,4 +1,4 @@
-import { DragEvent, useRef, useState } from "react";
+import { DragEvent, useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Upload } from "lucide-react";
 import { api, ApiError, resolveAssetUrl } from "../../api/client";
 import {
@@ -49,10 +49,22 @@ export function UrlOrUploadField({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [localPreview, setLocalPreview] = useState("");
+  const [remoteBroken, setRemoteBroken] = useState(false);
 
   const isCover = variant === "cover";
   const purpose = uploadPurpose || (isCover ? "cover" : "media");
   const canRemove = allowRemove || isCover;
+
+  useEffect(() => {
+    setRemoteBroken(false);
+  }, [value, localPreview]);
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
 
   async function validateCoverUrl(url: string): Promise<boolean> {
     if (!isCover || !url.trim()) return true;
@@ -77,6 +89,13 @@ export function UrlOrUploadField({
 
     setUploading(true);
     setUploadError("");
+    setRemoteBroken(false);
+
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return objectUrl;
+    });
 
     try {
       if (isCover) {
@@ -84,21 +103,41 @@ export function UrlOrUploadField({
         if (validationError) {
           setUploadError(validationError);
           onValidationError?.(validationError);
+          setLocalPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return "";
+          });
           return;
         }
       }
 
       const asset = await api.uploadMedia(file, { purpose });
+      if (!asset?.url) {
+        throw new Error("Upload finished but no image URL was returned. Try again.");
+      }
       onChange(asset.url);
       setUploadError("");
       onCommit?.(asset.url);
+      // Keep local preview briefly until remote media URL is warm.
+      window.setTimeout(() => {
+        setLocalPreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return "";
+        });
+      }, 2500);
     } catch (err) {
+      setLocalPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return "";
+      });
       const message =
         err instanceof ApiError && err.status === 401
           ? "Session expired. Sign out and sign back in, then upload again."
-          : err instanceof Error
+          : err instanceof ApiError
             ? err.message
-            : "Upload failed";
+            : err instanceof Error
+              ? err.message
+              : "Upload failed";
       setUploadError(message);
       onValidationError?.(message);
     } finally {
@@ -110,14 +149,16 @@ export function UrlOrUploadField({
   function handleDrop(e: DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    handleUpload(e.dataTransfer.files);
+    void handleUpload(e.dataTransfer.files);
   }
 
-  const previewUrl = value ? resolveAssetUrl(value) : "";
+  const remoteUrl = value ? resolveAssetUrl(value) : "";
+  const previewUrl = localPreview || remoteUrl;
   const isImage =
     showPreview &&
     Boolean(previewUrl) &&
-    (/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(previewUrl) ||
+    (Boolean(localPreview) ||
+      /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(previewUrl) ||
       previewUrl.includes("/api/v1/media/file/") ||
       previewUrl.startsWith("blob:"));
 
@@ -133,7 +174,7 @@ export function UrlOrUploadField({
           className={`relative mb-3 overflow-hidden rounded-xl border-2 border-dashed transition ${
             dragOver
               ? "border-brand-400 bg-brand-50/40"
-              : hasError
+              : hasError || uploadError
                 ? "border-red-300 bg-red-50/30"
                 : "border-ink-200 bg-ink-50/50 hover:border-brand-300"
           }`}
@@ -143,14 +184,22 @@ export function UrlOrUploadField({
           }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          onClick={() => fileRef.current?.click()}
-          onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
+          onClick={() => !uploading && fileRef.current?.click()}
+          onKeyDown={(e) => e.key === "Enter" && !uploading && fileRef.current?.click()}
           role="button"
           tabIndex={0}
         >
-          {isImage ? (
+          {isImage && !remoteBroken ? (
             <>
-              <img key={previewUrl} src={previewUrl} alt="" className="aspect-[16/10] w-full object-cover" />
+              <img
+                key={previewUrl}
+                src={previewUrl}
+                alt=""
+                className="aspect-[16/10] w-full object-cover"
+                onError={() => {
+                  if (!localPreview) setRemoteBroken(true);
+                }}
+              />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3 text-center">
                 <p className="text-xs font-medium text-white">Click or drop to replace cover image</p>
               </div>
@@ -158,7 +207,11 @@ export function UrlOrUploadField({
           ) : (
             <div className="flex aspect-[16/10] flex-col items-center justify-center px-6 text-center">
               <ImagePlus className="h-10 w-10 text-ink-300" />
-              <p className="mt-3 text-sm font-medium text-ink-700">Drop cover image here or click to upload</p>
+              <p className="mt-3 text-sm font-medium text-ink-700">
+                {remoteBroken
+                  ? "Image uploaded but preview failed to load — try re-uploading"
+                  : "Drop cover image here or click to upload"}
+              </p>
               <p className="mt-1 text-xs text-ink-400">{COVER_HELP_TEXT}</p>
             </div>
           )}
@@ -177,11 +230,12 @@ export function UrlOrUploadField({
           }}
           type="text"
           inputMode="url"
-          className={hasError ? "input-field input-field-error flex-1" : "input-field flex-1"}
+          className={hasError || uploadError ? "input-field input-field-error flex-1" : "input-field flex-1"}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
             setUploadError("");
+            setRemoteBroken(false);
           }}
           onBlur={() => {
             if (!value.trim()) return;
@@ -193,9 +247,9 @@ export function UrlOrUploadField({
         <input
           ref={fileRef}
           type="file"
-          accept={isCover ? "image/jpeg,image/png,image/webp" : accept}
+          accept={isCover ? "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" : accept}
           className="hidden"
-          onChange={(e) => handleUpload(e.target.files)}
+          onChange={(e) => void handleUpload(e.target.files)}
         />
         <button
           type="button"
@@ -221,6 +275,11 @@ export function UrlOrUploadField({
             onClick={() => {
               onChange("");
               setUploadError("");
+              setRemoteBroken(false);
+              setLocalPreview((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return "";
+              });
               onCommit?.("");
             }}
             className="btn-secondary shrink-0 whitespace-nowrap py-2.5 text-red-600"
@@ -231,11 +290,23 @@ export function UrlOrUploadField({
       </div>
 
       <p className="mt-1 text-xs text-ink-400">{helpText || (isCover ? COVER_HELP_TEXT : null)}</p>
-      {uploadError ? <p className="mt-1 text-xs text-red-600">{uploadError}</p> : null}
+      {uploadError ? <p className="mt-1 text-sm font-medium text-red-600">{uploadError}</p> : null}
+      {remoteBroken && !uploadError ? (
+        <p className="mt-1 text-sm font-medium text-amber-700">
+          Preview could not load. The file may still be processing — wait a moment or upload again.
+        </p>
+      ) : null}
 
-      {!isCover && isImage ? (
+      {!isCover && isImage && !remoteBroken ? (
         <div className="mt-3 overflow-hidden rounded-lg border border-ink-100 bg-ink-50">
-          <img src={previewUrl} alt="" className="max-h-40 w-full object-cover" />
+          <img
+            src={previewUrl}
+            alt=""
+            className="max-h-40 w-full object-cover"
+            onError={() => {
+              if (!localPreview) setRemoteBroken(true);
+            }}
+          />
         </div>
       ) : null}
       {!isCover && value && showPreview && !isImage ? (

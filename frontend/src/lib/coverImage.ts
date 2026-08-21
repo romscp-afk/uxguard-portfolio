@@ -33,11 +33,17 @@ export function validateCoverDimensions(width: number, height: number): string |
   return null;
 }
 
-export function validateCoverFileType(mimeType: string): string | null {
-  if (!COVER_SPECS.allowedTypes.includes(mimeType as (typeof COVER_SPECS.allowedTypes)[number])) {
-    return "Cover image must be JPG, PNG, or WebP.";
+export function validateCoverFileType(mimeType: string, filename?: string): string | null {
+  if (COVER_SPECS.allowedTypes.includes(mimeType as (typeof COVER_SPECS.allowedTypes)[number])) {
+    return null;
   }
-  return null;
+  // Some browsers (esp. mobile / Finder) send an empty MIME — fall back to extension.
+  const ext = String(filename || "")
+    .split(".")
+    .pop()
+    ?.toLowerCase();
+  if (ext && ["jpg", "jpeg", "png", "webp"].includes(ext)) return null;
+  return "Cover image must be JPG, PNG, or WebP.";
 }
 
 export function validateCoverFileSize(bytes: number): string | null {
@@ -67,7 +73,7 @@ export function loadImageDimensions(
 }
 
 export async function validateCoverImageFile(file: File): Promise<string | null> {
-  const typeError = validateCoverFileType(file.type);
+  const typeError = validateCoverFileType(file.type, file.name);
   if (typeError) return typeError;
 
   const sizeError = validateCoverFileSize(file.size);
@@ -77,7 +83,7 @@ export async function validateCoverImageFile(file: File): Promise<string | null>
     const { width, height } = await loadImageDimensions(file);
     return validateCoverDimensions(width, height);
   } catch {
-    return "Could not read image. Try another file.";
+    return "Could not read image. Try another JPG, PNG, or WebP file.";
   }
 }
 
