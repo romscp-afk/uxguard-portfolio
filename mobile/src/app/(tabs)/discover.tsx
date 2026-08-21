@@ -90,14 +90,6 @@ export default function DiscoverScreen() {
           onChangeText={setQuery}
           style={styles.search}
         />
-        <View style={styles.shortcuts}>
-          <Button label="Latest portfolios" onPress={() => router.push('/portfolios')} />
-          <Button
-            label="Our Projects"
-            variant="secondary"
-            onPress={() => router.push('/our-projects')}
-          />
-        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <ChoiceChip label="All" selected={!categoryId} onPress={() => setCategoryId(null)} />
           {(categories.data || []).map((category) => (
@@ -141,6 +133,5 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   chips: { gap: space.sm, paddingVertical: space.xs },
-  shortcuts: { gap: space.sm },
   list: { gap: space.md },
 });

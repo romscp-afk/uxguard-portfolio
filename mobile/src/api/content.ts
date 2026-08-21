@@ -1,16 +1,7 @@
 import { absoluteMediaUrl, contentApiUrl, isSupabaseConfigured } from '@/lib/config';
 import { estimateReadingTime } from '@/lib/html';
 import { supabase } from '@/lib/supabase';
-import type {
-  Article,
-  Campaign,
-  CaseStudy,
-  Category,
-  Challenge,
-  FeedItem,
-  PublicPortfolio,
-  StudioProject,
-} from '@/types/domain';
+import type { Article, Campaign, CaseStudy, Category, Challenge, FeedItem } from '@/types/domain';
 
 const FALLBACK_CATEGORIES: Category[] = [
   { id: 'ux', slug: 'ux', name: 'UX', kind: 'topic' },
@@ -90,7 +81,7 @@ async function fetchWebArticles(): Promise<Article[]> {
 
 async function fetchWebCaseStudies(): Promise<CaseStudy[]> {
   try {
-    const res = await fetch(`${contentApiUrl}/api/v1/feed/case-studies?limit=40`);
+    const res = await fetch(`${contentApiUrl}/api/v1/feed/case-studies?limit=100`);
     if (!res.ok) return [];
     const json = (await res.json()) as Record<string, unknown>[] | { items?: Record<string, unknown>[] };
     const rows = Array.isArray(json) ? json : json.items || [];
@@ -119,140 +110,39 @@ async function fetchWebCaseStudy(idOrSlug: string): Promise<CaseStudy | null> {
   return found;
 }
 
-export async function listPublicProjects(): Promise<StudioProject[]> {
-  try {
-    const res = await fetch(`${contentApiUrl}/api/v1/public-projects`);
-    if (!res.ok) return [];
-    const rows = (await res.json()) as Record<string, unknown>[];
-    return (Array.isArray(rows) ? rows : []).map((row) => ({
-      id: String(row.id),
-      title: String(row.title || 'Untitled project'),
-      slug: (row.slug as string) || null,
-      client: (row.client as string) || null,
-      status: String(row.status || 'active'),
-      description: (row.description as string) || null,
-      role: (row.role as string) || null,
-      tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
-      outcomes: Array.isArray(row.outcomes)
-        ? (row.outcomes as StudioProject['outcomes'])
-        : [],
-      cover_image_url: absoluteMediaUrl((row.cover_image as string) || null),
-      updated_at: (row.updated_at as string) || null,
-    }));
-  } catch {
-    return [];
-  }
+function studyKey(study: CaseStudy) {
+  const slug = study.slug?.trim().toLowerCase();
+  if (slug) return `slug:${slug}`;
+  return `id:${study.id}`;
 }
 
-function portfoliosFromCaseStudies(studies: CaseStudy[]): PublicPortfolio[] {
-  const byUsername = new Map<string, PublicPortfolio>();
-  for (const study of studies) {
-    const username = study.author_username?.trim();
-    if (!username) continue;
-    const key = username.toLowerCase();
-    const existing = byUsername.get(key);
-    if (!existing) {
-      byUsername.set(key, {
-        id: study.author_id || username,
-        username,
-        name: study.author_name || username,
-        title: null,
-        bio: null,
-        avatar_url: null,
-        cover_image_url: study.cover_image_url,
-        location: null,
-        case_study_count: 1,
-        latest_published_at: study.published_at,
-        latest_case_study_title: study.title,
-      });
-      continue;
-    }
-    existing.case_study_count += 1;
-    if (
-      new Date(study.published_at || 0).getTime() >
-      new Date(existing.latest_published_at || 0).getTime()
-    ) {
-      existing.latest_published_at = study.published_at;
-      existing.latest_case_study_title = study.title;
-      existing.cover_image_url = study.cover_image_url || existing.cover_image_url;
-    }
-  }
-  return [...byUsername.values()].sort(
-    (a, b) =>
-      new Date(b.latest_published_at || 0).getTime() - new Date(a.latest_published_at || 0).getTime(),
-  );
+function publishedTime(study: CaseStudy) {
+  return new Date(study.published_at || 0).getTime();
 }
 
-export async function listPublicPortfolios(limit = 40): Promise<PublicPortfolio[]> {
-  try {
-    const res = await fetch(`${contentApiUrl}/api/v1/public-portfolios?limit=${Math.min(limit, 100)}`);
-    if (res.ok) {
-      const rows = (await res.json()) as Record<string, unknown>[];
-      if (Array.isArray(rows) && rows.length) {
-        return rows.map((row) => ({
-          id: String(row.id),
-          username: String(row.username || ''),
-          name: String(row.name || row.username || 'Member'),
-          title: (row.title as string) || null,
-          bio: (row.bio as string) || null,
-          avatar_url: absoluteMediaUrl((row.avatar_url as string) || null),
-          cover_image_url: absoluteMediaUrl((row.cover_image_url as string) || null),
-          location: (row.location as string) || null,
-          case_study_count: Number(row.case_study_count) || 0,
-          latest_published_at: (row.latest_published_at as string) || null,
-          latest_case_study_title: (row.latest_case_study_title as string) || null,
-        }));
-      }
-    }
-  } catch {
-    // Fall through to derived / Supabase sources.
-  }
-
-  if (isSupabaseConfigured) {
-    const { data: studies } = await supabase
-      .from('case_studies')
-      .select('id, title, cover_image_url, published_at, author_id, profiles:author_id ( username, display_name, title, bio, avatar_url, cover_image_url, location )')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false })
-      .limit(120);
-    if (studies?.length) {
-      const byAuthor = new Map<string, PublicPortfolio>();
-      for (const row of studies) {
-        const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-        const username = String(profile?.username || '').trim();
-        if (!username) continue;
-        const key = String(row.author_id || username);
-        const existing = byAuthor.get(key);
-        if (!existing) {
-          byAuthor.set(key, {
-            id: key,
-            username,
-            name: profile?.display_name || username,
-            title: profile?.title || null,
-            bio: profile?.bio || null,
-            avatar_url: absoluteMediaUrl(profile?.avatar_url || null),
-            cover_image_url: absoluteMediaUrl(profile?.cover_image_url || row.cover_image_url || null),
-            location: profile?.location || null,
-            case_study_count: 1,
-            latest_published_at: row.published_at,
-            latest_case_study_title: row.title,
-          });
-        } else {
-          existing.case_study_count += 1;
-        }
-      }
-      return [...byAuthor.values()]
-        .sort(
-          (a, b) =>
-            new Date(b.latest_published_at || 0).getTime() -
-            new Date(a.latest_published_at || 0).getTime(),
-        )
-        .slice(0, limit);
+/** Merge website + Supabase case studies so new web publishes always appear in the app. */
+function mergeCaseStudies(primary: CaseStudy[], secondary: CaseStudy[]) {
+  const byKey = new Map<string, CaseStudy>();
+  for (const study of [...primary, ...secondary]) {
+    const key = studyKey(study);
+    const existing = byKey.get(key);
+    if (!existing || publishedTime(study) >= publishedTime(existing)) {
+      byKey.set(key, study);
     }
   }
+  return [...byKey.values()].sort((a, b) => publishedTime(b) - publishedTime(a));
+}
 
-  const webStudies = await fetchWebCaseStudies();
-  return portfoliosFromCaseStudies(webStudies).slice(0, limit);
+async function fetchSupabaseCaseStudies(): Promise<CaseStudy[]> {
+  if (!isSupabaseConfigured) return [];
+  const { data, error } = await supabase
+    .from('case_studies')
+    .select('*')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(100);
+  if (error || !data?.length) return [];
+  return data.map((row) => mapCaseStudy(row, 'supabase'));
 }
 
 export async function listCategories(): Promise<Category[]> {
@@ -321,42 +211,24 @@ export async function listCaseStudies(params?: {
   from?: number;
   to?: number;
 }): Promise<CaseStudy[]> {
-  if (isSupabaseConfigured) {
-    let request = supabase
-      .from('case_studies')
-      .select('*')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false });
-    if (params?.from != null && params?.to != null && !params.query) {
-      request = request.range(params.from, params.to);
-    }
-    const { data, error } = await request;
-    if (!error && data && data.length > 0) {
-      let rows = data.map((row) => mapCaseStudy(row, 'supabase'));
-      if (params?.query) {
-        const q = params.query.toLowerCase();
-        rows = rows.filter((item) => `${item.title} ${item.summary} ${item.methods.join(' ')}`.toLowerCase().includes(q));
-        if (params.from != null && params.to != null) {
-          rows = rows.slice(params.from, params.to + 1);
-        }
-      }
-      return rows;
-    }
-  }
-  let web = await fetchWebCaseStudies();
+  const [web, mobile] = await Promise.all([fetchWebCaseStudies(), fetchSupabaseCaseStudies()]);
+  let rows = mergeCaseStudies(web, mobile);
+
   if (params?.query) {
     const q = params.query.toLowerCase();
-    web = web.filter((item) => `${item.title} ${item.summary} ${item.methods.join(' ')}`.toLowerCase().includes(q));
+    rows = rows.filter((item) =>
+      `${item.title} ${item.summary} ${item.methods.join(' ')} ${item.author_name || ''}`.toLowerCase().includes(q),
+    );
   }
   if (params?.categoryId) {
-    web = web.filter((item) =>
+    rows = rows.filter((item) =>
       matchesFallbackCategory(`${item.title} ${item.summary} ${item.methods.join(' ')}`, params.categoryId),
     );
   }
   if (params?.from != null && params?.to != null) {
-    web = web.slice(params.from, params.to + 1);
+    rows = rows.slice(params.from, params.to + 1);
   }
-  return web;
+  return rows;
 }
 
 export async function getArticle(idOrSlug: string): Promise<Article | null> {
@@ -383,15 +255,20 @@ export async function getArticle(idOrSlug: string): Promise<Article | null> {
 }
 
 export async function getCaseStudy(idOrSlug: string): Promise<CaseStudy | null> {
+  const web = await fetchWebCaseStudy(idOrSlug);
   if (isSupabaseConfigured) {
     const { data } = await supabase
       .from('case_studies')
       .select('*')
       .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
       .maybeSingle();
-    if (data) return mapCaseStudy(data, 'supabase');
+    if (data) {
+      const mobile = mapCaseStudy(data, 'supabase');
+      if (!web) return mobile;
+      return publishedTime(web) >= publishedTime(mobile) ? web : mobile;
+    }
   }
-  return fetchWebCaseStudy(idOrSlug);
+  return web;
 }
 
 export async function listRelatedArticles(id: string, tags: string[]) {
@@ -474,17 +351,18 @@ export async function buildHomeFeed(): Promise<FeedItem[]> {
     });
   }
 
-  for (const study of caseStudies.filter((item) => item.featured).slice(0, 4)) {
+  // Latest published case studies from website + mobile, newest first.
+  for (const study of caseStudies.slice(0, 12)) {
     items.push({
       id: study.id,
       contentType: 'case_study',
       title: study.title,
-      subtitle: study.subtitle,
+      subtitle: study.subtitle || study.author_name,
       excerpt: study.summary,
       coverImageUrl: study.cover_image_url,
       href: `/case-study/${study.slug || study.id}`,
       sponsored: study.is_sponsored,
-      featured: true,
+      featured: study.featured,
       publishedAt: study.published_at,
       source: study.source,
       slug: study.slug,

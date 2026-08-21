@@ -1,52 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { recordCampaignEvent } from '@/api/campaigns';
-import { buildHomeFeed, listPublicPortfolios, listPublicProjects } from '@/api/content';
+import { buildHomeFeed } from '@/api/content';
 import { FeedCard } from '@/components/content/FeedCard';
-import { PortfolioCard } from '@/components/content/PortfolioCard';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ErrorState, LoadingState } from '@/components/ui/States';
 import { useAuth } from '@/providers/AuthProvider';
 import { color, palette, radius, space, type } from '@/theme/tokens';
 
 const colors = color.light;
 
-function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll: () => void }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`See all ${title}`}>
-        <Text style={styles.seeAll}>See all</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export default function HomeScreen() {
   const { session, profile } = useAuth();
   const feed = useQuery({ queryKey: ['home-feed'], queryFn: buildHomeFeed });
-  const portfolios = useQuery({
-    queryKey: ['home-portfolios'],
-    queryFn: () => listPublicPortfolios(6),
-  });
-  const projects = useQuery({
-    queryKey: ['home-projects'],
-    queryFn: listPublicProjects,
-  });
   const name = profile?.display_name || profile?.username;
 
   const onRefresh = useCallback(() => {
     feed.refetch();
-    portfolios.refetch();
-    projects.refetch();
-  }, [feed, portfolios, projects]);
+  }, [feed]);
 
   useEffect(() => {
     for (const item of feed.data || []) {
@@ -59,12 +34,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={feed.isRefetching || portfolios.isRefetching || projects.isRefetching}
-            onRefresh={onRefresh}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={feed.isRefetching} onRefresh={onRefresh} />}
         contentContainerStyle={styles.content}>
         {session ? (
           <>
@@ -78,66 +48,10 @@ export default function HomeScreen() {
             <Text style={styles.bannerKicker}>Studio library</Text>
             <Text style={styles.bannerTitle}>Learn UX with evidence</Text>
             <Text style={styles.bannerBody}>
-              Browse member portfolios and published case studies. Sign in to publish your own work.
+              Published case studies from UXGuard Studio. Sign in to upload your own, save work, and take challenges.
             </Text>
           </View>
         )}
-
-        <View style={styles.shortcuts}>
-          <Button label="Latest portfolios" onPress={() => router.push('/portfolios')} />
-          <Button
-            label="Our Projects"
-            variant="secondary"
-            onPress={() => router.push('/our-projects')}
-          />
-        </View>
-
-        {(portfolios.data || []).length > 0 ? (
-          <View style={styles.section}>
-            <SectionHeader title="Latest portfolios" onSeeAll={() => router.push('/portfolios')} />
-            <View style={styles.list}>
-              {(portfolios.data || []).slice(0, 4).map((portfolio) => (
-                <PortfolioCard
-                  key={portfolio.id}
-                  portfolio={portfolio}
-                  onPress={() => router.push(`/u/${portfolio.username}` as never)}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
-
-        {(projects.data || []).length > 0 ? (
-          <View style={styles.section}>
-            <SectionHeader title="Our Projects" onSeeAll={() => router.push('/our-projects')} />
-            <View style={styles.list}>
-              {(projects.data || []).slice(0, 2).map((project) => (
-                <Card
-                  key={project.id}
-                  onPress={() => router.push('/our-projects')}
-                  accessibilityLabel={project.title}>
-                  {project.cover_image_url ? (
-                    <Image
-                      source={{ uri: project.cover_image_url }}
-                      style={styles.projectCover}
-                      contentFit="cover"
-                      accessibilityIgnoresInvertColors
-                    />
-                  ) : null}
-                  <Badge label="Studio project" tone="muted" />
-                  <Text style={styles.projectTitle}>{project.title}</Text>
-                  {project.description ? (
-                    <Text style={styles.projectBody} numberOfLines={3}>
-                      {project.description}
-                    </Text>
-                  ) : null}
-                </Card>
-              ))}
-            </View>
-          </View>
-        ) : null}
-
-        <Text style={styles.sectionTitle}>From the library</Text>
         {feed.isLoading ? <LoadingState label="Loading your feed" /> : null}
         {feed.error ? (
           <ErrorState
@@ -146,7 +60,7 @@ export default function HomeScreen() {
           />
         ) : null}
         {!feed.isLoading && !feed.data?.length ? (
-          <Text style={styles.sub}>Nothing to show yet. Pull to refresh after content sync is connected.</Text>
+          <Text style={styles.sub}>No published case studies yet. Pull to refresh.</Text>
         ) : null}
         <View style={styles.list}>
           {(feed.data || []).map((item) => (
@@ -188,23 +102,5 @@ const styles = StyleSheet.create({
   },
   bannerTitle: { fontFamily: 'Fraunces_700Bold', fontSize: 22, lineHeight: 26, color: palette.white },
   bannerBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, color: palette.ink[200] },
-  shortcuts: { gap: space.sm },
-  section: { gap: space.md },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.md,
-  },
-  sectionTitle: { ...type.subtitle, color: colors.text, flex: 1 },
-  seeAll: { ...type.label, color: colors.brandText },
   list: { gap: space.md },
-  projectCover: {
-    width: '100%',
-    height: 140,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceAlt,
-  },
-  projectTitle: { ...type.subtitle, color: colors.text },
-  projectBody: { ...type.body, color: colors.textSecondary },
 });
