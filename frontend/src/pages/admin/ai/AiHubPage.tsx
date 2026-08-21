@@ -82,7 +82,7 @@ export function AiHubPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-danger-500" role="alert">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           {error}
         </div>
       ) : null}
@@ -105,8 +105,8 @@ export function AiHubPage() {
             </p>
             {credits && !credits.enabled ? (
               <p className="mt-2 text-xs text-amber-700">
-                Server needs <code className="rounded bg-ink-200 px-1">OPENAI_API_KEY</code> (and
-                optional <code className="rounded bg-ink-200 px-1">OPENAI_MODEL</code>) to generate.
+                Server needs <code className="rounded bg-amber-50 px-1">OPENAI_API_KEY</code> (and
+                optional <code className="rounded bg-amber-50 px-1">OPENAI_MODEL</code>) to generate.
               </p>
             ) : null}
           </div>

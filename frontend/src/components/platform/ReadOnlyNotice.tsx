@@ -9,7 +9,7 @@ export function ReadOnlyNotice() {
   if (!user || canEditPlatform(user)) return null;
 
   return (
-    <div className="mb-6 flex items-start gap-3 rounded-xl border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-ink-700">
+    <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
       <Eye className="mt-0.5 h-5 w-5 shrink-0" />
       <p>
         You&apos;re signed in as a <strong>Viewer</strong>. You can explore all sections in read-only

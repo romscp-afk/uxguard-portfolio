@@ -55,7 +55,7 @@ export function MockCheckoutPage() {
           No real money is processed. Use these outcomes to test subscription activation.
         </p>
         {error ? (
-          <p className="mt-4 rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-500" role="alert">
+          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
             {error}
           </p>
         ) : null}

@@ -212,7 +212,7 @@ export function CareerTimelinePage() {
       </div>
 
       <ReadOnlyNotice />
-      {error ? <p className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-danger-500">{error}</p> : null}
+      {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       {insights ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -228,12 +228,12 @@ export function CareerTimelinePage() {
       ) : null}
 
       {(insights?.gaps?.length || 0) > 0 ? (
-        <div className="rounded-xl border border-ink-300 bg-ink-200 p-4 text-sm text-amber-950">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           <div className="mb-2 flex items-center gap-2 font-medium">
             <AlertTriangle className="h-4 w-4" /> Timeline completeness
           </div>
           <p>{insights!.gaps[0].message}</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-700/90">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-900/90">
             {insights!.gaps.slice(0, 3).map((gap) => (
               <li key={`${gap.after_entry_id}-${gap.before_entry_id}`}>
                 {gap.start_date} to {gap.end_date} ({gap.months} months)
@@ -244,7 +244,7 @@ export function CareerTimelinePage() {
       ) : null}
 
       <EditGuard>
-        <div className="rounded-xl border border-ink-200 bg-ink-200 p-4">
+        <div className="rounded-xl border border-ink-200 bg-white p-4">
           <h2 className="text-sm font-semibold text-ink-900">Import from resume</h2>
           <p className="mt-1 text-xs text-ink-500">
             Adds entries to your master timeline without changing the resume.
@@ -275,7 +275,7 @@ export function CareerTimelinePage() {
       </EditGuard>
 
       {duplicates.length > 0 ? (
-        <div className="space-y-3 rounded-xl border border-ink-200 bg-ink-200 p-4">
+        <div className="space-y-3 rounded-xl border border-ink-200 bg-white p-4">
           <h2 className="text-sm font-semibold text-ink-900">Possible duplicates</h2>
           <p className="text-xs text-ink-500">Choose how to handle each match. Nothing is merged silently.</p>
           {duplicates.map((dup, index) => (
@@ -305,7 +305,7 @@ export function CareerTimelinePage() {
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-ink-200 bg-ink-200 p-4">
+      <div className="rounded-xl border border-ink-200 bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-ink-900">Display & privacy</h2>
           <button
@@ -359,7 +359,7 @@ export function CareerTimelinePage() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink-300 bg-ink-200 px-6 py-16 text-center">
+        <div className="rounded-xl border border-dashed border-ink-300 bg-white px-6 py-16 text-center">
           <p className="font-display text-xl text-ink-900">No timeline entries yet</p>
           <p className="mt-2 text-sm text-ink-500">Import from a resume or add a milestone manually.</p>
           <EditLink to="/admin/career-timeline/new" className="btn-primary mt-4 inline-flex items-center gap-2">
@@ -370,9 +370,9 @@ export function CareerTimelinePage() {
         <ol className="relative space-y-4 border-l border-ink-200 pl-6">
           {visible.map((entry) => (
             <li key={entry.id} className="relative">
-              <span className="absolute -left-[1.7rem] top-3 h-3 w-3 rounded-full border-2 border-brand-500 bg-ink-200" />
+              <span className="absolute -left-[1.7rem] top-3 h-3 w-3 rounded-full border-2 border-brand-500 bg-white" />
               <article
-                className={`rounded-xl border bg-ink-200 p-4 shadow-sm ${
+                className={`rounded-xl border bg-white p-4 shadow-sm ${
                   entry.hidden ? "border-ink-100 opacity-60" : "border-ink-200"
                 }`}
               >
@@ -402,7 +402,7 @@ export function CareerTimelinePage() {
                     </button>
                     <button
                       type="button"
-                      className="btn-secondary px-2 py-1 text-xs text-danger-500"
+                      className="btn-secondary px-2 py-1 text-xs text-red-700"
                       disabled={busy}
                       onClick={() => void removeEntry(entry)}
                     >
@@ -447,7 +447,7 @@ export function CareerTimelinePage() {
 
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-ink-200 bg-ink-200 px-4 py-3">
+    <div className="rounded-xl border border-ink-200 bg-white px-4 py-3">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">{label}</p>
       <p className="mt-1 truncate font-display text-xl font-semibold text-ink-950">{value}</p>
       {sub ? <p className="truncate text-xs text-ink-500">{sub}</p> : null}

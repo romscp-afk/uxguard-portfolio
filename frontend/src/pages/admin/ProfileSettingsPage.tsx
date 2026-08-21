@@ -246,8 +246,8 @@ export function ProfileSettingsPage() {
         <div
           className={`mb-4 rounded-lg px-4 py-3 text-sm ${
             messageType === "error"
-              ? "bg-danger-50 text-red-800"
-              : "bg-success-50 text-success-500"
+              ? "bg-red-50 text-red-800"
+              : "bg-emerald-50 text-emerald-700"
           }`}
         >
           {message}
@@ -337,7 +337,7 @@ export function ProfileSettingsPage() {
           />
           {form.avatar_url ? (
             <div className="flex items-center gap-4 rounded-lg border border-ink-100 bg-ink-50 p-4">
-              <div className="h-24 w-24 overflow-hidden rounded-2xl bg-ink-200 ring-2 ring-brand-100">
+              <div className="h-24 w-24 overflow-hidden rounded-2xl bg-white ring-2 ring-brand-100">
                 <img
                   key={form.avatar_url}
                   src={resolveAssetUrl(form.avatar_url)}
@@ -428,7 +428,7 @@ export function ProfileSettingsPage() {
               <button
                 type="button"
                 onClick={() => void persistMediaField("cv_url", "")}
-                className="text-sm font-medium text-danger-500 hover:text-danger-500"
+                className="text-sm font-medium text-red-600 hover:text-red-700"
               >
                 Delete CV
               </button>

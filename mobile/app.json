@@ -6,12 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uxguard",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#020B24"
+      "backgroundColor": "#001334"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,9 @@
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
           }
         ]
       }
@@ -32,10 +34,14 @@
     "android": {
       "package": "studio.uxguard.app",
       "adaptiveIcon": {
-        "backgroundColor": "#020B24",
+        "backgroundColor": "#001334",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -47,7 +53,10 @@
               "pathPrefix": "/app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -60,7 +69,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#020B24",
+          "backgroundColor": "#001334",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 180
         }

@@ -121,10 +121,10 @@ export function CareerTimelineEntryPage() {
       </div>
 
       <ReadOnlyNotice />
-      {error ? <p className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-danger-500">{error}</p> : null}
+      {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       <EditGuard>
-        <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-200 p-5">
+        <div className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-ink-800">Type</span>
             <select

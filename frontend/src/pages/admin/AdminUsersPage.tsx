@@ -106,7 +106,7 @@ export function AdminUsersPage() {
         <div className="flex items-center gap-2">
           <Link
             to="/admin/users/new"
-            className="rounded-lg bg-ink-50 px-3 py-2 text-sm font-medium text-white hover:bg-ink-200"
+            className="rounded-lg bg-ink-950 px-3 py-2 text-sm font-medium text-white hover:bg-ink-800"
           >
             Create account
           </Link>
@@ -114,7 +114,7 @@ export function AdminUsersPage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50"
+            className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50"
           >
             {loading ? "Refreshing…" : "Refresh"}
           </button>
@@ -131,7 +131,7 @@ export function AdminUsersPage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -220,7 +220,7 @@ export function AdminUsersPage() {
                         type="button"
                         disabled={deletingId === row.id || row.id === user?.id}
                         onClick={() => void handleDelete(row)}
-                        className="inline-flex items-center gap-1 text-danger-500 hover:text-danger-500 disabled:opacity-40"
+                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 disabled:opacity-40"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         {deletingId === row.id ? "Deleting…" : "Delete"}

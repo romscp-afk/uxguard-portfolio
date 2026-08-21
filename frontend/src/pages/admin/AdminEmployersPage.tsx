@@ -21,9 +21,9 @@ type EmployerRow = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-ink-200 text-ink-600 border-ink-300",
-  verified: "bg-success-50 text-emerald-800 border-emerald-200",
-  rejected: "bg-danger-50 text-red-800 border-red-200",
+  pending: "bg-amber-50 text-amber-800 border-amber-200",
+  verified: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  rejected: "bg-red-50 text-red-800 border-red-200",
   suspended: "bg-stone-100 text-stone-700 border-stone-300",
 };
 
@@ -72,7 +72,7 @@ export function AdminEmployersPage() {
   }, [companies, query]);
 
   if (!isAdmin(user)) {
-    return <p className="text-sm text-danger-500">Admin access required.</p>;
+    return <p className="text-sm text-red-700">Admin access required.</p>;
   }
 
   return (
@@ -109,7 +109,7 @@ export function AdminEmployersPage() {
             type="button"
             onClick={() => setFilter(String(id))}
             className={`rounded-lg border px-4 py-3 text-left ${
-              filter === id ? "border-ink bg-ink text-white" : "border-stone-200 bg-ink-200"
+              filter === id ? "border-ink bg-ink text-white" : "border-stone-200 bg-white"
             }`}
           >
             <p className={`text-xs uppercase tracking-wide ${filter === id ? "text-white/70" : "text-stone-500"}`}>
@@ -120,7 +120,7 @@ export function AdminEmployersPage() {
         ))}
       </div>
 
-      <div className="mb-4 flex items-center gap-2 rounded-lg border border-stone-200 bg-ink-200 px-3 py-2">
+      <div className="mb-4 flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2">
         <Search className="h-4 w-4 text-stone-400" />
         <input
           className="w-full border-0 bg-transparent text-sm outline-none"
@@ -131,17 +131,17 @@ export function AdminEmployersPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       )}
 
       {pendingAccounts.length > 0 && (filter === "all" || filter === "awaiting_profile") && (
-        <div className="mb-6 rounded-lg border border-ink-300 bg-ink-200 p-4">
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
           <p className="font-medium text-amber-950">
             Employer accounts awaiting company profile ({pendingAccounts.length})
           </p>
-          <ul className="mt-2 space-y-1 text-sm text-ink-700">
+          <ul className="mt-2 space-y-1 text-sm text-amber-900">
             {pendingAccounts.map((a) => (
               <li key={a.id}>
                 {a.name} · {a.email}
@@ -160,7 +160,7 @@ export function AdminEmployersPage() {
           <p className="mt-4 font-medium">No employers found</p>
         </div>
       ) : (
-        <ul className="divide-y divide-stone-200 overflow-hidden rounded-lg border border-stone-200 bg-ink-200">
+        <ul className="divide-y divide-stone-200 overflow-hidden rounded-lg border border-stone-200 bg-white">
           {filtered.map((company) => (
             <li key={company.id}>
               <Link

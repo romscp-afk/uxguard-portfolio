@@ -64,7 +64,7 @@ export function CaseStudyArticle({
   return (
     <>
       {preview ? (
-        <div className="border-b border-ink-300 bg-ink-200 px-4 py-3 text-center text-sm text-ink-700">
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
           Preview mode — this case study is not published yet. Only you can see this page.
         </div>
       ) : null}
@@ -104,7 +104,7 @@ export function CaseStudyArticle({
               </span>
             ) : null}
             {preview ? (
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-ink-600">
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
                 Draft preview
               </span>
             ) : null}
@@ -141,7 +141,7 @@ export function CaseStudyArticle({
               <button
                 type="button"
                 onClick={() => setViewerOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-ink-100 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-200"
+                className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-800"
               >
                 <MonitorPlay className="h-4 w-4" />
                 View live prototype
@@ -187,7 +187,7 @@ export function CaseStudyArticle({
                   href={resolveAssetUrl(att.file_url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-xl border border-ink-100 bg-ink-200 px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50/30"
+                  className="flex items-center justify-between rounded-xl border border-ink-100 bg-white px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50/30"
                 >
                   <div className="flex items-center gap-3">
                     <Download className="h-5 w-5 text-brand-600" />

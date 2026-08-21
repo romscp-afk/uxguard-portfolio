@@ -53,7 +53,7 @@ export function ShareBar({ title, url, summary }: ShareBarProps) {
         href={linkedInUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-[#0A66C2] hover:text-[#0A66C2]"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-[#0A66C2] hover:text-[#0A66C2]"
       >
         <Linkedin className="h-4 w-4" />
         LinkedIn
@@ -62,7 +62,7 @@ export function ShareBar({ title, url, summary }: ShareBarProps) {
         href={twitterUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-950"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-950"
       >
         <Twitter className="h-4 w-4" />
         X / Twitter
@@ -70,7 +70,7 @@ export function ShareBar({ title, url, summary }: ShareBarProps) {
       <button
         type="button"
         onClick={copyLink}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
       >
         {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
         {copied ? "Copied" : "Copy link"}
@@ -79,7 +79,7 @@ export function ShareBar({ title, url, summary }: ShareBarProps) {
         <button
           type="button"
           onClick={nativeShare}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
         >
           <Share2 className="h-4 w-4" />
           More

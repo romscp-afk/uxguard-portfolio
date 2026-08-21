@@ -64,7 +64,7 @@ export function DiscoverPage() {
       <section className="surface-section-alt">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           {error ? (
-            <div className="mb-6 rounded-xl border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-ink-700">
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {error}
             </div>
           ) : null}

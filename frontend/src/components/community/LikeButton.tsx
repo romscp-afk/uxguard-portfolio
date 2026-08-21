@@ -74,7 +74,7 @@ export function LikeButton({
   if (!user) {
     return (
       <div className={compact ? "inline-flex items-center gap-2" : "flex flex-wrap items-center gap-3"}>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-300">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700">
           <Heart className="h-4 w-4 fill-current" />
           {count} {count === 1 ? "like" : "likes"}
         </span>
@@ -124,8 +124,8 @@ export function LikeButton({
         disabled={loading}
         className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
           liked
-            ? "border-danger-100 bg-danger-50 text-danger-500 hover:bg-danger-100"
-            : "border-ink-200 bg-ink-200 text-ink-700 hover:border-brand-300 hover:text-brand-700"
+            ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+            : "border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700"
         }`}
         aria-pressed={liked}
         aria-label={liked ? "Unlike" : "Like"}
@@ -140,7 +140,7 @@ export function LikeButton({
           {count} {count === 1 ? "like" : "likes"}
         </span>
       </button>
-      {error ? <p className="mt-2 text-xs text-danger-500">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }

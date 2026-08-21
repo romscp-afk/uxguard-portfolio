@@ -79,14 +79,14 @@ export function AdminResetPasswordPage() {
 
   if (tokenState === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
         <div className="card w-full max-w-md p-8 text-center text-sm text-ink-500">Verifying reset link...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
@@ -95,7 +95,7 @@ export function AdminResetPasswordPage() {
 
         <form onSubmit={handleSubmit} className="card p-8">
           {error ? (
-            <div className="mb-4 rounded-lg bg-danger-50 px-4 py-3 text-sm text-danger-500">
+            <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
               {tokenState === "invalid" ? (
                 <p className="mt-2">
@@ -107,7 +107,7 @@ export function AdminResetPasswordPage() {
             </div>
           ) : null}
           {success ? (
-            <div className="mb-4 rounded-lg bg-success-50 px-4 py-3 text-sm text-success-500">
+            <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               {success}{" "}
               <Link to="/admin/login" className="font-semibold text-emerald-900 underline">
                 Sign in

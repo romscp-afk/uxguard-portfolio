@@ -76,7 +76,7 @@ function ToolbarButton({
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={`rounded p-1.5 transition ${
-        active ? "bg-brand-200 text-brand-300" : "text-ink-600 hover:bg-ink-100"
+        active ? "bg-brand-100 text-brand-800" : "text-ink-600 hover:bg-ink-100"
       }`}
     >
       {children}
@@ -154,7 +154,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(function R
 
   return (
     <div
-      className={`rich-text-editor overflow-hidden rounded-lg border bg-ink-200 ${
+      className={`rich-text-editor overflow-hidden rounded-lg border bg-white ${
         hasError ? "border-red-400 ring-2 ring-red-100" : "border-ink-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20"
       } ${className}`}
     >
@@ -276,7 +276,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(function R
           <span className="sr-only">Color</span>
           <input
             type="color"
-            className="h-6 w-6 cursor-pointer rounded border border-ink-200 bg-ink-200 p-0"
+            className="h-6 w-6 cursor-pointer rounded border border-ink-200 bg-white p-0"
             value={normalizeColor(editor.getAttributes("textStyle").color)}
             onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
           />

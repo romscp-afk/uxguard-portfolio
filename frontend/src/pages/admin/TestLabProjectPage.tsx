@@ -33,12 +33,12 @@ const TABS = [...PRIMARY_TABS, ...ADVANCED_TABS] as const;
 type Tab = (typeof TABS)[number];
 
 const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-ink-50 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-200 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-lg bg-ink-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-50";
 const btnSecondary =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-ink-200 px-4 py-2.5 text-sm font-semibold text-ink-800 shadow-sm transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50";
-const card = "rounded-xl border border-ink-200 bg-ink-200 p-5 shadow-sm";
+  "inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 shadow-sm transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50";
+const card = "rounded-xl border border-ink-200 bg-white p-5 shadow-sm";
 const field =
-  "mt-1 w-full rounded-lg border border-ink-200 bg-ink-200 px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
+  "mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
 export function TestLabProjectPage() {
   const { projectId = "" } = useParams();
@@ -139,7 +139,7 @@ export function TestLabProjectPage() {
         <Link to="/admin/testlab" className="text-sm text-stone-500">
           ← TestLab
         </Link>
-        <p className="mt-4 text-danger-500">{error || "Project not found"}</p>
+        <p className="mt-4 text-red-700">{error || "Project not found"}</p>
       </div>
     );
   }
@@ -185,8 +185,8 @@ export function TestLabProjectPage() {
       <div
         className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
           execution.configured
-            ? "border-emerald-200 bg-success-50 text-emerald-950"
-            : "border-ink-300 bg-ink-200 text-amber-950"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+            : "border-amber-200 bg-amber-50 text-amber-950"
         }`}
       >
         {execution.configured ? (
@@ -234,7 +234,7 @@ export function TestLabProjectPage() {
               onClick={() => setTab(s.tab)}
               className={`rounded-lg border px-4 py-3 text-left transition ${
                 s.done
-                  ? "border-emerald-200 bg-success-50"
+                  ? "border-emerald-200 bg-emerald-50"
                   : "border-ink-200 bg-ink-50 hover:border-brand-300"
               }`}
             >
@@ -250,7 +250,7 @@ export function TestLabProjectPage() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       )}
@@ -263,8 +263,8 @@ export function TestLabProjectPage() {
             onClick={() => setTab(id)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize ${
               tab === id
-                ? "bg-ink-50 text-white"
-                : "bg-ink-200 text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50"
+                ? "bg-ink-950 text-white"
+                : "bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50"
             }`}
           >
             {id}
@@ -274,13 +274,13 @@ export function TestLabProjectPage() {
           <summary
             className={`cursor-pointer list-none rounded-lg px-3 py-1.5 text-sm font-medium ${
               ADVANCED_TABS.includes(tab as (typeof ADVANCED_TABS)[number])
-                ? "bg-ink-50 text-white"
-                : "bg-ink-200 text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50"
+                ? "bg-ink-950 text-white"
+                : "bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50"
             }`}
           >
             More ▾
           </summary>
-          <div className="absolute z-10 mt-1 flex min-w-[12rem] flex-col gap-1 rounded-xl border border-ink-200 bg-ink-200 p-2 shadow-lg">
+          <div className="absolute z-10 mt-1 flex min-w-[12rem] flex-col gap-1 rounded-xl border border-ink-200 bg-white p-2 shadow-lg">
             {ADVANCED_TABS.map((id) => (
               <button
                 key={id}
@@ -696,7 +696,7 @@ export function TestLabProjectPage() {
               ) : null}
             </div>
 
-            <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200 bg-ink-200 shadow-sm">
+            <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
               {tests.map((t) => (
                 <li key={t.id} className="flex items-start justify-between gap-3 p-4">
                   <div>
@@ -709,7 +709,7 @@ export function TestLabProjectPage() {
                   </div>
                   <button
                     type="button"
-                    className="text-sm font-semibold text-danger-500 hover:underline"
+                    className="text-sm font-semibold text-red-700 hover:underline"
                     disabled={busy}
                     onClick={() =>
                       void withBusy(() => api.deleteTestLabTest(t.id).then(() => undefined))
@@ -819,7 +819,7 @@ export function TestLabProjectPage() {
                 </button>
               </div>
               {!canRun && (
-                <p className="mt-3 text-sm text-ink-700">
+                <p className="mt-3 text-sm text-amber-900">
                   {!stagingOrVerified
                     ? "Add a target before running."
                     : !enabledTests.length
@@ -881,7 +881,7 @@ export function TestLabProjectPage() {
               </div>
             )}
 
-            <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200 bg-ink-200 shadow-sm">
+            <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
               {runs.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 p-4 text-sm">
                   <button
@@ -1165,7 +1165,7 @@ function ReportPanel({ projectId }: { projectId: string }) {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed"));
   }, [projectId]);
 
-  if (error) return <p className="text-sm text-danger-500">{error}</p>;
+  if (error) return <p className="text-sm text-red-700">{error}</p>;
   if (!data) return <p className="text-sm text-stone-500">Loading report…</p>;
 
   return (

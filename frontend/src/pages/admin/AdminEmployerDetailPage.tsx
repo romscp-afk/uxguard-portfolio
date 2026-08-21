@@ -47,7 +47,7 @@ export function AdminEmployerDetailPage() {
   }
 
   if (!isAdmin(user)) {
-    return <p className="text-sm text-danger-500">Admin access required.</p>;
+    return <p className="text-sm text-red-700">Admin access required.</p>;
   }
 
   if (!detail && !error) {
@@ -60,7 +60,7 @@ export function AdminEmployerDetailPage() {
         <Link to="/admin/employers" className="text-sm text-stone-500">
           ← Employers
         </Link>
-        <p className="mt-4 text-danger-500">{error}</p>
+        <p className="mt-4 text-red-700">{error}</p>
       </div>
     );
   }
@@ -81,17 +81,17 @@ export function AdminEmployerDetailPage() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       )}
       {message && (
-        <div className="rounded-md border border-emerald-200 bg-success-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           {message}
         </div>
       )}
 
-      <section className="rounded-lg border border-stone-200 bg-ink-200 p-5">
+      <section className="rounded-lg border border-stone-200 bg-white p-5">
         <h2 className="font-medium">Company profile</h2>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
           <div>
@@ -123,7 +123,7 @@ export function AdminEmployerDetailPage() {
         </dl>
       </section>
 
-      <section className="rounded-lg border border-stone-200 bg-ink-200 p-5">
+      <section className="rounded-lg border border-stone-200 bg-white p-5">
         <h2 className="font-medium">Owner</h2>
         {owner ? (
           <p className="mt-2 text-sm">
@@ -144,7 +144,7 @@ export function AdminEmployerDetailPage() {
         </p>
       </section>
 
-      <section className="rounded-lg border border-stone-200 bg-ink-200 p-5">
+      <section className="rounded-lg border border-stone-200 bg-white p-5">
         <h2 className="font-medium">Verification decision</h2>
         <p className="mt-1 text-sm text-stone-600">
           Verified employers can publish jobs. Pending / rejected / suspended cannot.
@@ -176,7 +176,7 @@ export function AdminEmployerDetailPage() {
           <button
             type="button"
             disabled={busy}
-            className="rounded-md border border-red-300 px-4 py-2 text-sm text-danger-500"
+            className="rounded-md border border-red-300 px-4 py-2 text-sm text-red-700"
             onClick={() => void setStatus("rejected")}
           >
             Reject
@@ -193,7 +193,7 @@ export function AdminEmployerDetailPage() {
       </section>
 
       {jobs.length > 0 && (
-        <section className="rounded-lg border border-stone-200 bg-ink-200 p-5">
+        <section className="rounded-lg border border-stone-200 bg-white p-5">
           <h2 className="font-medium">Jobs</h2>
           <ul className="mt-2 space-y-2 text-sm">
             {jobs.map((j) => (

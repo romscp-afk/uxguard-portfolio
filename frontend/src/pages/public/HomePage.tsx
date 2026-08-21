@@ -91,19 +91,15 @@ export function HomePage() {
 
       {error ? (
         <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-          <div className="rounded-xl border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-ink-700">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {error}
           </div>
         </div>
       ) : null}
 
       {/* Hero — community & action focus */}
-      <section className="relative overflow-hidden border-b border-ink-300 bg-ink-100">
-        <div className="absolute inset-x-0 top-0 h-1 bg-primary-gradient" />
-        <div className="pointer-events-none absolute inset-0 opacity-30">
-          <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-brand-400/30 blur-3xl" />
-          <div className="absolute bottom-0 left-10 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
-        </div>
+      <section className="relative overflow-hidden border-b border-ink-100 bg-white">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-brand-600 to-ink-950" />
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
@@ -129,7 +125,7 @@ export function HomePage() {
                 </Link>
                 <Link
                   to="/discover"
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-ink-200 px-6 py-4 text-base font-semibold text-ink-700 transition hover:bg-ink-50"
+                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-6 py-4 text-base font-semibold text-ink-700 transition hover:bg-ink-50"
                 >
                   Discover work
                 </Link>
@@ -299,14 +295,14 @@ export function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-ink-50 text-white">
+      <section className="bg-ink-950 text-white">
         <div className="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand-400">UXGuard Studio</p>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {BRAND_PILLARS.map((pillar) => (
               <div
                 key={pillar}
-                className="rounded-2xl border border-ink-300 bg-ink-100/50 px-4 py-5"
+                className="rounded-2xl border border-ink-800 bg-ink-900/50 px-4 py-5"
               >
                 <p className="font-display text-xl font-bold text-brand-300 sm:text-2xl">{pillar}</p>
               </div>

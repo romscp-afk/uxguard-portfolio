@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --background: #020b24;
-    --surface: #041638;
-    --surface-elevated: #082454;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
     --primary: #087cfa;
     --primary-hover: #0758e8;
     --accent: #08c8f4;
     --accent-light: #29afff;
-    --text-primary: #ffffff;
-    --text-secondary: #afc3dd;
-    --border: #27466f;
+    --text-primary: #001334;
+    --text-secondary: #475c74;
+    --border: #d1dbe8;
     --success: #21d4b4;
     --error: #ff5d73;
     --primary-gradient: linear-gradient(135deg, #08c8f4 0%, #087cfa 48%, #0758e8 100%);
@@ -25,13 +25,10 @@
 
   body {
     @apply bg-ink-50 text-ink-900 antialiased;
-    background-color: var(--background);
-    color: var(--text-primary);
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--primary) 40%, transparent);
-    color: var(--text-primary);
+    @apply bg-brand-500/20 text-ink-950;
   }
 }
 
@@ -41,57 +38,52 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-ink-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
     background-image: var(--primary-gradient);
   }
 
   .btn-primary:hover {
-    filter: brightness(1.06);
+    filter: brightness(1.05);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-300 bg-ink-200 px-4 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-ink-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-ink-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-ink-300 bg-ink-100 px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
   }
 
   .input-field-error {
-    @apply border-danger-500 ring-2 ring-danger-100 focus:border-danger-500 focus:ring-danger-100;
+    @apply border-red-400 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100;
   }
 
   .label-field-error {
-    @apply text-danger-500;
+    @apply text-red-700;
   }
 
   .label-field {
-    @apply mb-1.5 block text-sm font-medium text-ink-600;
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
   }
 
   .card {
-    @apply rounded-2xl border border-ink-300 bg-ink-200 shadow-sm shadow-black/20;
-    background-color: var(--surface-elevated);
-    border-color: var(--border);
+    @apply rounded-2xl border border-ink-100 bg-white shadow-sm;
   }
 
   .surface-page {
-    background-color: var(--background);
+    @apply bg-ink-50;
   }
 
   .surface-section {
-    background-color: var(--surface);
+    @apply bg-white;
   }
 
   .surface-section-alt {
-    background-color: var(--background);
+    @apply bg-ink-50;
   }
 
   .surface-hero-glow {
-    background:
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 55%),
-      var(--primary-gradient);
-    opacity: 0.22;
+    @apply bg-[radial-gradient(circle_at_top_right,_rgba(8,124,250,0.12)_0%,_transparent_55%)];
   }
 
   .rich-text-content {
@@ -119,15 +111,15 @@
   }
 
   .rich-text-content a {
-    @apply font-medium text-brand-300 underline underline-offset-2 hover:text-brand-400;
+    @apply font-medium text-brand-700 underline underline-offset-2 hover:text-brand-600;
   }
 
   .rich-text-content blockquote {
-    @apply border-l-4 border-brand-400 pl-4 italic text-ink-600;
+    @apply border-l-4 border-brand-400 pl-4 italic text-ink-700;
   }
 
   .rich-text-editor-content {
-    @apply leading-relaxed text-ink-900;
+    @apply leading-relaxed;
   }
 
   .rich-text-editor-content p {
@@ -151,7 +143,7 @@
   }
 
   .rich-text-editor-content a {
-    @apply text-brand-300 underline;
+    @apply text-brand-700 underline;
   }
 
   .rich-text-editor-content p.is-editor-empty:first-child::before {

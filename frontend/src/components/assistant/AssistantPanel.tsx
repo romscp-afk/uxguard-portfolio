@@ -159,7 +159,7 @@ export function AssistantPanel() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-ink-200 bg-ink-200 shadow-2xl">
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-ink-200 bg-white shadow-2xl">
       <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
@@ -231,7 +231,7 @@ export function AssistantPanel() {
                         type="button"
                         onClick={() => sendMessage(prompt)}
                         disabled={sending}
-                        className="rounded-full border border-ink-200 bg-ink-200 px-3 py-1.5 text-left text-xs text-ink-700 transition hover:border-brand-300 hover:bg-brand-50"
+                        className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-left text-xs text-ink-700 transition hover:border-brand-300 hover:bg-brand-50"
                       >
                         {prompt}
                       </button>
@@ -261,7 +261,7 @@ export function AssistantPanel() {
                             type="button"
                             onClick={() => sendMessage(suggestion)}
                             disabled={sending}
-                            className="rounded-full bg-ink-200 px-2.5 py-1 text-[11px] text-ink-600 transition hover:bg-brand-50 hover:text-brand-700"
+                            className="rounded-full bg-white px-2.5 py-1 text-[11px] text-ink-600 transition hover:bg-brand-50 hover:text-brand-700"
                           >
                             {suggestion}
                           </button>
@@ -313,7 +313,7 @@ export function AssistantPanel() {
           ) : null}
 
           {error ? (
-            <p className="border-t border-red-100 bg-danger-50 px-4 py-2 text-xs text-danger-500">
+            <p className="border-t border-red-100 bg-red-50 px-4 py-2 text-xs text-red-600">
               {error}
             </p>
           ) : null}

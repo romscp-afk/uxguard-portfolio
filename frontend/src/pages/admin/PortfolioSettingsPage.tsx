@@ -44,7 +44,7 @@ export function PortfolioSettingsPage() {
       </div>
 
       {message ? (
-        <div className="mb-4 rounded-lg bg-success-50 px-4 py-3 text-sm text-success-500">{message}</div>
+        <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="card max-w-2xl p-6">

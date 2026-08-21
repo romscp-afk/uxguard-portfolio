@@ -196,12 +196,12 @@ export function PortfolioBuilderPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
       {success ? (
-        <div className="mb-6 rounded-xl border border-emerald-200 bg-success-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Portfolio settings saved.
         </div>
       ) : null}
@@ -231,7 +231,7 @@ export function PortfolioBuilderPage() {
                 className={`rounded-xl border px-4 py-3 text-left transition ${
                   active
                     ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
-                    : "border-ink-100 bg-ink-200 hover:border-brand-200"
+                    : "border-ink-100 bg-white hover:border-brand-200"
                 }`}
               >
                 <p className="text-sm font-semibold text-ink-900">{option.label}</p>

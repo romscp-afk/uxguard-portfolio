@@ -57,7 +57,7 @@ export function CaseStudyCard({
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-primary-gradient text-white">
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700">
               <span className="font-display text-xl font-semibold">{study.title.charAt(0)}</span>
             </div>
           )}
@@ -73,7 +73,7 @@ export function CaseStudyCard({
               ) : null}
             </div>
             <span
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-300"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700"
               aria-label={`${Number(study.like_count) || 0} likes`}
             >
               <Heart className="h-3.5 w-3.5 fill-current" />

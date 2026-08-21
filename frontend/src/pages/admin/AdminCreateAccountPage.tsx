@@ -26,7 +26,7 @@ export function AdminCreateAccountPage() {
   } | null>(null);
 
   if (!isAdmin(user)) {
-    return <p className="text-sm text-danger-500">Admin access required.</p>;
+    return <p className="text-sm text-red-700">Admin access required.</p>;
   }
 
   async function onSubmit(e: FormEvent) {
@@ -76,7 +76,7 @@ export function AdminCreateAccountPage() {
         approval before publishing jobs unless you auto-verify.
       </p>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-lg border border-stone-200 bg-ink-200 p-5">
+      <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-lg border border-stone-200 bg-white p-5">
         <div className="flex gap-2">
           {(["candidate", "employer"] as const).map((type) => (
             <button
@@ -169,7 +169,7 @@ export function AdminCreateAccountPage() {
         )}
 
         {error && (
-          <div className="rounded-md border border-red-200 bg-danger-50 px-3 py-2 text-sm text-red-800">
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
             {error}
           </div>
         )}
@@ -184,7 +184,7 @@ export function AdminCreateAccountPage() {
       </form>
 
       {created && (
-        <div className="mt-6 rounded-lg border border-emerald-200 bg-success-50 p-4 text-sm text-emerald-950">
+        <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
           <p className="font-medium">Account created</p>
           <p className="mt-2">
             Email: <code>{created.email}</code>

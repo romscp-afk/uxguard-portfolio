@@ -84,7 +84,7 @@ export function AiHistoryPage() {
       </form>
 
       {error ? (
-        <div className="mt-4 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-danger-500" role="alert">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           {error}
         </div>
       ) : null}
@@ -123,7 +123,7 @@ export function AiHistoryPage() {
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-danger-500 hover:bg-danger-50"
+                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
                   onClick={() => remove(item.id)}
                   aria-label={`Delete ${item.title}`}
                 >

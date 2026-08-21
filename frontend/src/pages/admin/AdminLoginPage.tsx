@@ -34,7 +34,7 @@ export function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
         <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
@@ -45,13 +45,13 @@ export function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="card p-8">
           {user?.active_workspace === "employer" ? (
-            <div className="mb-4 rounded-lg bg-ink-200 px-4 py-3 text-sm text-ink-700">
+            <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
               You are currently in the employer portal. Sign in here to open your candidate account
               instead.
             </div>
           ) : null}
           {error ? (
-            <div className="mb-4 rounded-lg bg-danger-50 px-4 py-3 text-sm text-danger-500">{error}</div>
+            <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           ) : null}
 
           <div className="mb-4">

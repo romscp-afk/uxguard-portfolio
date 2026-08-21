@@ -111,7 +111,7 @@ export function CaseStudiesListPage() {
             type="button"
             onClick={() => void refresh(true)}
             disabled={syncing || !user}
-            className="rounded-lg border border-ink-200 bg-ink-200 px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50"
+            className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50"
           >
             {syncing ? "Syncing…" : "Sync to feed"}
           </button>
@@ -122,7 +122,7 @@ export function CaseStudiesListPage() {
         </div>
       </div>
       {syncError ? (
-        <div className="mb-4 rounded-lg border border-ink-300 bg-ink-200 px-4 py-3 text-sm text-ink-700">
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Offline copies could not fully sync: {syncError}. Open each study and Save/Publish again if
           it is still missing from the community feed.
         </div>
@@ -137,7 +137,7 @@ export function CaseStudiesListPage() {
             className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize ${
               filter === f
                 ? "bg-brand-600 text-white"
-                : "bg-ink-200 text-ink-600 hover:bg-ink-50"
+                : "bg-white text-ink-600 hover:bg-ink-50"
             }`}
           >
             {f}
@@ -199,8 +199,8 @@ export function CaseStudiesListPage() {
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         study.status === "published"
-                          ? "bg-success-50 text-success-500"
-                          : "bg-ink-200 text-amber-700"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
                       }`}
                     >
                       {study.status}

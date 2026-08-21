@@ -85,7 +85,7 @@ export function ArticlesListPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </div>
       ) : null}
@@ -146,8 +146,8 @@ export function ArticlesListPage() {
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         article.status === "published"
-                          ? "bg-success-50 text-emerald-800"
-                          : "bg-ink-200 text-ink-700"
+                          ? "bg-emerald-50 text-emerald-800"
+                          : "bg-amber-50 text-amber-900"
                       }`}
                     >
                       {article.status}
@@ -184,7 +184,7 @@ export function ArticlesListPage() {
                   </Link>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm text-danger-500 hover:bg-danger-50"
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
                     disabled={deletingId === article.id}
                     onClick={() => void handleDelete(article)}
                   >

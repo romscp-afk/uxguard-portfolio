@@ -48,7 +48,7 @@ export function ResumeDocument({
 
   return (
     <div
-      className="mx-auto w-full max-w-[640px] origin-top bg-ink-200 shadow-md ring-1 ring-ink-100"
+      className="mx-auto w-full max-w-[640px] origin-top bg-white shadow-md ring-1 ring-ink-100"
       style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
     >
       <article

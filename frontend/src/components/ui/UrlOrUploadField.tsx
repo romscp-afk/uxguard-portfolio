@@ -175,7 +175,7 @@ export function UrlOrUploadField({
             dragOver
               ? "border-brand-400 bg-brand-50/40"
               : hasError || uploadError
-                ? "border-red-300 bg-danger-50/30"
+                ? "border-red-300 bg-red-50/30"
                 : "border-ink-200 bg-ink-50/50 hover:border-brand-300"
           }`}
           onDragOver={(e) => {
@@ -216,7 +216,7 @@ export function UrlOrUploadField({
             </div>
           )}
           {uploading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-ink-100/80">
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
               <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
             </div>
           ) : null}
@@ -282,7 +282,7 @@ export function UrlOrUploadField({
               });
               onCommit?.("");
             }}
-            className="btn-secondary shrink-0 whitespace-nowrap py-2.5 text-danger-500"
+            className="btn-secondary shrink-0 whitespace-nowrap py-2.5 text-red-600"
           >
             Remove
           </button>
@@ -290,7 +290,7 @@ export function UrlOrUploadField({
       </div>
 
       <p className="mt-1 text-xs text-ink-400">{helpText || (isCover ? COVER_HELP_TEXT : null)}</p>
-      {uploadError ? <p className="mt-1 text-sm font-medium text-danger-500">{uploadError}</p> : null}
+      {uploadError ? <p className="mt-1 text-sm font-medium text-red-600">{uploadError}</p> : null}
       {remoteBroken && !uploadError ? (
         <p className="mt-1 text-sm font-medium text-amber-700">
           Preview could not load. The file may still be processing — wait a moment or upload again.

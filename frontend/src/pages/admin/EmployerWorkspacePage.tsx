@@ -76,9 +76,9 @@ export function EmployerWorkspacePage() {
           </p>
         </div>
         <ReadOnlyNotice />
-        {error ? <p className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-danger-500">{error}</p> : null}
+        {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
         <EditGuard>
-          <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-200 p-5">
+          <div className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
             {(
               [
                 ["legal_name", "Legal company name"],
@@ -163,8 +163,8 @@ export function EmployerWorkspacePage() {
         <div
           className={`rounded-lg border px-4 py-3 text-sm ${
             isRejected || isSuspended
-              ? "border-red-200 bg-danger-50 text-red-900"
-              : "border-ink-300 bg-ink-200 text-amber-950"
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-amber-200 bg-amber-50 text-amber-950"
           }`}
         >
           {isRejected ? (
@@ -188,7 +188,7 @@ export function EmployerWorkspacePage() {
         </div>
       ) : null}
 
-      {error ? <p className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-danger-500">{error}</p> : null}
+      {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       {stats ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -204,7 +204,7 @@ export function EmployerWorkspacePage() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
+        <section className="rounded-xl border border-ink-200 bg-white p-4">
           <h2 className="text-sm font-semibold text-ink-900">Jobs</h2>
           {jobs.length === 0 ? (
             <p className="mt-3 text-sm text-ink-500">No jobs yet. Post your first opening.</p>
@@ -224,7 +224,7 @@ export function EmployerWorkspacePage() {
             </ul>
           )}
         </section>
-        <section className="rounded-xl border border-ink-200 bg-ink-200 p-4">
+        <section className="rounded-xl border border-ink-200 bg-white p-4">
           <h2 className="text-sm font-semibold text-ink-900">Recent applications</h2>
           {recent_applications.length === 0 ? (
             <p className="mt-3 text-sm text-ink-500">No applications yet.</p>
@@ -253,7 +253,7 @@ export function EmployerWorkspacePage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-ink-200 bg-ink-200 px-4 py-3">
+    <div className="rounded-xl border border-ink-200 bg-white px-4 py-3">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">{label}</p>
       <p className="mt-1 font-display text-2xl font-semibold text-ink-950">{value}</p>
     </div>

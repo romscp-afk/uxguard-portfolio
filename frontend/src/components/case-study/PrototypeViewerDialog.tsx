@@ -108,14 +108,14 @@ export function PrototypeViewerDialog({ open, url, title, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-50/70 p-3 sm:p-6"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-950/70 p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       onContextMenu={(event) => event.preventDefault()}
     >
       <div
-        className="flex h-[min(92vh,900px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-ink-200 shadow-2xl"
+        className="flex h-[min(92vh,900px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-ink-100 px-4 py-3 sm:px-5">
@@ -154,7 +154,7 @@ export function PrototypeViewerDialog({ open, url, title, onClose }: Props) {
             key={embedUrl}
             title={title || "Prototype"}
             src={embedUrl}
-            className="h-full w-full border-0 bg-ink-200"
+            className="h-full w-full border-0 bg-white"
             // allow-scripts + allow-same-origin needed for interactive prototypes;
             // omit allow-downloads so the browser chrome can't expose a download path.
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
@@ -187,7 +187,7 @@ export function PrototypeViewerDialog({ open, url, title, onClose }: Props) {
           </div>
 
           {paused ? (
-            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-ink-50/85 px-6 text-center text-white backdrop-blur-sm">
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-ink-950/85 px-6 text-center text-white backdrop-blur-sm">
               <EyeOff className="h-8 w-8 text-white/80" />
               <p className="font-display text-lg font-semibold">Preview paused</p>
               <p className="max-w-sm text-sm text-white/70">

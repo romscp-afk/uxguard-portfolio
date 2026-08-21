@@ -48,12 +48,12 @@ export function TestLabCreatePage() {
 
       <form
         onSubmit={onSubmit}
-        className="mt-8 space-y-5 rounded-xl border border-ink-200 bg-ink-200 p-6 shadow-sm"
+        className="mt-8 space-y-5 rounded-xl border border-ink-200 bg-white p-6 shadow-sm"
       >
         <label className="block">
           <span className="text-sm font-medium text-ink-800">Project name</span>
           <input
-            className="mt-1 w-full rounded-lg border border-ink-200 bg-ink-200 px-3 py-2.5 text-sm text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -62,7 +62,7 @@ export function TestLabCreatePage() {
         <label className="block">
           <span className="text-sm font-medium text-ink-800">Description</span>
           <textarea
-            className="mt-1 w-full rounded-lg border border-ink-200 bg-ink-200 px-3 py-2.5 text-sm text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -83,7 +83,7 @@ export function TestLabCreatePage() {
         </label>
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-danger-50 px-3 py-2 text-sm text-red-800">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
             {error}
           </div>
         )}
@@ -91,7 +91,7 @@ export function TestLabCreatePage() {
         <button
           type="submit"
           disabled={busy || !confirmed}
-          className="rounded-lg bg-ink-50 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-200 disabled:opacity-50"
+          className="rounded-lg bg-ink-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-800 disabled:opacity-50"
         >
           {busy ? "Creating…" : "Create project"}
         </button>

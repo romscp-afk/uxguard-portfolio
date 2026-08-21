@@ -119,7 +119,7 @@ export function AdminLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-50">
+      <div className="flex min-h-screen items-center justify-center bg-ink-950">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     );
@@ -205,7 +205,7 @@ export function AdminLayout() {
           className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
             location.pathname === dashboardTo
               ? "bg-brand-600 text-white"
-              : "text-ink-400 hover:bg-ink-200 hover:text-white"
+              : "text-ink-300 hover:bg-ink-800 hover:text-white"
           }`}
         >
           <LayoutDashboard className="h-4 w-4 shrink-0" />
@@ -229,7 +229,7 @@ export function AdminLayout() {
                   className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
                     active
                       ? "bg-brand-600 text-white"
-                      : "text-ink-400 hover:bg-ink-200 hover:text-white"
+                      : "text-ink-300 hover:bg-ink-800 hover:text-white"
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -267,7 +267,7 @@ export function AdminLayout() {
   );
 
   const accountFooter = (
-    <div className="border-t border-ink-300 p-4">
+    <div className="border-t border-ink-800 p-4">
       <div className="mb-3 px-2">
         <p className="truncate text-sm font-medium">{displayName}</p>
         {user.email && user.email !== displayName ? (
@@ -297,7 +297,7 @@ export function AdminLayout() {
         <button
           type="button"
           onClick={logout}
-          className="inline-flex items-center justify-center rounded-lg border border-ink-700 px-3 py-2 text-ink-400 transition hover:bg-ink-200 hover:text-white"
+          className="inline-flex items-center justify-center rounded-lg border border-ink-700 px-3 py-2 text-ink-300 transition hover:bg-ink-800 hover:text-white"
           aria-label="Logout"
         >
           <LogOut className="h-4 w-4" />
@@ -309,10 +309,10 @@ export function AdminLayout() {
   return (
     <AssistantProvider>
       <div className="min-h-screen bg-ink-100">
-        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-ink-300 bg-ink-50 px-3 text-white lg:hidden">
+        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-ink-800 bg-ink-950 px-3 text-white lg:hidden">
           <button
             type="button"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-600 hover:bg-ink-200 hover:text-white"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-200 hover:bg-ink-800 hover:text-white"
             aria-label="Open menu"
             aria-expanded={mobileNavOpen}
             aria-controls="portal-mobile-nav"
@@ -332,7 +332,7 @@ export function AdminLayout() {
         </header>
 
         <div
-          className={`fixed inset-0 z-40 bg-ink-50/55 transition-opacity duration-200 lg:hidden ${
+          className={`fixed inset-0 z-40 bg-ink-950/55 transition-opacity duration-200 lg:hidden ${
             mobileNavOpen ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
           aria-hidden={!mobileNavOpen}
@@ -341,19 +341,19 @@ export function AdminLayout() {
 
         <aside
           id="portal-mobile-nav"
-          className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,86vw)] flex-col bg-ink-50 text-white shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
+          className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,86vw)] flex-col bg-ink-950 text-white shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
             mobileNavOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           aria-hidden={!mobileNavOpen}
         >
-          <div className="flex items-center justify-between gap-3 border-b border-ink-300 px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-b border-ink-800 px-4 py-3">
             <div className="min-w-0">
               <Logo variant="mark" theme="dark" />
-              <p className="mt-1 truncate text-xs text-ink-400">{displayName}</p>
+              <p className="mt-1 truncate text-xs text-ink-300">{displayName}</p>
             </div>
             <button
               type="button"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-ink-200 hover:text-white"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-300 hover:bg-ink-800 hover:text-white"
               aria-label="Close menu"
               onClick={() => setMobileNavOpen(false)}
             >
@@ -364,8 +364,8 @@ export function AdminLayout() {
           {accountFooter}
         </aside>
 
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-ink-300 bg-ink-50 text-white lg:flex">
-          <div className="border-b border-ink-300 px-4 py-4">
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-ink-800 bg-ink-950 text-white lg:flex">
+          <div className="border-b border-ink-800 px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <Logo variant="mark" theme="dark" />
               <NotificationBell />
@@ -377,7 +377,7 @@ export function AdminLayout() {
                   ? "Portfolio portal"
                   : "Platform portal"}
             </p>
-            <p className="mt-1 truncate text-xs text-ink-600">{displayName}</p>
+            <p className="mt-1 truncate text-xs text-ink-200">{displayName}</p>
           </div>
           <nav className="flex-1 space-y-4 overflow-y-auto p-3">{navLinks}</nav>
           {accountFooter}

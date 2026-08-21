@@ -82,7 +82,7 @@ export function CommentsSection({ caseStudyId }: CommentsSectionProps) {
   }
 
   return (
-    <section id="comments" className="border-t border-ink-100 bg-ink-200">
+    <section id="comments" className="border-t border-ink-100 bg-white">
       <div className="mx-auto w-full max-w-none px-4 py-12 sm:px-8 lg:px-12 xl:px-16">
         <div className="mx-auto max-w-4xl">
           <div className="mb-6 flex items-center gap-2">
@@ -119,7 +119,7 @@ export function CommentsSection({ caseStudyId }: CommentsSectionProps) {
             </div>
           )}
 
-          {error ? <p className="mb-4 text-sm text-danger-500">{error}</p> : null}
+          {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
 
           {loading ? (
             <div className="card h-24 animate-pulse bg-ink-100" />
@@ -151,7 +151,7 @@ export function CommentsSection({ caseStudyId }: CommentsSectionProps) {
                       <button
                         type="button"
                         onClick={() => handleDelete(comment.id)}
-                        className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-danger-50 hover:text-danger-500"
+                        className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600"
                         aria-label="Delete comment"
                       >
                         <Trash2 className="h-4 w-4" />

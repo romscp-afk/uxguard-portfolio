@@ -59,7 +59,7 @@ export function NotificationBell() {
   return (
     <Link
       to="/admin/notifications"
-      className="relative inline-flex items-center justify-center rounded-lg border border-ink-200 bg-ink-200 p-2 text-ink-600 transition hover:border-brand-400 hover:text-brand-600"
+      className="relative inline-flex items-center justify-center rounded-lg border border-ink-200 bg-white p-2 text-ink-600 transition hover:border-brand-400 hover:text-brand-600"
       aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
     >
       <Bell className="h-4 w-4" />

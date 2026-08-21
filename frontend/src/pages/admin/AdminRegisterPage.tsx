@@ -73,7 +73,7 @@ export function AdminRegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4 py-12">
       <div className="w-full max-w-lg">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo variant="mark" theme="dark" className="h-10 w-auto max-w-[240px]" />
@@ -85,7 +85,7 @@ export function AdminRegisterPage() {
 
         <form onSubmit={handleSubmit} className="card p-8">
           {error ? (
-            <div className="mb-4 rounded-lg bg-danger-50 px-4 py-3 text-sm text-danger-500">{error}</div>
+            <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           ) : null}
 
           {step === 1 ? (

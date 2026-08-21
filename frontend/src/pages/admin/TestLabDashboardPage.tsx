@@ -45,7 +45,7 @@ export function TestLabDashboardPage() {
         </div>
         <Link
           to="/admin/testlab/create"
-          className="inline-flex items-center gap-2 rounded-lg bg-ink-50 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-200"
+          className="inline-flex items-center gap-2 rounded-lg bg-ink-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ink-800"
         >
           <Plus className="h-4 w-4" />
           New project
@@ -56,8 +56,8 @@ export function TestLabDashboardPage() {
         <div
           className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
             execution.configured
-              ? "border-emerald-200 bg-success-50 text-emerald-950"
-              : "border-ink-300 bg-ink-200 text-amber-950"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+              : "border-amber-200 bg-amber-50 text-amber-950"
           }`}
         >
           <strong>Execution:</strong> {execution.reason}
@@ -65,7 +65,7 @@ export function TestLabDashboardPage() {
       )}
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p>{error}</p>
           <button
             type="button"
@@ -80,7 +80,7 @@ export function TestLabDashboardPage() {
       {loading ? (
         <p className="text-sm text-ink-500">Loading projects…</p>
       ) : projects.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink-300 bg-ink-200 px-6 py-16 text-center shadow-sm">
+        <div className="rounded-xl border border-dashed border-ink-300 bg-white px-6 py-16 text-center shadow-sm">
           <FlaskConical className="mx-auto h-10 w-10 text-ink-400" />
           <p className="mt-4 font-semibold text-ink-950">No TestLab projects yet</p>
           <p className="mt-1 text-sm text-ink-500">
@@ -88,7 +88,7 @@ export function TestLabDashboardPage() {
           </p>
           <Link
             to="/admin/testlab/create"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ink-50 px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink-200"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ink-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink-800"
           >
             <Plus className="h-4 w-4" />
             Create project
@@ -100,7 +100,7 @@ export function TestLabDashboardPage() {
             <Link
               key={project.id}
               to={`/admin/testlab/${project.id}`}
-              className="block rounded-xl border border-ink-200 bg-ink-200 p-5 shadow-sm transition hover:border-brand-400 hover:shadow-md"
+              className="block rounded-xl border border-ink-200 bg-white p-5 shadow-sm transition hover:border-brand-400 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-display text-xl text-ink-950">{project.name}</h2>

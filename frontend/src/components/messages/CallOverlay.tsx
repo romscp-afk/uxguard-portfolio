@@ -62,13 +62,13 @@ export function CallOverlay({
           : "Connecting…";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-50/90 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-ink-300 bg-ink-50 text-white shadow-2xl">
-        <div className="relative aspect-video bg-ink-100">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-950/90 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-ink-800 bg-ink-950 text-white shadow-2xl">
+        <div className="relative aspect-video bg-ink-900">
           {/* Keep both video elements always mounted so React never drops the MediaStream refs. */}
           <video
             ref={remoteVideoRef as RefObject<HTMLVideoElement>}
-            className={`h-full w-full bg-ink-100 object-cover ${videoEnabled ? "" : "opacity-0"}`}
+            className={`h-full w-full bg-ink-900 object-cover ${videoEnabled ? "" : "opacity-0"}`}
             autoPlay
             playsInline
           />
@@ -94,7 +94,7 @@ export function CallOverlay({
             </div>
           ) : null}
           {videoEnabled && cameraOff ? (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink-50/40">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink-950/40">
               <p className="rounded-full bg-black/50 px-3 py-1 text-sm text-white/80">Camera off</p>
             </div>
           ) : null}
@@ -129,7 +129,7 @@ export function CallOverlay({
             <>
               <button
                 type="button"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink-200/10 hover:bg-ink-200/20"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
                 onClick={onToggleMute}
                 aria-label={muted ? "Unmute" : "Mute"}
               >
@@ -138,7 +138,7 @@ export function CallOverlay({
               {videoEnabled ? (
                 <button
                   type="button"
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink-200/10 hover:bg-ink-200/20"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
                   onClick={onToggleCamera}
                   aria-label={cameraOff ? "Camera on" : "Camera off"}
                 >

@@ -733,7 +733,7 @@ export function CaseStudyEditorPage() {
             </>
           ) : null}
           {!isNew ? (
-            <button type="button" onClick={handleDelete} className="btn-secondary text-danger-500">
+            <button type="button" onClick={handleDelete} className="btn-secondary text-red-600">
               <Trash2 className="h-4 w-4" />
               Delete
             </button>
@@ -753,8 +753,8 @@ export function CaseStudyEditorPage() {
         <div
           className={`mb-4 rounded-lg px-4 py-3 text-sm ${
             messageType === "error"
-              ? "border border-red-100 bg-danger-50 text-danger-500"
-              : "bg-success-50 text-success-500"
+              ? "border border-red-100 bg-red-50 text-red-700"
+              : "bg-emerald-50 text-emerald-700"
           }`}
         >
           {message}
@@ -807,7 +807,7 @@ export function CaseStudyEditorPage() {
                   helpText={COVER_HELP_TEXT}
                 />
                 {fieldErrors.cover_image ? (
-                  <p className="mt-1 text-xs text-danger-500">{fieldErrors.cover_image}</p>
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.cover_image}</p>
                 ) : null}
               </div>
               <div className="sm:col-span-2">
@@ -824,7 +824,7 @@ export function CaseStudyEditorPage() {
                   }}
                 />
                 {fieldErrors.title ? (
-                  <p className="mt-1 text-xs text-danger-500">{fieldErrors.title}</p>
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>
                 ) : null}
               </div>
               <div className="sm:col-span-2">
@@ -922,7 +922,7 @@ export function CaseStudyEditorPage() {
                 </div>
                 <p className="mt-1.5 text-xs text-ink-400">{richTextHint()}</p>
                 {fieldErrors.summary ? (
-                  <p className="mt-1 text-xs text-danger-500">{fieldErrors.summary}</p>
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.summary}</p>
                 ) : null}
               </div>
             </div>
@@ -932,7 +932,7 @@ export function CaseStudyEditorPage() {
             <section key={field} className="card p-6">
               <h2
                 className={`mb-4 font-semibold capitalize ${
-                  fieldErrors[field as FieldKey] ? "text-danger-500" : "text-ink-900"
+                  fieldErrors[field as FieldKey] ? "text-red-700" : "text-ink-900"
                 }`}
               >
                 {field}
@@ -957,7 +957,7 @@ export function CaseStudyEditorPage() {
               </div>
               <p className="mt-1.5 text-xs text-ink-400">{richTextHint()}</p>
               {fieldErrors[field as FieldKey] ? (
-                <p className="mt-1 text-xs text-danger-500">{fieldErrors[field as FieldKey]}</p>
+                <p className="mt-1 text-xs text-red-600">{fieldErrors[field as FieldKey]}</p>
               ) : null}
             </section>
           ))}
@@ -989,7 +989,7 @@ export function CaseStudyEditorPage() {
                     <button
                       type="button"
                       onClick={() => removeBlock(index)}
-                      className="text-xs text-red-500 hover:text-danger-500"
+                      className="text-xs text-red-500 hover:text-red-700"
                     >
                       Remove
                     </button>
@@ -1051,7 +1051,7 @@ export function CaseStudyEditorPage() {
                     <div className="space-y-3">
                       {((block.data.images as Array<{ url: string; caption?: string }>) || []).map(
                         (image, imageIndex) => (
-                          <div key={imageIndex} className="rounded-lg border border-ink-100 bg-ink-200 p-3">
+                          <div key={imageIndex} className="rounded-lg border border-ink-100 bg-white p-3">
                             <UrlOrUploadField
                               label={`Gallery image ${imageIndex + 1}`}
                               value={image.url}
@@ -1069,7 +1069,7 @@ export function CaseStudyEditorPage() {
                             <button
                               type="button"
                               onClick={() => removeGalleryImage(index, imageIndex)}
-                              className="mt-2 text-xs text-red-500 hover:text-danger-500"
+                              className="mt-2 text-xs text-red-500 hover:text-red-700"
                             >
                               Remove image
                             </button>
@@ -1135,7 +1135,7 @@ export function CaseStudyEditorPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteAttachment(attachment.id)}
-                        className="text-xs text-red-500 hover:text-danger-500"
+                        className="text-xs text-red-500 hover:text-red-700"
                       >
                         Remove
                       </button>
@@ -1214,7 +1214,7 @@ export function CaseStudyEditorPage() {
               placeholder="Comma-separated methods"
             />
             {fieldErrors.methods ? (
-              <p className="mt-1 text-xs text-danger-500">{fieldErrors.methods}</p>
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.methods}</p>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-1.5">
               {RESEARCH_METHODS.map((m) => (

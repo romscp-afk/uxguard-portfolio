@@ -33,20 +33,20 @@ export function MyApplicationsPage() {
         <h1 className="font-display text-3xl font-bold text-ink-950">My Applications</h1>
         <p className="mt-1 text-sm text-ink-500">Track submissions. Internal employer notes are never shown here.</p>
       </div>
-      {error ? <p className="text-sm text-danger-500">{error}</p> : null}
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
         </div>
       ) : apps.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink-300 bg-ink-200 px-6 py-16 text-center">
+        <div className="rounded-xl border border-dashed border-ink-300 bg-white px-6 py-16 text-center">
           <p className="font-display text-xl">No applications yet</p>
           <Link to="/admin/jobs" className="btn-primary mt-4 inline-flex">Browse jobs</Link>
         </div>
       ) : (
         <ul className="space-y-3">
           {apps.map((app) => (
-            <li key={app.id} className="rounded-xl border border-ink-200 bg-ink-200 p-4">
+            <li key={app.id} className="rounded-xl border border-ink-200 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <Link to={`/admin/applications/${app.id}`} className="font-display text-lg font-semibold text-ink-950 hover:text-brand-700">
@@ -62,7 +62,7 @@ export function MyApplicationsPage() {
                 <div className="flex gap-2">
                   <Link to={`/admin/applications/${app.id}`} className="btn-secondary text-sm">View</Link>
                   {app.status !== "withdrawn" && app.status !== "hired" ? (
-                    <button type="button" className="btn-secondary text-sm text-danger-500" onClick={() => void withdraw(app.id)}>
+                    <button type="button" className="btn-secondary text-sm text-red-700" onClick={() => void withdraw(app.id)}>
                       Withdraw
                     </button>
                   ) : null}

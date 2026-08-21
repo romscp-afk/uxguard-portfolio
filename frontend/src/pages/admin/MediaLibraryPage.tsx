@@ -122,7 +122,7 @@ export function MediaLibraryPage() {
                   <button
                     type="button"
                     onClick={() => handleDelete(asset.id)}
-                    className="rounded-lg px-2 py-1.5 text-red-500 hover:bg-danger-50"
+                    className="rounded-lg px-2 py-1.5 text-red-500 hover:bg-red-50"
                     aria-label="Delete"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

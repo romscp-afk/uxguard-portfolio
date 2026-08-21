@@ -235,7 +235,7 @@ export function ProjectEditorPage() {
             <button
               type="button"
               onClick={handleDelete}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-danger-500 hover:bg-danger-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
               Delete
@@ -250,7 +250,7 @@ export function ProjectEditorPage() {
             {isNew ? "New project" : "Edit project"}
           </h1>
           {error ? (
-            <div className="mt-4 rounded-lg border border-red-200 bg-danger-50 px-4 py-3 text-sm text-red-800">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
               {error}
             </div>
           ) : null}
