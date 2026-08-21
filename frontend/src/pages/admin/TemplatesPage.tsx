@@ -24,7 +24,7 @@ import {
   templatesByCategory,
   themeLabel,
 } from "../../lib/portfolioTemplates";
-import { canEditPlatform } from "../../lib/roles";
+import { canEditPlatform, isAdmin } from "../../lib/roles";
 import type { TemplateCategory, TemplateDefinition } from "../../types";
 
 const ACCENT: Record<TemplateDefinition["accent"], string> = {
@@ -107,7 +107,7 @@ export function TemplatesPage() {
         }
       }
 
-      if (template.project) {
+      if (template.project && isAdmin(user)) {
         const project = await api.createProject(stripProjectForCreate(template.project));
         projectId = project.id;
       }

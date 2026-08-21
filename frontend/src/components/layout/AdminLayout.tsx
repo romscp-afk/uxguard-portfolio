@@ -190,8 +190,11 @@ export function AdminLayout() {
     return <Navigate to="/admin/employer/login" replace />;
   }
 
-  // TestLab is admin-only while in private testing
+  // TestLab and studio projects are admin-only
   if (location.pathname.startsWith("/admin/testlab") && !isAdmin(user)) {
+    return <Navigate to="/admin" replace />;
+  }
+  if (location.pathname.startsWith("/admin/projects") && !isAdmin(user)) {
     return <Navigate to="/admin" replace />;
   }
 

@@ -32,7 +32,7 @@ const SEED_USERS = [
     onboarding_intent: "publish_case_studies",
     portfolio_config: {
       show_profile: true,
-      show_projects: true,
+      show_projects: false,
       show_case_studies: true,
       show_timeline: false,
       show_achievements: false,
@@ -356,7 +356,7 @@ function seedStore() {
     projects: [
       {
         id: 1,
-        author_id: 2,
+        author_id: 1,
         title: "FinFlow Checkout Redesign",
         slug: "finflow-checkout-redesign",
         client: "FinFlow",
@@ -365,13 +365,14 @@ function seedStore() {
         start_date: "2025-10-01",
         end_date: "2025-11-15",
         tags: ["UX Research", "B2B SaaS", "Checkout"],
-        role: "Lead UX Researcher",
+        role: "UXGuard Studio",
         team: ["Product Manager", "Design Lead"],
         outcomes: [
           { label: "Completion lift", value: "+22%", description: "Payment step" },
           { label: "Support reduction", value: "-18%", description: "Billing tickets" },
         ],
         cover_image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80",
+        sort_order: 0,
         attachments: [],
         created_at: "2026-07-04T19:26:59.000Z",
         updated_at: "2026-07-04T19:26:59.000Z",

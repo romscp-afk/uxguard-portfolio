@@ -1,7 +1,7 @@
 import { portfolioSettings, readStore, updateStore, persistRegistrationRecord, touchMediaUpdatedAt } from "./store.js";
 import { defaultPortfolioConfig, resolveUserRole } from "./roles.js";
 import { likeCountsByCaseStudy } from "./like-utils.js";
-import { applyPortfolioOrdering, applyProjectOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
+import { applyPortfolioOrdering, getUserPortfolioConfig } from "./portfolio-config.js";
 import { sanitizeUserMediaFields } from "./media.js";
 import { resolveActiveWorkspace } from "./workspace-portal.js";
 
@@ -407,20 +407,13 @@ export async function getUserProfile(username) {
     config,
   );
 
-  const rawProjects = (store.projects || []).filter(
-    (project) =>
-      subjectIds.has(Number(project.author_id)) &&
-      String(project.status || "active") !== "archived",
-  );
-  const projects = applyProjectOrdering(rawProjects, config);
-
+  // Member portfolios are case-study only; studio projects live on /projects.
   const likeCounts = likeCountsByCaseStudy(store);
   const { password: _password, ...publicUser } = user;
-  const showProjects = config.show_projects !== false;
   return {
     ...publicUser,
-    portfolio_config: config,
-    projects: showProjects ? projects : [],
+    portfolio_config: { ...config, show_projects: false },
+    projects: [],
     case_studies: config.show_case_studies
       ? studies.map((cs) => toListItem(cs, likeCounts.get(Number(cs.id)) || 0))
       : [],

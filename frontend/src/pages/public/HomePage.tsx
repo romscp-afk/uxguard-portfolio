@@ -33,7 +33,7 @@ const BRAND_PILLARS = ["Build", "Showcase", "Measure", "Grow"] as const;
 const PLATFORM_HIGHLIGHTS = [
   { icon: LineChart, label: "Professional identity", desc: "Build your legacy—not just a gallery of screens" },
   { icon: FileText, label: "Impact case studies", desc: "Problem → Research → Decisions → Outcomes" },
-  { icon: Briefcase, label: "Portfolio builder", desc: "Projects, media, and a public /u/ page you control" },
+  { icon: Briefcase, label: "Portfolio builder", desc: "Case studies, media, and a public /u/ page you control" },
   { icon: Users, label: "Discover community", desc: "Explore published work from professionals worldwide" },
 ] as const;
 
@@ -168,7 +168,7 @@ export function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3 sm:px-6">
           {[
             { label: "Built for", value: "UX & product pros" },
-            { label: "Publish", value: "Case studies & projects" },
+            { label: "Publish", value: "Case studies" },
             { label: "Share", value: "Your public portfolio" },
           ].map((item) => (
             <div key={item.label} className="text-center sm:text-left">
@@ -190,7 +190,7 @@ export function HomePage() {
                 More than a portfolio. A professional legacy.
               </p>
               <ul className="mt-5 space-y-2 text-sm text-brand-100">
-                <li>· Organize projects & research in one place</li>
+                <li>· Organize research and case studies in one place</li>
                 <li>· Publish impact-focused case studies</li>
                 <li>· Control your public /u/ portfolio page</li>
                 <li>· Share work with Discover</li>
@@ -204,7 +204,7 @@ export function HomePage() {
               {[
                 { icon: MessageSquare, title: "Community", desc: "Follow peers, leave feedback, get alerts on new work" },
                 { icon: Users, title: "Discover", desc: "Explore evidence-driven case studies worldwide" },
-                { icon: Briefcase, title: "Portfolio builder", desc: "Projects, templates, media, and your public page" },
+                { icon: Briefcase, title: "Portfolio builder", desc: "Templates, media, and your public case-study page" },
                 { icon: FileText, title: "Case studies", desc: "Tell the story of your research and design impact" },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="card p-5">

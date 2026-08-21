@@ -67,6 +67,7 @@ import { ArticlesListPage } from "./pages/admin/ArticlesListPage";
 import { ArticleEditorPage } from "./pages/admin/ArticleEditorPage";
 import { ArticlesIndexPage } from "./pages/public/ArticlesIndexPage";
 import { ArticleDetailPage } from "./pages/public/ArticleDetailPage";
+import { OurProjectsPage } from "./pages/public/OurProjectsPage";
 
 export default function App() {
   return (
@@ -75,6 +76,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/discover" element={<DiscoverPage />} />
+          <Route path="/projects" element={<OurProjectsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />

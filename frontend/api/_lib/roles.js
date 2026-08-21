@@ -43,6 +43,14 @@ export function isAdmin(user) {
   return normalizeRole(user?.role) === "admin";
 }
 
+export function assertIsAdmin(user) {
+  if (!isAdmin(user)) {
+    const error = new Error("Only the UXGuard team can manage studio projects.");
+    error.status = 403;
+    throw error;
+  }
+}
+
 /** Product workspaces — orthogonal to platform role (admin/professional/viewer). */
 export function defaultWorkspaces(user) {
   const canEdit = canEditPlatform(user);
@@ -79,7 +87,7 @@ export function assertEmployerWorkspace(user) {
 export function defaultPortfolioConfig() {
   return {
     show_profile: true,
-    show_projects: true,
+    show_projects: false,
     show_case_studies: true,
     show_timeline: false,
     show_achievements: false,

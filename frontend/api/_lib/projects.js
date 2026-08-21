@@ -1,5 +1,7 @@
 import { readStore, updateStore } from "./store.js";
-import { canEditPlatform } from "./roles.js";
+import { assertIsAdmin, canEditPlatform, isAdmin, normalizeRole } from "./roles.js";
+
+export { assertIsAdmin };
 
 function slugify(text) {
   return (
@@ -32,6 +34,47 @@ export async function listProjectsForUser(authorId) {
   return (store.projects || [])
     .filter((project) => sameId(project.author_id, authorId))
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || new Date(b.updated_at) - new Date(a.updated_at));
+}
+
+/** Public UXGuard Studio projects — authored by platform admins, not archived. */
+export async function listPublicStudioProjects() {
+  const store = await readStore();
+  const adminIds = new Set(
+    (store.users || [])
+      .filter((user) => isAdmin(user) || normalizeRole(user?.role) === "admin")
+      .map((user) => Number(user.id))
+      .filter((id) => Number.isFinite(id) && id > 0),
+  );
+
+  return (store.projects || [])
+    .filter(
+      (project) =>
+        adminIds.has(Number(project.author_id)) &&
+        String(project.status || "active").toLowerCase() !== "archived",
+    )
+    .sort(
+      (a, b) =>
+        (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+        new Date(b.updated_at || 0) - new Date(a.updated_at || 0),
+    )
+    .map((project) => ({
+      id: project.id,
+      title: project.title,
+      slug: project.slug,
+      client: project.client || null,
+      status: project.status,
+      description: project.description || null,
+      start_date: project.start_date || null,
+      end_date: project.end_date || null,
+      tags: Array.isArray(project.tags) ? project.tags : [],
+      role: project.role || null,
+      team: Array.isArray(project.team) ? project.team : [],
+      outcomes: Array.isArray(project.outcomes) ? project.outcomes : [],
+      cover_image: project.cover_image || null,
+      sort_order: project.sort_order ?? 0,
+      updated_at: project.updated_at,
+      created_at: project.created_at,
+    }));
 }
 
 export async function reorderProjects(authorId, orderedIds) {

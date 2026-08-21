@@ -1104,6 +1104,8 @@ export const api = {
 
   listProjects: () => request<Project[]>("/projects"),
 
+  listPublicProjects: () => request<Project[]>("/public-projects"),
+
   getProject: (id: number) => request<Project>(`/projects/${id}`),
 
   createProject: (data: Partial<Project>) =>

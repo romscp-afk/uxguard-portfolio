@@ -98,7 +98,8 @@ export function ProjectsListPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-950">Projects</h1>
           <p className="mt-1 text-ink-500">
-            Manage the work behind your portfolio. Case studies and career artifacts attach to projects.
+            Curate UXGuard Studio initiatives shown on the public Our Projects page. Members publish
+            case studies, not projects.
           </p>
         </div>
         <div className="flex items-center gap-2">

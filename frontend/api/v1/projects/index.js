@@ -1,5 +1,5 @@
 import {
-  assertCanEdit,
+  assertIsAdmin,
   createProject,
   listProjectsForUser,
 } from "../../_lib/projects.js";
@@ -24,6 +24,13 @@ export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
 
+  try {
+    assertIsAdmin(user);
+  } catch (err) {
+    res.status(err.status || 403).json({ detail: err.message || "Forbidden" });
+    return;
+  }
+
   if (req.method === "GET") {
     const projects = await listProjectsForUser(user.id);
     res.status(200).json(projects);
@@ -32,7 +39,6 @@ export default withApi(async (req, res) => {
 
   if (req.method === "POST") {
     try {
-      assertCanEdit(user);
       const payload = await readBody(req);
       const created = await createProject(user.id, payload || {});
       if (!created?.id) {

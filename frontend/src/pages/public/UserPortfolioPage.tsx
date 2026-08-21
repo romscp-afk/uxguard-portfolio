@@ -4,7 +4,6 @@ import {
   BookOpen,
   ExternalLink,
   FileText,
-  FolderKanban,
   Heart,
   Mail,
   MapPin,
@@ -302,11 +301,6 @@ export function UserPortfolioPage() {
                     icon: Users,
                   },
                   {
-                    label: "Projects",
-                    value: profile.projects?.length || 0,
-                    icon: FolderKanban,
-                  },
-                  {
                     label: "Likes received",
                     value: totalLikes,
                     icon: Heart,
@@ -336,65 +330,6 @@ export function UserPortfolioPage() {
       ) : null}
 
       <section className="mx-auto w-full max-w-none px-4 py-16 sm:px-8 lg:px-12 xl:px-16">
-        {profile.projects && profile.projects.length > 0 ? (
-          <div className="mb-16">
-            <div className="mb-8 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">Work</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-ink-950">Projects</h2>
-              </div>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {profile.projects.map((project, index) => (
-                <div
-                  key={project.id}
-                  className="group overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                >
-                  {project.cover_image ? (
-                    <img
-                      src={resolveAssetUrl(project.cover_image)}
-                      alt=""
-                      className="h-44 w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-44 items-end p-6"
-                      style={{
-                        background: `linear-gradient(135deg, hsl(${180 + index * 18} 55% 42%), hsl(${200 + index * 12} 45% 22%))`,
-                      }}
-                    >
-                      <p className="font-display text-2xl font-bold text-white/90">
-                        {String(index + 1).padStart(2, "0")}
-                      </p>
-                    </div>
-                  )}
-                  <div className="p-6">
-                    <p className="font-semibold text-ink-900">{project.title}</p>
-                    <p className="mt-1 text-sm text-ink-500">{project.client || project.role}</p>
-                    {project.description ? (
-                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink-600">
-                        {project.description}
-                      </p>
-                    ) : null}
-                    {project.tags?.length ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {project.tags.slice(0, 4).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
         <div className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">Impact stories</p>
           <h2 className="mt-2 font-display text-3xl font-bold text-ink-950">Case Studies</h2>

@@ -1,5 +1,5 @@
 import {
-  assertCanEdit,
+  assertIsAdmin,
   deleteProject,
   getProjectForAuthor,
   updateProject,
@@ -37,6 +37,13 @@ export default withApi(async (req, res) => {
   const user = await requireAuthUser(req, res);
   if (!user) return;
 
+  try {
+    assertIsAdmin(user);
+  } catch (err) {
+    res.status(err.status || 403).json({ detail: err.message || "Forbidden" });
+    return;
+  }
+
   const id = parseProjectId(req);
   if (!Number.isFinite(id) || id <= 0) {
     res.status(400).json({ detail: "Invalid project id" });
@@ -55,7 +62,6 @@ export default withApi(async (req, res) => {
 
   if (req.method === "PATCH") {
     try {
-      assertCanEdit(user);
       const payload = await readBody(req);
       const updated = await updateProject(id, user.id, payload || {});
       res.status(200).json(updated);
@@ -67,7 +73,6 @@ export default withApi(async (req, res) => {
 
   if (req.method === "DELETE") {
     try {
-      assertCanEdit(user);
       await deleteProject(id, user.id);
       res.status(204).end();
     } catch (err) {

@@ -31,7 +31,7 @@ export const INTENT_OPTIONS = PORTFOLIO_LAUNCH_ONLY
       {
         id: "build_portfolio" as const,
         title: "Build my portfolio",
-        description: "Organize projects, case studies, and your public portfolio page.",
+        description: "Organize case studies and your public portfolio page.",
       },
       {
         id: "publish_case_studies" as const,
@@ -43,7 +43,7 @@ export const INTENT_OPTIONS = PORTFOLIO_LAUNCH_ONLY
       {
         id: "build_portfolio" as const,
         title: "Build my portfolio",
-        description: "Organize projects and showcase professional work.",
+        description: "Organize case studies and showcase professional work.",
       },
       {
         id: "track_career" as const,
@@ -112,7 +112,7 @@ const CANDIDATE_GROUPS: NavGroup[] = [
     label: "Portfolio",
     links: [
       { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
-      { to: "/admin/projects", label: "Projects", section: "projects" },
+      { to: "/admin/projects", label: "Our Projects", section: "projects", adminOnly: true },
       { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
       { to: "/admin/articles", label: "Articles", section: "articles" },
       { to: "/admin/templates", label: "Templates", section: "templates" },
@@ -146,7 +146,6 @@ const PORTFOLIO_LAUNCH_GROUPS: NavGroup[] = [
     label: "Portfolio",
     links: [
       { to: "/admin/portfolio-builder", label: "Portfolio Builder", section: "portfolio" },
-      { to: "/admin/projects", label: "Projects", section: "projects" },
       { to: "/admin/case-studies", label: "Case Studies", section: "case-studies" },
       { to: "/admin/articles", label: "Articles", section: "articles" },
       { to: "/admin/templates", label: "Templates", section: "templates" },
@@ -193,7 +192,6 @@ export const PORTFOLIO_LAUNCH_ALLOWED_PREFIXES = [
   "/admin",
   "/admin/profile",
   "/admin/portfolio-builder",
-  "/admin/projects",
   "/admin/case-studies",
   "/admin/articles",
   "/admin/templates",
@@ -215,11 +213,10 @@ export function isPortfolioLaunchPathAllowed(pathname: string): boolean {
   // Exact dashboard
   if (path === "/admin") return true;
 
-  // Case study editor / project detail under allowed sections
+  // Case study editor under allowed sections
   const allowed = [
     "/admin/profile",
     "/admin/portfolio-builder",
-    "/admin/projects",
     "/admin/case-studies",
     "/admin/articles",
     "/admin/templates",

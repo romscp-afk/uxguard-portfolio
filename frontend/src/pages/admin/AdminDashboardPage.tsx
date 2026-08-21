@@ -31,7 +31,11 @@ export function AdminDashboardPage() {
   useEffect(() => {
     if (!user) return;
     loadMergedCaseStudies(user.id).then((result) => setStudies(result.studies));
-    api.listProjects().then(setProjects).catch(() => setProjects([]));
+    if (isAdmin(user)) {
+      api.listProjects().then(setProjects).catch(() => setProjects([]));
+    } else {
+      setProjects([]);
+    }
     api.getBillingSubscription().then(setBilling).catch(() => setBilling(null));
     if (isAdmin(user) || !PORTFOLIO_LAUNCH_ONLY) {
       api.getAnalyticsSummary().then(setAnalytics).catch(() => setAnalytics(null));
@@ -89,7 +93,7 @@ export function AdminDashboardPage() {
             <div className="min-w-0">
               <h2 className="font-semibold text-ink-900">Build your portfolio</h2>
               <p className="mt-1 text-sm text-ink-600">
-                Add projects and case studies, then publish your public portfolio page.
+                Add case studies, then publish your public portfolio page.
               </p>
             </div>
           </div>
@@ -147,12 +151,25 @@ export function AdminDashboardPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
-        {[
-          { label: "Projects", value: projects.length, icon: FolderKanban, color: "text-brand-600" },
-          { label: "Case Studies", value: studies.length, icon: FileText, color: "text-brand-600" },
-          { label: "Published", value: published, icon: Globe, color: "text-emerald-600" },
-          { label: "Drafts", value: drafts, icon: Sparkles, color: "text-amber-600" },
-        ].map(({ label, value, icon: Icon, color }) => (
+        {(portfolioOnly
+          ? [
+              { label: "Case Studies", value: studies.length, icon: FileText, color: "text-brand-600" },
+              { label: "Published", value: published, icon: Globe, color: "text-emerald-600" },
+              { label: "Drafts", value: drafts, icon: Sparkles, color: "text-amber-600" },
+              {
+                label: "Plan",
+                value: billing?.plan?.name || "Free",
+                icon: CreditCard,
+                color: "text-ink-600",
+              },
+            ]
+          : [
+              { label: "Projects", value: projects.length, icon: FolderKanban, color: "text-brand-600" },
+              { label: "Case Studies", value: studies.length, icon: FileText, color: "text-brand-600" },
+              { label: "Published", value: published, icon: Globe, color: "text-emerald-600" },
+              { label: "Drafts", value: drafts, icon: Sparkles, color: "text-amber-600" },
+            ]
+        ).map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card p-4 sm:p-6">
             <Icon className={`h-5 w-5 ${color}`} />
             <p className="mt-3 font-display text-2xl font-bold text-ink-950 sm:mt-4 sm:text-3xl">{value}</p>
@@ -199,18 +216,18 @@ export function AdminDashboardPage() {
       ) : (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4">
           <Link
-            to="/admin/projects"
+            to="/admin/case-studies/new"
             className="card flex items-center justify-between gap-3 p-4 transition hover:border-brand-300 sm:p-6"
           >
             <div>
               <div className="flex items-center gap-2 text-brand-600">
-                <FolderKanban className="h-5 w-5" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Projects</span>
+                <FileText className="h-5 w-5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">New study</span>
               </div>
               <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">
-                {projects.length}
+                {studies.length}
               </p>
-              <p className="text-xs text-ink-500 sm:text-sm">Manage projects</p>
+              <p className="text-xs text-ink-500 sm:text-sm">Write a case study</p>
             </div>
             <ArrowRight className="h-4 w-4 text-ink-400" />
           </Link>
@@ -220,7 +237,7 @@ export function AdminDashboardPage() {
           >
             <div>
               <div className="flex items-center gap-2 text-brand-600">
-                <FileText className="h-5 w-5" />
+                <Globe className="h-5 w-5" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Published</span>
               </div>
               <p className="mt-2 font-display text-2xl font-bold text-ink-950 sm:text-3xl">{published}</p>

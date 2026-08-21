@@ -20,6 +20,7 @@ import {
 import { trackBillingEvent } from "../../lib/analytics";
 import { COVER_HELP_TEXT, validateCoverImageUrl } from "../../lib/coverImage";
 import { isEmptyHtml } from "../../lib/htmlContent";
+import { isAdmin } from "../../lib/roles";
 import type { CaseStudy, ContentBlock, MetricItem, Project } from "../../types";
 
 const RESEARCH_METHODS = [
@@ -146,8 +147,12 @@ export function CaseStudyEditorPage() {
   const editorRefs = useRef<Partial<Record<FieldKey, RichTextEditorHandle | null>>>({});
 
   useEffect(() => {
+    if (!isAdmin(user)) {
+      setProjects([]);
+      return;
+    }
     api.listProjects().then(setProjects).catch(() => setProjects([]));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (studyId == null) return;
@@ -835,23 +840,25 @@ export function CaseStudyEditorPage() {
                   onChange={(e) => updateField("subtitle", e.target.value)}
                 />
               </div>
-              <div className="sm:col-span-2">
-                <label className="label-field">Linked project</label>
-                <select
-                  className="input-field"
-                  value={form.project_id ?? ""}
-                  onChange={(e) =>
-                    updateField("project_id", e.target.value ? Number(e.target.value) : null)
-                  }
-                >
-                  <option value="">No project</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {isAdmin(user) ? (
+                <div className="sm:col-span-2">
+                  <label className="label-field">Linked studio project</label>
+                  <select
+                    className="input-field"
+                    value={form.project_id ?? ""}
+                    onChange={(e) =>
+                      updateField("project_id", e.target.value ? Number(e.target.value) : null)
+                    }
+                  >
+                    <option value="">No project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
               <div>
                 <label className="label-field">Client</label>
                 <input

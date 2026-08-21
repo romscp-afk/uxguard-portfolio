@@ -11,7 +11,7 @@ import type { CaseStudyListItem, PortfolioBuilderConfig, PortfolioTheme } from "
 
 const DEFAULT_CONFIG: PortfolioBuilderConfig = {
   show_profile: true,
-  show_projects: true,
+  show_projects: false,
   show_case_studies: true,
   show_timeline: false,
   show_achievements: false,
@@ -32,7 +32,6 @@ const THEME_OPTIONS: { id: PortfolioTheme; label: string; blurb: string }[] = [
 
 const SECTION_TOGGLES: { key: keyof PortfolioBuilderConfig; label: string; phase2?: boolean }[] = [
   { key: "show_profile", label: "Professional profile" },
-  { key: "show_projects", label: "Projects" },
   { key: "show_case_studies", label: "Case studies" },
   { key: "show_timeline", label: "Career timeline", phase2: true },
   { key: "show_achievements", label: "Achievements", phase2: true },
@@ -122,6 +121,7 @@ export function PortfolioBuilderPage() {
     try {
       const saved = await api.updatePortfolioBuilder({
         ...config,
+        show_projects: false,
         case_study_order: studies.map((study) => study.id),
       });
       setConfig(saved);
