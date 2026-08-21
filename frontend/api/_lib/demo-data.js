@@ -383,6 +383,70 @@ export async function getFeedItems(limit) {
   return items;
 }
 
+/** Public member portfolios with at least one published case study, newest activity first. */
+export async function listPublicPortfolios(limit = 40) {
+  const store = await readStore({ forceRefresh: true });
+  const users = store.users || [];
+  const studies = (store.caseStudies || []).filter(
+    (cs) => cs && String(cs.status || "").toLowerCase() === "published",
+  );
+
+  const byAuthor = new Map();
+  for (const cs of studies) {
+    const authorId = Number(cs.author_id);
+    if (!Number.isFinite(authorId)) continue;
+    const publishedAt = cs.published_at || cs.updated_at || cs.created_at || null;
+    const existing = byAuthor.get(authorId);
+    if (!existing) {
+      byAuthor.set(authorId, {
+        case_study_count: 1,
+        latest_published_at: publishedAt,
+        latest_title: cs.title || null,
+        cover_image: cs.cover_image || null,
+      });
+      continue;
+    }
+    existing.case_study_count += 1;
+    if (
+      new Date(publishedAt || 0).getTime() > new Date(existing.latest_published_at || 0).getTime()
+    ) {
+      existing.latest_published_at = publishedAt;
+      existing.latest_title = cs.title || null;
+      existing.cover_image = cs.cover_image || existing.cover_image;
+    }
+  }
+
+  const portfolios = users
+    .filter((user) => byAuthor.has(Number(user.id)) && user.username)
+    .map((user) => {
+      const stats = byAuthor.get(Number(user.id));
+      const cleaned = sanitizeUserMediaFields(user, store);
+      return {
+        id: Number(user.id),
+        username: user.username,
+        name: user.name || user.username,
+        title: user.title || null,
+        bio: user.bio || null,
+        avatar_url: cleaned.avatar_url || user.avatar_url || null,
+        cover_image_url: cleaned.cover_image_url || user.cover_image_url || stats.cover_image || null,
+        location: user.location || null,
+        case_study_count: stats.case_study_count,
+        latest_published_at: stats.latest_published_at,
+        latest_case_study_title: stats.latest_title,
+        portfolio_url: `/u/${user.username}`,
+      };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.latest_published_at || 0).getTime() -
+        new Date(a.latest_published_at || 0).getTime(),
+    );
+
+  const max = Number(limit);
+  if (Number.isFinite(max) && max > 0) return portfolios.slice(0, max);
+  return portfolios;
+}
+
 export async function getUserProfile(username) {
   const store = await readStore({ forceRefresh: true });
   const needle = String(username || "").trim().toLowerCase();

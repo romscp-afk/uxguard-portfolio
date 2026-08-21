@@ -112,6 +112,34 @@ export type Campaign = {
   sponsor?: { name: string; logo_url?: string | null } | null;
 };
 
+export type StudioProject = {
+  id: string;
+  title: string;
+  slug?: string | null;
+  client?: string | null;
+  status: string;
+  description?: string | null;
+  role?: string | null;
+  tags: string[];
+  outcomes: { label: string; value: string; description?: string }[];
+  cover_image_url?: string | null;
+  updated_at?: string | null;
+};
+
+export type PublicPortfolio = {
+  id: string;
+  username: string;
+  name: string;
+  title?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  cover_image_url?: string | null;
+  location?: string | null;
+  case_study_count: number;
+  latest_published_at?: string | null;
+  latest_case_study_title?: string | null;
+};
+
 export type Profile = {
   id: string;
   username: string;

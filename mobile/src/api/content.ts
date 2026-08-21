@@ -1,7 +1,16 @@
 import { absoluteMediaUrl, contentApiUrl, isSupabaseConfigured } from '@/lib/config';
 import { estimateReadingTime } from '@/lib/html';
 import { supabase } from '@/lib/supabase';
-import type { Article, Campaign, CaseStudy, Category, Challenge, FeedItem } from '@/types/domain';
+import type {
+  Article,
+  Campaign,
+  CaseStudy,
+  Category,
+  Challenge,
+  FeedItem,
+  PublicPortfolio,
+  StudioProject,
+} from '@/types/domain';
 
 const FALLBACK_CATEGORIES: Category[] = [
   { id: 'ux', slug: 'ux', name: 'UX', kind: 'topic' },
@@ -108,6 +117,142 @@ async function fetchWebCaseStudy(idOrSlug: string): Promise<CaseStudy | null> {
     return found;
   }
   return found;
+}
+
+export async function listPublicProjects(): Promise<StudioProject[]> {
+  try {
+    const res = await fetch(`${contentApiUrl}/api/v1/public-projects`);
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Record<string, unknown>[];
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
+      id: String(row.id),
+      title: String(row.title || 'Untitled project'),
+      slug: (row.slug as string) || null,
+      client: (row.client as string) || null,
+      status: String(row.status || 'active'),
+      description: (row.description as string) || null,
+      role: (row.role as string) || null,
+      tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+      outcomes: Array.isArray(row.outcomes)
+        ? (row.outcomes as StudioProject['outcomes'])
+        : [],
+      cover_image_url: absoluteMediaUrl((row.cover_image as string) || null),
+      updated_at: (row.updated_at as string) || null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function portfoliosFromCaseStudies(studies: CaseStudy[]): PublicPortfolio[] {
+  const byUsername = new Map<string, PublicPortfolio>();
+  for (const study of studies) {
+    const username = study.author_username?.trim();
+    if (!username) continue;
+    const key = username.toLowerCase();
+    const existing = byUsername.get(key);
+    if (!existing) {
+      byUsername.set(key, {
+        id: study.author_id || username,
+        username,
+        name: study.author_name || username,
+        title: null,
+        bio: null,
+        avatar_url: null,
+        cover_image_url: study.cover_image_url,
+        location: null,
+        case_study_count: 1,
+        latest_published_at: study.published_at,
+        latest_case_study_title: study.title,
+      });
+      continue;
+    }
+    existing.case_study_count += 1;
+    if (
+      new Date(study.published_at || 0).getTime() >
+      new Date(existing.latest_published_at || 0).getTime()
+    ) {
+      existing.latest_published_at = study.published_at;
+      existing.latest_case_study_title = study.title;
+      existing.cover_image_url = study.cover_image_url || existing.cover_image_url;
+    }
+  }
+  return [...byUsername.values()].sort(
+    (a, b) =>
+      new Date(b.latest_published_at || 0).getTime() - new Date(a.latest_published_at || 0).getTime(),
+  );
+}
+
+export async function listPublicPortfolios(limit = 40): Promise<PublicPortfolio[]> {
+  try {
+    const res = await fetch(`${contentApiUrl}/api/v1/public-portfolios?limit=${Math.min(limit, 100)}`);
+    if (res.ok) {
+      const rows = (await res.json()) as Record<string, unknown>[];
+      if (Array.isArray(rows) && rows.length) {
+        return rows.map((row) => ({
+          id: String(row.id),
+          username: String(row.username || ''),
+          name: String(row.name || row.username || 'Member'),
+          title: (row.title as string) || null,
+          bio: (row.bio as string) || null,
+          avatar_url: absoluteMediaUrl((row.avatar_url as string) || null),
+          cover_image_url: absoluteMediaUrl((row.cover_image_url as string) || null),
+          location: (row.location as string) || null,
+          case_study_count: Number(row.case_study_count) || 0,
+          latest_published_at: (row.latest_published_at as string) || null,
+          latest_case_study_title: (row.latest_case_study_title as string) || null,
+        }));
+      }
+    }
+  } catch {
+    // Fall through to derived / Supabase sources.
+  }
+
+  if (isSupabaseConfigured) {
+    const { data: studies } = await supabase
+      .from('case_studies')
+      .select('id, title, cover_image_url, published_at, author_id, profiles:author_id ( username, display_name, title, bio, avatar_url, cover_image_url, location )')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(120);
+    if (studies?.length) {
+      const byAuthor = new Map<string, PublicPortfolio>();
+      for (const row of studies) {
+        const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+        const username = String(profile?.username || '').trim();
+        if (!username) continue;
+        const key = String(row.author_id || username);
+        const existing = byAuthor.get(key);
+        if (!existing) {
+          byAuthor.set(key, {
+            id: key,
+            username,
+            name: profile?.display_name || username,
+            title: profile?.title || null,
+            bio: profile?.bio || null,
+            avatar_url: absoluteMediaUrl(profile?.avatar_url || null),
+            cover_image_url: absoluteMediaUrl(profile?.cover_image_url || row.cover_image_url || null),
+            location: profile?.location || null,
+            case_study_count: 1,
+            latest_published_at: row.published_at,
+            latest_case_study_title: row.title,
+          });
+        } else {
+          existing.case_study_count += 1;
+        }
+      }
+      return [...byAuthor.values()]
+        .sort(
+          (a, b) =>
+            new Date(b.latest_published_at || 0).getTime() -
+            new Date(a.latest_published_at || 0).getTime(),
+        )
+        .slice(0, limit);
+    }
+  }
+
+  const webStudies = await fetchWebCaseStudies();
+  return portfoliosFromCaseStudies(webStudies).slice(0, limit);
 }
 
 export async function listCategories(): Promise<Category[]> {

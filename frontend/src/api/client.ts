@@ -1106,6 +1106,24 @@ export const api = {
 
   listPublicProjects: () => request<Project[]>("/public-projects"),
 
+  listPublicPortfolios: (limit = 40) =>
+    request<
+      {
+        id: number;
+        username: string;
+        name: string;
+        title?: string | null;
+        bio?: string | null;
+        avatar_url?: string | null;
+        cover_image_url?: string | null;
+        location?: string | null;
+        case_study_count: number;
+        latest_published_at?: string | null;
+        latest_case_study_title?: string | null;
+        portfolio_url: string;
+      }[]
+    >(`/public-portfolios?limit=${limit}`),
+
   getProject: (id: number) => request<Project>(`/projects/${id}`),
 
   createProject: (data: Partial<Project>) =>

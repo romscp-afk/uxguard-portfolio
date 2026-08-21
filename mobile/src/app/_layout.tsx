@@ -30,6 +30,8 @@ export default function RootLayout() {
         <Stack.Screen name="studio/[id]" options={{ title: 'Case study' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="u/[username]" options={{ title: 'Profile' }} />
+        <Stack.Screen name="portfolios" options={{ title: 'Latest portfolios' }} />
+        <Stack.Screen name="our-projects" options={{ title: 'Our Projects' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="preferences" options={{ title: 'Preferences' }} />
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
