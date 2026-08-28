@@ -97,3 +97,10 @@ describe("ux-audit links", () => {
     assert.ok(findings.some((f) => /broken internal/i.test(f.title)));
   });
 });
+
+describe("ux-audit api route", () => {
+  it("loads the POST route module with correct import paths", async () => {
+    const mod = await import("../../v1/ux-audit/index.js");
+    assert.equal(typeof mod.default, "function");
+  });
+});
