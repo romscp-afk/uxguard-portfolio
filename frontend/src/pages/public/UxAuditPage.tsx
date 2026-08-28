@@ -61,8 +61,10 @@ const SCAN_STAGES = [
   "Checking usability signals",
   "Checking accessibility signals",
   "Checking mobile and performance signals",
-  "Preparing recommendations",
+  "Preparing your audit report",
 ];
+
+const SCAN_STAGE_CAP = SCAN_STAGES.length - 1;
 
 const COVERAGE = [
   {
@@ -203,6 +205,7 @@ export function UxAuditPage() {
 
   const [scanStage, setScanStage] = useState(0);
   const [scanning, setScanning] = useState(false);
+  const [scanWaitingLong, setScanWaitingLong] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [audit, setAudit] = useState<UxAuditPublic | null>(null);
 
@@ -211,11 +214,18 @@ export function UxAuditPage() {
   }, []);
 
   useEffect(() => {
-    if (!scanning) return;
-    const id = window.setInterval(() => {
-      setScanStage((s) => (s < SCAN_STAGES.length - 1 ? s + 1 : s));
-    }, 1200);
-    return () => window.clearInterval(id);
+    if (!scanning) {
+      setScanWaitingLong(false);
+      return;
+    }
+    const stageTimer = window.setInterval(() => {
+      setScanStage((s) => (s < SCAN_STAGE_CAP - 1 ? s + 1 : s));
+    }, 2500);
+    const longTimer = window.setTimeout(() => setScanWaitingLong(true), 12_000);
+    return () => {
+      window.clearInterval(stageTimer);
+      window.clearTimeout(longTimer);
+    };
   }, [scanning]);
 
   function scrollToAudit() {
@@ -253,6 +263,7 @@ export function UxAuditPage() {
 
     setScanning(true);
     setScanStage(0);
+    setScanWaitingLong(false);
     setSubmitError("");
     trackUxAuditEvent("ux_audit_url_submitted");
 
@@ -273,7 +284,10 @@ export function UxAuditPage() {
       });
 
       const completed = result.audit;
-      setScanStage(SCAN_STAGES.length - 1);
+      if (!completed) {
+        throw new ApiError(500, "The server did not return audit results. Please try again.");
+      }
+      setScanStage(SCAN_STAGE_CAP);
       setAudit(completed);
       setStep(4);
       if (completed.status === "completed") {
@@ -286,7 +300,12 @@ export function UxAuditPage() {
       }
     } catch (err) {
       trackUxAuditEvent("ux_audit_scan_failed");
-      const message = err instanceof ApiError ? err.message : "Could not complete the audit.";
+      let message = "Could not complete the audit.";
+      if (err instanceof ApiError) {
+        message = err.message;
+      } else if (err instanceof DOMException && err.name === "AbortError") {
+        message = "The audit is taking longer than expected. Please try again in a moment.";
+      }
       setSubmitError(message);
       setStep(3);
     } finally {
@@ -611,6 +630,20 @@ export function UxAuditPage() {
 
           {step === 3 ? (
             <div className="card mt-8 p-6" aria-live="polite" aria-busy={scanning}>
+              {(() => {
+                const progressPercent = scanning
+                  ? Math.min(90, Math.round(((scanStage + 1) / SCAN_STAGES.length) * 100))
+                  : submitError
+                    ? Math.round(((scanStage + 1) / SCAN_STAGES.length) * 100)
+                    : 100;
+                const statusMessage = scanning
+                  ? scanWaitingLong
+                    ? "Still analysing your site — larger pages can take up to a minute."
+                    : SCAN_STAGES[scanStage]
+                  : submitError
+                    ? "The scan could not be completed."
+                    : "Preparing your audit…";
+                return (
               <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
                 <div
                   className="relative flex h-24 w-24 shrink-0 items-center justify-center"
@@ -627,7 +660,7 @@ export function UxAuditPage() {
                       strokeWidth="6"
                       strokeLinecap="round"
                       strokeDasharray={2 * Math.PI * 42}
-                      strokeDashoffset={2 * Math.PI * 42 * (1 - (scanning ? (scanStage + 1) / SCAN_STAGES.length : 1))}
+                      strokeDashoffset={2 * Math.PI * 42 * (1 - progressPercent / 100)}
                       className="text-brand-500 transition-[stroke-dashoffset] duration-700 motion-reduce:transition-none"
                     />
                   </svg>
@@ -641,18 +674,16 @@ export function UxAuditPage() {
                 <div className="min-w-0 flex-1 text-center sm:text-left">
                   <h3 className="font-semibold text-ink-900">Scanning your website</h3>
                   <p className="mt-2 text-sm text-ink-600" role="status">
-                    {scanning
-                      ? SCAN_STAGES[scanStage]
-                      : submitError
-                        ? "The scan could not be completed."
-                        : "Preparing your audit…"}
+                    {statusMessage}
                   </p>
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-xs text-ink-500">
                       <span>Progress</span>
                       <span>
                         {scanning
-                          ? `Step ${scanStage + 1} of ${SCAN_STAGES.length}`
+                          ? scanWaitingLong
+                            ? "Almost there…"
+                            : `Step ${scanStage + 1} of ${SCAN_STAGES.length}`
                           : submitError
                             ? "Stopped"
                             : "Complete"}
@@ -660,15 +691,15 @@ export function UxAuditPage() {
                     </div>
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-100">
                       <div
-                        className="h-full rounded-full bg-brand-500 transition-[width] duration-700 motion-reduce:transition-none"
-                        style={{
-                          width: `${Math.round(((scanning ? scanStage + 1 : SCAN_STAGES.length) / SCAN_STAGES.length) * 100)}%`,
-                        }}
+                        className={`h-full rounded-full bg-brand-500 transition-[width] duration-700 motion-reduce:transition-none ${scanning && scanWaitingLong ? "animate-pulse" : ""}`}
+                        style={{ width: `${progressPercent}%` }}
                       />
                     </div>
                   </div>
                 </div>
               </div>
+                );
+              })()}
 
               <ul className="mt-8 space-y-3 border-t border-ink-100 pt-6">
                 {SCAN_STAGES.map((label, i) => (

@@ -4,6 +4,11 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
+  "functions": {
+    "api/v1/ux-audit/index.js": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/api/v1/media/file/(.*)",

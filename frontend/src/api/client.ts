@@ -1523,12 +1523,23 @@ export const api = {
       { method: "POST", body: JSON.stringify(data) },
     ),
 
-  submitUxAudit: (payload: import("../types/ux-audit").UxAuditSubmitPayload) =>
-    request<{
-      audit: import("../types/ux-audit").UxAuditPublic;
-      results_url: string;
-      detail?: string;
-    }>("/ux-audit", { method: "POST", body: JSON.stringify(payload) }),
+  submitUxAudit: async (payload: import("../types/ux-audit").UxAuditSubmitPayload) => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 90_000);
+    try {
+      return await request<{
+        audit: import("../types/ux-audit").UxAuditPublic;
+        results_url: string;
+        detail?: string;
+      }>("/ux-audit", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  },
 
   getUxAudit: (token: string) =>
     request<{ audit: import("../types/ux-audit").UxAuditPublic }>(`/ux-audit/${token}`),

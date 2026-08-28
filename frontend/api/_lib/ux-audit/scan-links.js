@@ -1,7 +1,8 @@
 import { assertUrlSafe } from "../testlab/url-safety.js";
 
-const MAX_LINKS = 12;
-const TIMEOUT_MS = 6_000;
+const MAX_LINKS = 5;
+const TIMEOUT_MS = 3_000;
+const TOTAL_BUDGET_MS = 10_000;
 
 function extractSameOriginLinks(html, pageUrl) {
   const base = new URL(pageUrl);
@@ -78,8 +79,10 @@ export async function scanInternalLinks(html, pageUrl, options = {}) {
   const links = extractSameOriginLinks(html, pageUrl);
   if (!links.length) return [];
 
+  const started = Date.now();
   const broken = [];
   for (const link of links) {
+    if (Date.now() - started > TOTAL_BUDGET_MS) break;
     try {
       const result = await headCheck(link, options);
       if (!result.ok) broken.push({ url: link, status: result.status });

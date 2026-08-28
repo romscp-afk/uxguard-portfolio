@@ -9,9 +9,7 @@ async function loadPlaywright() {
 }
 
 function playwrightEnabled() {
-  if (process.env.UX_AUDIT_PLAYWRIGHT === "0") return false;
-  if (process.env.UX_AUDIT_PLAYWRIGHT === "1") return true;
-  return process.env.UXGUARD_TEST !== "1";
+  return process.env.UX_AUDIT_PLAYWRIGHT === "1";
 }
 
 /**

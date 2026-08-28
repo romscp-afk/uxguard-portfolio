@@ -14,6 +14,15 @@ import {
 } from "./scoring.js";
 import { SCAN_VERSION } from "./constants.js";
 
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve(fallback), ms);
+    }),
+  ]);
+}
+
 function buildLimitations(capabilities) {
   const limits = [...SCAN_LIMITATIONS];
   if (capabilities.pagespeed?.configured && !capabilities.pagespeed?.error) {
@@ -40,10 +49,17 @@ export async function executeUxAuditScan(websiteUrl, options = {}) {
   });
 
   const contrastFindings = scanInlineContrast(fetchResult.html);
-  const linkFindings = await scanInternalLinks(fetchResult.html, fetchResult.finalUrl, options.fetchOptions || {});
 
-  const [pagespeed, playwright] = await Promise.all([
-    fetchPageSpeedMetrics(fetchResult.finalUrl, options),
+  const [linkFindings, pagespeed, playwright] = await Promise.all([
+    withTimeout(
+      scanInternalLinks(fetchResult.html, fetchResult.finalUrl, options.fetchOptions || {}),
+      12_000,
+      [],
+    ),
+    withTimeout(fetchPageSpeedMetrics(fetchResult.finalUrl, options), 18_000, {
+      configured: false,
+      error: "PageSpeed request timed out",
+    }),
     scanWithPlaywright(fetchResult.finalUrl, options),
   ]);
 
