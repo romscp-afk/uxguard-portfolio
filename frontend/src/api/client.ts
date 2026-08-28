@@ -1522,6 +1522,41 @@ export const api = {
       `/testlab/projects/${projectId}/ci`,
       { method: "POST", body: JSON.stringify(data) },
     ),
+
+  submitUxAudit: (payload: import("../types/ux-audit").UxAuditSubmitPayload) =>
+    request<{
+      audit: import("../types/ux-audit").UxAuditPublic;
+      results_url: string;
+      detail?: string;
+    }>("/ux-audit", { method: "POST", body: JSON.stringify(payload) }),
+
+  getUxAudit: (token: string) =>
+    request<{ audit: import("../types/ux-audit").UxAuditPublic }>(`/ux-audit/${token}`),
+
+  submitUxAuditLead: (token: string, payload: import("../types/ux-audit").UxAuditLeadPayload) =>
+    request<{ message: string; audit: import("../types/ux-audit").UxAuditPublic }>(
+      `/ux-audit/${token}`,
+      { method: "POST", body: JSON.stringify({ action: "lead", ...payload }) },
+    ),
+
+  getUxAuditRequests: (params?: { q?: string; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set("q", params.q);
+    if (params?.status) qs.set("status", params.status);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<{ audits: import("../types/ux-audit").UxAuditAdminRow[] }>(
+      `/ux-audit-requests${suffix}`,
+    );
+  },
+
+  getUxAuditRequest: (id: number) =>
+    request<{ audit: import("../types/ux-audit").UxAuditAdminRow }>(`/ux-audit-requests/${id}`),
+
+  updateUxAuditRequest: (id: number, patch: { lead_status?: string; internal_notes?: string }) =>
+    request<{ audit: import("../types/ux-audit").UxAuditAdminRow }>(`/ux-audit-requests/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
 };
 
 export { ApiError };

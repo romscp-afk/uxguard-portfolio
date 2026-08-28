@@ -20,7 +20,10 @@ import { DiscoverPage } from "./pages/public/DiscoverPage";
 import { UserPortfolioPage } from "./pages/public/UserPortfolioPage";
 import { NotificationsPage } from "./pages/admin/NotificationsPage";
 import { ContactPage } from "./pages/public/ContactPage";
+import { UxAuditPage } from "./pages/public/UxAuditPage";
+import { UxAuditResultsPage } from "./pages/public/UxAuditResultsPage";
 import { ContactInboxPage } from "./pages/admin/ContactInboxPage";
+import { UxAuditInboxPage } from "./pages/admin/UxAuditInboxPage";
 import { InternalMessagesPage } from "./pages/admin/InternalMessagesPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
@@ -82,6 +85,8 @@ export default function App() {
           <Route path="/privacy" element={<LegalPage kind="privacy" />} />
           <Route path="/terms" element={<LegalPage kind="terms" />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/ux-audit" element={<UxAuditPage />} />
+          <Route path="/ux-audit/results/:auditId" element={<UxAuditResultsPage />} />
           <Route path="/articles" element={<ArticlesIndexPage />} />
           <Route path="/articles/:slug" element={<ArticleDetailPage />} />
           <Route path="/search" element={<Navigate to="/discover" replace />} />
@@ -148,6 +153,7 @@ export default function App() {
             <Route path="employers" element={<AdminEmployersPage />} />
             <Route path="employers/:companyId" element={<AdminEmployerDetailPage />} />
             <Route path="contact-inbox" element={<ContactInboxPage />} />
+            <Route path="ux-audit-inbox" element={<UxAuditInboxPage />} />
             <Route path="settings" element={<Navigate to="/admin/profile" replace />} />
             <Route path="settings/billing" element={<Navigate to="/admin/billing" replace />} />
           </Route>

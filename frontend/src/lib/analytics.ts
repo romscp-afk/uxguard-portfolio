@@ -17,3 +17,21 @@ export function trackBillingEvent(event: string, props: AnalyticsProps = {}) {
     // never break UX for analytics
   }
 }
+
+/** UX audit funnel events — no PII or URL content in props. */
+export function trackUxAuditEvent(
+  event:
+    | "ux_audit_page_view"
+    | "ux_audit_started"
+    | "ux_audit_url_submitted"
+    | "ux_audit_scan_completed"
+    | "ux_audit_scan_failed"
+    | "ux_audit_results_viewed"
+    | "ux_audit_finding_expanded"
+    | "ux_audit_report_requested"
+    | "ux_audit_consultation_clicked"
+    | "ux_audit_lead_submitted",
+  props: AnalyticsProps = {},
+) {
+  trackBillingEvent(event, props);
+}

@@ -263,6 +263,7 @@ export function dashboardLinksForUser(user?: User | null) {
         { to: "/admin/users", label: "Users", section: "users" },
         { to: "/admin/employers", label: "Employers", section: "employers" },
         { to: "/admin/contact-inbox", label: "Mail", section: "contact" },
+        { to: "/admin/ux-audit-inbox", label: "UX Audits", section: "ux-audit" },
       ],
     });
   }

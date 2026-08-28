@@ -57,10 +57,14 @@ export function PublicHeader() {
           <NavLink to="/">Home</NavLink>
           <NavLink to="/discover">Discover</NavLink>
           <NavLink to="/projects">Our Projects</NavLink>
+          <NavLink to="/ux-audit">Free UX Audit</NavLink>
           <NavLink to="/articles">Articles</NavLink>
           <NavLink to="/pricing">Pricing</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/contact">Contact</NavLink>
+          <Link to="/ux-audit" className="btn-primary py-2 text-xs">
+            Audit Your Website
+          </Link>
           {user ? (
             <>
               <NotificationBell />
@@ -107,6 +111,7 @@ export function PublicHeader() {
                 { to: "/", label: "Home" },
                 { to: "/discover", label: "Discover" },
                 { to: "/projects", label: "Our Projects" },
+                { to: "/ux-audit", label: "Free UX Audit" },
                 { to: "/articles", label: "Articles" },
                 { to: "/pricing", label: "Pricing" },
                 { to: "/about", label: "About" },
@@ -125,6 +130,9 @@ export function PublicHeader() {
             </ul>
 
             <div className="mt-6 space-y-2 border-t border-ink-100 pt-6">
+              <Link to="/ux-audit" onClick={close} className="btn-primary flex w-full justify-center py-3">
+                Audit Your Website
+              </Link>
               {user ? (
                 <Link to="/admin" onClick={close} className="btn-primary flex w-full justify-center py-3">
                   Open Portal
@@ -211,6 +219,11 @@ export function PublicFooter() {
                 <li>
                   <Link to="/projects" className="hover:text-brand-600">
                     Our Projects
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/ux-audit" className="hover:text-brand-600">
+                    Free UX Audit
                   </Link>
                 </li>
                 <li>
