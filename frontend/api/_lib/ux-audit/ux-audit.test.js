@@ -98,6 +98,49 @@ describe("ux-audit links", () => {
   });
 });
 
+describe("ux-audit html checks v3", () => {
+  it("produces structured checks with evidence", async () => {
+    const { runHtmlChecks } = await import("./checks/run-html-checks.js");
+    const html = "<html><head><title>Test</title></head><body><h1>Hello</h1><button>Book a consultation</button></body></html>";
+    const checks = runHtmlChecks({
+      html,
+      pageUrl: "https://example.com",
+      responseTimeMs: 500,
+      isHttps: true,
+      context: { page_type: "Landing page", primary_goal: "Booking" },
+    });
+    assert.ok(checks.length > 5);
+    assert.ok(checks.every((c) => c.checkId && c.status && Array.isArray(c.evidence)));
+    const cta = checks.find((c) => c.checkId === "conversion.cta_presence");
+    assert.equal(cta?.status, "passed");
+  });
+});
+
+describe("ux-audit run-scan pipeline", () => {
+  it("returns v3 scoring fields from runAllChecks and scoring", async () => {
+    const { runAllChecks } = await import("./checks/run-all-checks.js");
+    const { buildCategoryScoresFromChecks, calculateAuditCoverage, calculateOverallScoreFromCategories } =
+      await import("./scoring-v3.js");
+    const html =
+      "<html><head><title>Ex</title><meta name='viewport' content='width=device-width, initial-scale=1'></head><body><h1>Hi</h1><a href='/contact'>Contact us</a></body></html>";
+    const scan = await runAllChecks({
+      html,
+      pageUrl: "https://example.com",
+      responseTimeMs: 400,
+      isHttps: true,
+      context: { page_type: "Company website", primary_goal: "Contact" },
+      fetchOptions: { mockBroken: false },
+    });
+    const categoryScores = buildCategoryScoresFromChecks(scan.checks);
+    const overall = calculateOverallScoreFromCategories(categoryScores);
+    const coverage = calculateAuditCoverage(scan.checks);
+    assert.ok(overall != null);
+    assert.ok(coverage >= 0);
+    assert.ok(scan.checks.length > 10);
+    assert.ok(scan.data_sources.includes("html"));
+  });
+});
+
 describe("ux-audit api route", () => {
   it("loads the POST route module with correct import paths", async () => {
     const mod = await import("../../v1/ux-audit/index.js");

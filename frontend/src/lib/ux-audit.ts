@@ -31,12 +31,13 @@ export function validateAuditUrlInput(raw: string): { ok: true; value: string } 
 }
 
 export const UX_AUDIT_CATEGORY_LABELS: Record<string, string> = {
-  usability_navigation: "Usability & navigation",
+  conversion_experience: "Conversion experience",
   conversion_journey: "Conversion journey",
+  usability_navigation: "Usability & navigation",
   accessibility: "Accessibility",
   mobile_experience: "Mobile experience",
   performance: "Performance",
-  content_trust: "Content clarity",
+  content_trust: "Content & trust",
 };
 
 export function severityLabel(severity: string) {

@@ -5,6 +5,16 @@ import { UX_AUDIT_CATEGORY_LABELS, severityLabel } from "../../lib/ux-audit";
 import { ScoreGauge } from "./ScoreGauge";
 import { trackUxAuditEvent } from "../../lib/analytics";
 
+function formatPageType(value?: string | null) {
+  if (!value) return "Not specified";
+  return value;
+}
+
+function formatGoal(value?: string | null) {
+  if (!value) return "Not specified";
+  return value;
+}
+
 function CoreWebVitalsCard({ metrics }: { metrics: NonNullable<NonNullable<UxAuditPublic["summary"]>["performance_metrics"]> }) {
   const items = [
     { label: "Performance", value: metrics.performance_score != null ? `${metrics.performance_score}/100` : "—" },
@@ -86,12 +96,19 @@ function FindingCard({ finding }: { finding: UxAuditFinding }) {
       </button>
       {open ? (
         <div className="mt-4 space-y-3 border-t border-ink-100 pt-4 text-sm text-ink-700">
-          <p><span className="font-medium text-ink-900">Evidence:</span> {finding.evidence}</p>
+          {(finding.evidence_items?.length ? finding.evidence_items : [finding.evidence]).map((line, idx) => (
+            <p key={idx}><span className="font-medium text-ink-900">Evidence{finding.evidence_items && finding.evidence_items.length > 1 ? ` ${idx + 1}` : ""}:</span> {line}</p>
+          ))}
           <p><span className="font-medium text-ink-900">Affected:</span> {finding.affected_element}</p>
           <p><span className="font-medium text-ink-900">Recommendation:</span> {finding.recommendation}</p>
           <p><span className="font-medium text-ink-900">Expected outcome:</span> {finding.expected_ux_outcome}</p>
           <p><span className="font-medium text-ink-900">Potential business effect:</span> {finding.potential_business_effect}</p>
-          <p className="text-xs text-ink-500">{confidenceBadge(finding.confidence)} · Effort: {finding.estimated_effort}</p>
+          <p className="text-xs text-ink-500">
+            {confidenceBadge(finding.confidence)}
+            {finding.measurement_source ? ` · Source: ${finding.measurement_source}` : ""}
+            {finding.requires_expert_review ? " · Expert review recommended" : ""}
+            {" · "}Effort: {finding.estimated_effort}
+          </p>
         </div>
       ) : null}
     </article>
@@ -101,18 +118,27 @@ function FindingCard({ finding }: { finding: UxAuditFinding }) {
 export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [confidenceFilter, setConfidenceFilter] = useState<string>("all");
 
   const findings = audit.findings || [];
   const filtered = useMemo(() => {
     return findings.filter((f) => {
       if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
       if (severityFilter !== "all" && f.severity !== severityFilter) return false;
+      if (confidenceFilter !== "all" && f.confidence !== confidenceFilter) return false;
       return true;
     });
-  }, [findings, categoryFilter, severityFilter]);
+  }, [findings, categoryFilter, severityFilter, confidenceFilter]);
 
-  const quickWins = findings.filter((f) => f.estimated_effort === "low").slice(0, 3);
+  const quickWins = findings.filter(
+    (f) =>
+      f.estimated_effort === "low" &&
+      (f.business_impact === "high" || f.business_impact === "medium") &&
+      f.confidence !== "requires_expert_review",
+  ).slice(0, 3);
   const topFindings = [...findings].sort((a, b) => b.priority_score - a.priority_score).slice(0, 3);
+  const checkSummary = audit.check_summary;
+  const coverage = audit.audit_coverage;
 
   if (audit.status === "failed") {
     return (
@@ -132,17 +158,43 @@ export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
   return (
     <div className="space-y-8">
       <div className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-start">
-        <ScoreGauge score={audit.overall_score || 0} />
+        <ScoreGauge score={audit.overall_score ?? 0} />
         <div className="space-y-4">
+          <div className="flex flex-wrap items-baseline gap-3">
+            <div>
+              <p className="text-sm font-medium text-ink-500">UX score</p>
+              <p className="text-xl font-semibold text-ink-900">
+                {audit.overall_score != null ? `${audit.overall_score}/100` : "Incomplete"}
+                {audit.score_interpretation ? (
+                  <span className="ml-2 text-base font-medium text-brand-700">({audit.score_interpretation})</span>
+                ) : null}
+              </p>
+            </div>
+            {coverage != null ? (
+              <div>
+                <p className="text-sm font-medium text-ink-500">Audit coverage</p>
+                <p className="text-xl font-semibold text-ink-900">{coverage}%</p>
+              </div>
+            ) : null}
+          </div>
+          {coverage != null ? (
+            <p className="rounded-xl border border-brand-100 bg-brand-50/50 px-4 py-3 text-sm text-ink-700">
+              Your UX score is based on {coverage}% of the automated checks available for this website.
+              {audit.score_incomplete ? " Some categories could not be fully tested — the score may be incomplete." : ""}
+              {" "}Additional expert review is recommended for behavioural and business-specific findings.
+            </p>
+          ) : null}
           <div>
             <p className="text-sm font-medium text-ink-500">Growth opportunity</p>
             <p className="text-xl font-semibold text-ink-900">{audit.growth_opportunity || "—"}</p>
+            {audit.growth_message ? <p className="mt-1 text-sm text-ink-600">{audit.growth_message}</p> : null}
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               { label: "Critical issues", value: audit.summary?.critical_issues ?? 0 },
               { label: "Opportunities", value: audit.summary?.improvement_opportunities ?? findings.length },
               { label: "Quick wins", value: audit.summary?.quick_wins ?? quickWins.length },
+              { label: "Checks passed", value: checkSummary?.passed ?? "—" },
             ].map((item) => (
               <div key={item.label} className="rounded-xl border border-ink-100 bg-white p-3 text-center">
                 <p className="text-2xl font-bold text-ink-900">{item.value}</p>
@@ -155,8 +207,39 @@ export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
             {audit.completed_at ? ` · ${new Date(audit.completed_at).toLocaleDateString()}` : null}
             {audit.scan_version ? ` · Scan v${audit.scan_version}` : null}
           </p>
+          <div className="grid gap-2 text-sm text-ink-600 sm:grid-cols-2">
+            <p><span className="font-medium text-ink-800">Website type:</span> {formatPageType(audit.page_type)}</p>
+            <p><span className="font-medium text-ink-800">Primary goal:</span> {formatGoal(audit.primary_goal)}</p>
+            <p><span className="font-medium text-ink-800">Pages scanned:</span> {audit.pages_scanned?.length ?? 1}</p>
+            <p>
+              <span className="font-medium text-ink-800">Data sources:</span>{" "}
+              {audit.capabilities?.data_sources?.join(", ") || "html"}
+            </p>
+          </div>
         </div>
       </div>
+
+      {checkSummary ? (
+        <div className="rounded-xl border border-ink-100 bg-white p-4">
+          <h3 className="font-semibold text-ink-900">Check summary</h3>
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 lg:grid-cols-7">
+            {[
+              ["Passed", checkSummary.passed],
+              ["Warnings", checkSummary.warning],
+              ["Failed", checkSummary.failed],
+              ["Manual review", checkSummary.manual_review],
+              ["Unavailable", checkSummary.not_tested],
+              ["Not applicable", checkSummary.not_applicable],
+              ["Total", checkSummary.total],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-ink-50 px-3 py-2 text-center">
+                <dt className="text-xs text-ink-500">{label}</dt>
+                <dd className="font-semibold text-ink-900">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
 
       {audit.summary?.performance_metrics ? (
         <CoreWebVitalsCard metrics={audit.summary.performance_metrics} />
@@ -176,15 +259,20 @@ export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
                   <p className="text-sm font-medium text-ink-800">
                     {UX_AUDIT_CATEGORY_LABELS[row.category] || row.category}
                   </p>
-                  <span className="font-display text-xl font-bold text-brand-600">{row.score}</span>
+                  <span className="font-display text-xl font-bold text-brand-600">
+                    {row.score != null ? row.score : "—"}
+                  </span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-100" role="presentation">
                   <div
                     className="h-full rounded-full bg-brand-500 motion-reduce:transition-none transition-all"
-                    style={{ width: `${row.score}%` }}
+                    style={{ width: `${row.score ?? 0}%` }}
                   />
                 </div>
-                <p className="mt-2 text-xs text-ink-500">{row.summary}</p>
+                <p className="mt-2 text-xs text-ink-500">
+                  {row.summary}
+                  {row.coverage != null ? ` · Coverage ${row.coverage}%` : ""}
+                </p>
               </div>
             ))}
           </div>
@@ -248,6 +336,17 @@ export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
+          <select
+            className="input-field w-auto py-1.5 text-sm"
+            value={confidenceFilter}
+            onChange={(e) => setConfidenceFilter(e.target.value)}
+            aria-label="Filter by confidence"
+          >
+            <option value="all">All confidence levels</option>
+            <option value="confirmed">Automated observation</option>
+            <option value="likely">Likely issue</option>
+            <option value="requires_expert_review">Needs expert review</option>
+          </select>
         </div>
         <div className="mt-4 space-y-3">
           {filtered.length ? filtered.map((f, i) => <FindingCard key={`${f.title}-${i}`} finding={f} />) : (
@@ -275,6 +374,20 @@ export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
               </div>
             );
           })}
+        </div>
+      ) : null}
+
+      {audit.analytics_metrics && !audit.analytics_metrics.available ? (
+        <div className="rounded-xl border border-ink-100 bg-white p-4 text-sm text-ink-700">
+          <p className="font-medium text-ink-900">Analytics opportunities</p>
+          <p className="mt-1">{audit.analytics_metrics.message}</p>
+        </div>
+      ) : null}
+
+      {audit.user_research_metrics && !audit.user_research_metrics.available ? (
+        <div className="rounded-xl border border-ink-100 bg-white p-4 text-sm text-ink-700">
+          <p className="font-medium text-ink-900">Expert research opportunities</p>
+          <p className="mt-1">{audit.user_research_metrics.message}</p>
         </div>
       ) : null}
 

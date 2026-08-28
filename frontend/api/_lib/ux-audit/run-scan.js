@@ -1,124 +1,110 @@
 import { fetchPublicPage } from "./fetch-page.js";
 import { normalizeAuditUrl } from "./url.js";
-import { scanHtml, SCAN_LIMITATIONS } from "./scan-html.js";
-import { scanInlineContrast } from "./scan-contrast.js";
-import { scanInternalLinks } from "./scan-links.js";
-import { fetchPageSpeedMetrics, pageSpeedFindings } from "./pagespeed.js";
-import { scanWithPlaywright } from "./scan-playwright.js";
+import { runAllChecks } from "./checks/run-all-checks.js";
+import { SCAN_LIMITATIONS, SCAN_VERSION, SCORING_MODEL_VERSION } from "./constants.js";
 import {
-  buildCategoryScores,
-  calculateOverallScore,
-  enrichFindings,
-  growthOpportunityLabel,
-  roadmapBuckets,
-} from "./scoring.js";
-import { SCAN_VERSION } from "./constants.js";
+  ANALYTICS_PLACEHOLDER,
+  USER_RESEARCH_PLACEHOLDER,
+  buildCategoryScoresFromChecks,
+  buildCheckSummary,
+  calculateAuditCoverage,
+  calculateOverallScoreFromCategories,
+  checksToFindings,
+  growthOpportunityFromChecks,
+  growthOpportunityMessage,
+  identifyQuickWins,
+  roadmapBucketsFromFindings,
+  scoreInterpretation,
+} from "./scoring-v3.js";
 
-function withTimeout(promise, ms, fallback) {
-  return Promise.race([
-    promise,
-    new Promise((resolve) => {
-      setTimeout(() => resolve(fallback), ms);
-    }),
-  ]);
-}
-
-function buildLimitations(capabilities) {
+function buildLimitations(capabilities, dataSources) {
   const limits = [...SCAN_LIMITATIONS];
-  if (capabilities.pagespeed?.configured && !capabilities.pagespeed?.error) {
-    limits[2] = "Colour contrast from external stylesheets may still require expert review.";
+  if (!dataSources.includes("pagespeed")) {
+    limits.push("Core Web Vitals were not available — performance category may be incomplete.");
   }
-  if (capabilities.playwright?.available) {
-    limits[1] = "JavaScript-rendered content was partially evaluated with a headless browser.";
+  if (!capabilities.playwright?.available) {
+    limits.push("Rendered mobile and contrast checks were limited without browser rendering.");
   }
   return limits;
 }
 
 /**
- * Run the full Phase 2 audit pipeline without persisting.
+ * Run the evidence-based audit pipeline without persisting.
  */
 export async function executeUxAuditScan(websiteUrl, options = {}) {
   const urlInfo = normalizeAuditUrl(websiteUrl);
   const fetchResult = await fetchPublicPage(urlInfo.normalized, options.fetchOptions || {});
+  const businessContext = options.context || {};
 
-  const htmlFindings = scanHtml({
+  const scan = await runAllChecks({
     html: fetchResult.html,
     pageUrl: fetchResult.finalUrl,
     responseTimeMs: fetchResult.responseTimeMs,
     isHttps: fetchResult.finalUrl.startsWith("https:"),
+    context: businessContext,
+    fetchOptions: options.fetchOptions || {},
   });
 
-  const contrastFindings = scanInlineContrast(fetchResult.html);
-
-  const [linkFindings, pagespeed, playwright] = await Promise.all([
-    withTimeout(
-      scanInternalLinks(fetchResult.html, fetchResult.finalUrl, options.fetchOptions || {}),
-      12_000,
-      [],
-    ),
-    withTimeout(fetchPageSpeedMetrics(fetchResult.finalUrl, options), 18_000, {
-      configured: false,
-      error: "PageSpeed request timed out",
-    }),
-    scanWithPlaywright(fetchResult.finalUrl, options),
-  ]);
-
-  const pagespeedFindings = pageSpeedFindings(pagespeed);
-  const allFindings = [
-    ...htmlFindings,
-    ...contrastFindings,
-    ...linkFindings,
-    ...pagespeedFindings,
-    ...(playwright.findings || []),
-  ];
-
-  const enriched = enrichFindings(allFindings);
-  const category_scores = buildCategoryScores(enriched);
-  const overall_score = calculateOverallScore(category_scores);
-  const growth_opportunity = growthOpportunityLabel(overall_score);
-  const roadmap = roadmapBuckets(enriched);
-
-  const critical_count = enriched.filter((f) => f.severity === "critical").length;
-  const quick_wins = enriched.filter((f) => f.estimated_effort === "low").length;
+  const category_scores = buildCategoryScoresFromChecks(scan.checks);
+  const overall_score = calculateOverallScoreFromCategories(category_scores);
+  const audit_coverage = calculateAuditCoverage(scan.checks);
+  const score_incomplete = category_scores.some((c) => c.score == null);
+  const findings = checksToFindings(scan.checks);
+  const roadmap = roadmapBucketsFromFindings(findings);
+  const growth_opportunity = growthOpportunityFromChecks(scan.checks, category_scores, overall_score);
+  const growth_message = growthOpportunityMessage(growth_opportunity, scan.checks);
+  const quick_wins = identifyQuickWins(findings);
 
   const capabilities = {
-    pagespeed,
+    pagespeed: scan.pagespeed,
     playwright: {
-      available: Boolean(playwright.available),
-      reason: playwright.reason || null,
-      rendered: playwright.rendered || null,
+      available: Boolean(scan.playwright?.available),
+      reason: scan.playwright?.reason || null,
+      rendered: scan.playwright?.rendered || null,
     },
-    link_check: { checked: linkFindings.length >= 0 },
-    contrast: { inline: true },
+    data_sources: scan.data_sources,
   };
 
   return {
     normalized_url: fetchResult.finalUrl,
     website_url: websiteUrl,
     overall_score,
+    score_interpretation: scoreInterpretation(overall_score),
+    audit_coverage,
+    score_incomplete,
     growth_opportunity,
+    growth_message,
     category_scores,
-    findings: enriched,
+    checks: scan.checks,
+    check_summary: buildCheckSummary(scan.checks),
+    findings,
     roadmap,
     summary: {
-      critical_issues: critical_count,
-      improvement_opportunities: enriched.length,
-      quick_wins,
+      critical_issues: findings.filter((f) => f.severity === "critical").length,
+      improvement_opportunities: findings.length,
+      quick_wins: quick_wins.length,
       response_time_ms: fetchResult.responseTimeMs,
       http_status: fetchResult.status,
-      performance_metrics: pagespeed?.configured && !pagespeed?.error ? {
-        performance_score: pagespeed.performance_score,
-        lcp_ms: pagespeed.lcp_ms,
-        cls: pagespeed.cls,
-        inp_ms: pagespeed.inp_ms,
-        fcp_ms: pagespeed.fcp_ms,
-        ttfb_ms: pagespeed.ttfb_ms,
-        strategy: pagespeed.strategy || "mobile",
-        source: pagespeed.source || "pagespeed",
-      } : null,
+      performance_metrics:
+        scan.pagespeed?.configured && !scan.pagespeed?.error
+          ? {
+              performance_score: scan.pagespeed.performance_score,
+              lcp_ms: scan.pagespeed.lcp_ms,
+              cls: scan.pagespeed.cls,
+              inp_ms: scan.pagespeed.inp_ms,
+              fcp_ms: scan.pagespeed.fcp_ms,
+              ttfb_ms: scan.pagespeed.ttfb_ms,
+              strategy: scan.pagespeed.strategy || "mobile",
+              source: scan.pagespeed.source || "pagespeed",
+            }
+          : null,
     },
-    limitations: buildLimitations(capabilities),
+    pages_scanned: scan.pages_scanned,
+    analytics_metrics: ANALYTICS_PLACEHOLDER,
+    user_research_metrics: USER_RESEARCH_PLACEHOLDER,
+    limitations: buildLimitations(capabilities, scan.data_sources),
     scan_version: SCAN_VERSION,
+    scoring_model_version: SCORING_MODEL_VERSION,
     capabilities,
   };
 }

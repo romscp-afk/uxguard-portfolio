@@ -1,6 +1,7 @@
 export type UxAuditCategory =
-  | "usability_navigation"
+  | "conversion_experience"
   | "conversion_journey"
+  | "usability_navigation"
   | "accessibility"
   | "mobile_experience"
   | "performance"
@@ -9,27 +10,47 @@ export type UxAuditCategory =
 export type UxAuditSeverity = "critical" | "high" | "medium" | "low";
 export type UxAuditConfidence = "confirmed" | "likely" | "requires_expert_review";
 export type UxAuditEffort = "low" | "medium" | "high";
+export type UxAuditCheckStatus =
+  | "passed"
+  | "warning"
+  | "failed"
+  | "not_applicable"
+  | "not_tested"
+  | "manual_review";
 
 export interface UxAuditCategoryScore {
   category: UxAuditCategory;
-  score: number;
+  score: number | null;
   weight: number;
+  coverage?: number;
+  checks_completed?: number;
+  checks_passed?: number;
+  checks_warning?: number;
+  checks_failed?: number;
+  checks_manual?: number;
+  checks_unavailable?: number;
   summary: string;
 }
 
 export interface UxAuditFinding {
+  check_id?: string;
   title: string;
   explanation: string;
   evidence: string;
+  evidence_items?: string[];
   category: UxAuditCategory;
+  status?: UxAuditCheckStatus;
   severity: UxAuditSeverity;
   confidence: UxAuditConfidence;
   affected_element: string;
+  affected_elements?: string[];
   recommendation: string;
   expected_ux_outcome: string;
   potential_business_effect: string;
   estimated_effort: UxAuditEffort;
   business_impact?: "high" | "medium" | "low";
+  measurement_source?: string;
+  requires_expert_review?: boolean;
   priority_score: number;
 }
 
@@ -37,6 +58,16 @@ export interface UxAuditRoadmap {
   fix_now: UxAuditFinding[];
   improve_next: UxAuditFinding[];
   investigate_further: UxAuditFinding[];
+}
+
+export interface UxAuditCheckSummary {
+  total: number;
+  passed: number;
+  warning: number;
+  failed: number;
+  not_applicable: number;
+  not_tested: number;
+  manual_review: number;
 }
 
 export interface UxAuditSummary {
@@ -68,6 +99,18 @@ export interface UxAuditCapabilities {
     available: boolean;
     reason?: string | null;
   };
+  data_sources?: string[];
+}
+
+export interface UxAuditPlaceholderMetrics {
+  available: boolean;
+  message: string;
+  metrics: string[];
+}
+
+export interface UxAuditPageScanned {
+  url: string;
+  label: string;
 }
 
 export interface UxAuditPublic {
@@ -78,19 +121,29 @@ export interface UxAuditPublic {
   page_type?: string | null;
   primary_goal?: string | null;
   status: "completed" | "failed" | string;
-  overall_score?: number;
+  overall_score?: number | null;
+  score_interpretation?: string | null;
+  audit_coverage?: number | null;
+  score_incomplete?: boolean;
   growth_opportunity?: string;
+  growth_message?: string | null;
   category_scores?: UxAuditCategoryScore[];
+  check_summary?: UxAuditCheckSummary | null;
   findings?: UxAuditFinding[];
   roadmap?: UxAuditRoadmap;
   summary?: UxAuditSummary;
   limitations?: string[];
   capabilities?: UxAuditCapabilities | null;
+  pages_scanned?: UxAuditPageScanned[];
+  analytics_metrics?: UxAuditPlaceholderMetrics | null;
+  user_research_metrics?: UxAuditPlaceholderMetrics | null;
   scan_version?: string;
+  scoring_model_version?: string;
   submitted_at: string;
   completed_at?: string;
   failure_reason?: string | null;
   has_lead?: boolean;
+  rerun_count?: number;
 }
 
 export interface UxAuditAdminRow extends UxAuditPublic {

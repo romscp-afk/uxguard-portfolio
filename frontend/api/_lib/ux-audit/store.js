@@ -3,8 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readStore, updateStore } from "../store.js";
 import { notifyPlatformAdmins } from "../community.js";
 import { executeUxAuditScan } from "./run-scan.js";
-import { SCAN_LIMITATIONS } from "./scan-html.js";
-import { SCAN_VERSION } from "./constants.js";
+import { SCAN_LIMITATIONS, SCAN_VERSION, SCORING_MODEL_VERSION } from "./constants.js";
 
 const MAX_AUDITS = 2000;
 
@@ -28,6 +27,26 @@ function normalizeAudit(raw) {
     limitations: Array.isArray(raw.limitations) ? raw.limitations : SCAN_LIMITATIONS,
     lead: raw.lead || null,
     capabilities: raw.capabilities || null,
+    checks: Array.isArray(raw.checks) ? raw.checks : [],
+    check_summary: raw.check_summary || null,
+    audit_coverage: raw.audit_coverage ?? null,
+    score_interpretation: raw.score_interpretation || null,
+    score_incomplete: Boolean(raw.score_incomplete),
+    growth_message: raw.growth_message || null,
+    scoring_model_version: raw.scoring_model_version || null,
+    pages_scanned: Array.isArray(raw.pages_scanned) ? raw.pages_scanned : [],
+    analytics_metrics: raw.analytics_metrics || null,
+    user_research_metrics: raw.user_research_metrics || null,
+  };
+}
+
+function buildBusinessContext(payload) {
+  return {
+    page_type: payload.page_type || null,
+    primary_goal: payload.primary_goal || null,
+    primary_audience: payload.primary_audience || null,
+    industry: payload.industry || null,
+    main_concern: payload.main_concern || null,
   };
 }
 
@@ -60,14 +79,24 @@ function buildEntryFromScan(payload, scan, meta = {}) {
     concerns: payload.concerns || [],
     status: "completed",
     overall_score: scan.overall_score,
+    score_interpretation: scan.score_interpretation,
+    audit_coverage: scan.audit_coverage,
+    score_incomplete: scan.score_incomplete,
     growth_opportunity: scan.growth_opportunity,
+    growth_message: scan.growth_message,
     category_scores: scan.category_scores,
+    checks: scan.checks,
+    check_summary: scan.check_summary,
     findings: scan.findings,
     roadmap: scan.roadmap,
     summary: scan.summary,
     limitations: scan.limitations,
     capabilities: scan.capabilities,
+    pages_scanned: scan.pages_scanned,
+    analytics_metrics: scan.analytics_metrics,
+    user_research_metrics: scan.user_research_metrics,
     scan_version: scan.scan_version || SCAN_VERSION,
+    scoring_model_version: scan.scoring_model_version || SCORING_MODEL_VERSION,
     failure_reason: null,
     completed_at: nowIso(),
     source: payload.source || "ux-audit",
@@ -79,6 +108,7 @@ function buildEntryFromScan(payload, scan, meta = {}) {
 export async function runUxAudit(payload, meta = {}) {
   const scan = await executeUxAuditScan(payload.website_url, {
     fetchOptions: meta.fetchOptions || {},
+    context: buildBusinessContext(payload),
   });
 
   let saved = null;
@@ -141,6 +171,7 @@ export async function rerunUxAudit(id, meta = {}) {
 
   const scan = await executeUxAuditScan(existing.website_url, {
     fetchOptions: meta.fetchOptions || {},
+    context: buildBusinessContext(payload),
   });
 
   let updated = null;
@@ -259,14 +290,23 @@ export function publicAuditView(audit) {
     primary_goal: audit.primary_goal,
     status: audit.status,
     overall_score: audit.overall_score,
+    score_interpretation: audit.score_interpretation,
+    audit_coverage: audit.audit_coverage,
+    score_incomplete: audit.score_incomplete,
     growth_opportunity: audit.growth_opportunity,
+    growth_message: audit.growth_message,
     category_scores: audit.category_scores,
+    check_summary: audit.check_summary,
     findings: audit.findings,
     roadmap: audit.roadmap,
     summary: audit.summary,
     limitations: audit.limitations,
     capabilities: audit.capabilities,
+    pages_scanned: audit.pages_scanned,
+    analytics_metrics: audit.analytics_metrics,
+    user_research_metrics: audit.user_research_metrics,
     scan_version: audit.scan_version,
+    scoring_model_version: audit.scoring_model_version,
     submitted_at: audit.submitted_at,
     completed_at: audit.completed_at,
     failure_reason: audit.failure_reason,
