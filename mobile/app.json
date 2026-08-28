@@ -2,7 +2,7 @@
   "expo": {
     "name": "UXGuard Studio",
     "slug": "uxguard-studio",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "uxguard",
@@ -32,7 +32,8 @@
       }
     },
     "android": {
-      "package": "studio.uxguard.app",
+      "package": "uxguard.studio",
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#001334",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

@@ -62,11 +62,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
-      if (data.session) setHydratingProfile(true);
-      setSessionLoading(false);
-    });
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) setSessionLoading(false);
+    }, 8000);
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSession(data.session ?? null);
+        if (data.session) setHydratingProfile(true);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setSessionLoading(false);
+        clearTimeout(timeout);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
@@ -74,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const unsubscribeLinks = subscribeToAuthUrls();
     return () => {
+      cancelled = true;
+      clearTimeout(timeout);
       listener.subscription.unsubscribe();
       unsubscribeLinks();
     };

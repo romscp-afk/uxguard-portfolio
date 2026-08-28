@@ -106,5 +106,5 @@ Still required before store submission — see `docs/APP_STORE.md`:
 - Deploy `supabase/functions/delete-account` (requires `supabase login`)
 - App icons/splash already use the UXGuard shield on navy `#001334`
 
-Bundle ID / application ID: `studio.uxguard.app`  
+Bundle ID (iOS): `studio.uxguard.app` · Application ID (Android): `uxguard.studio`  
 Scheme: `uxguard`

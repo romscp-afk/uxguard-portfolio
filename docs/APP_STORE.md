@@ -7,7 +7,8 @@ Use this when preparing Google Play internal testing and Apple TestFlight. The m
 | Item | Value |
 |---|---|
 | App name | UXGuard Studio |
-| Bundle ID / application ID | `studio.uxguard.app` |
+| Bundle ID (iOS) | `studio.uxguard.app` |
+| Application ID (Android) | `uxguard.studio` |
 | URL scheme | `uxguard` |
 | Privacy | https://uxguard.studio/privacy |
 | Terms | https://uxguard.studio/terms |
