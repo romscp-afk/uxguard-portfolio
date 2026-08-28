@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Loader2, Search } from "lucide-react";
+import { ClipboardList, Loader2, RefreshCw, Search } from "lucide-react";
 import { api, ApiError } from "../../api/client";
 import type { UxAuditAdminRow } from "../../types/ux-audit";
 
@@ -40,6 +40,21 @@ export function UxAuditInboxPage() {
       setNotes(detail.audit.internal_notes || "");
     } catch {
       // keep list row
+    }
+  }
+
+  async function rerunSelected() {
+    if (!selected) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api.rerunUxAuditRequest(selected.id);
+      setSelected(result.audit);
+      setAudits((prev) => prev.map((a) => (a.id === result.audit.id ? { ...a, ...result.audit } : a)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not re-run audit.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -160,6 +175,17 @@ export function UxAuditInboxPage() {
                   </>
                 ) : null}
               </dl>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  disabled={busy}
+                  onClick={() => void rerunSelected()}
+                >
+                  <RefreshCw className={`mr-2 inline h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+                  Re-run audit
+                </button>
+              </div>
               <div>
                 <label htmlFor="lead-status" className="label-field">Lead status</label>
                 <select

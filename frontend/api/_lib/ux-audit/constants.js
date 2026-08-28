@@ -17,7 +17,7 @@ export const CATEGORY_LABELS = {
   content_trust: "Content & trust",
 };
 
-export const SCAN_VERSION = "1.0.0";
+export const SCAN_VERSION = "2.0.0";
 
 export const SEVERITY_PENALTY = {
   critical: 18,

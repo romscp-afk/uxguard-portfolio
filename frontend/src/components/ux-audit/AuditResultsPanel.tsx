@@ -5,6 +5,29 @@ import { UX_AUDIT_CATEGORY_LABELS, severityLabel } from "../../lib/ux-audit";
 import { ScoreGauge } from "./ScoreGauge";
 import { trackUxAuditEvent } from "../../lib/analytics";
 
+function CoreWebVitalsCard({ metrics }: { metrics: NonNullable<NonNullable<UxAuditPublic["summary"]>["performance_metrics"]> }) {
+  const items = [
+    { label: "Performance", value: metrics.performance_score != null ? `${metrics.performance_score}/100` : "—" },
+    { label: "LCP", value: metrics.lcp_ms != null ? `${Math.round(metrics.lcp_ms)}ms` : "—" },
+    { label: "CLS", value: metrics.cls != null ? metrics.cls.toFixed(3) : "—" },
+    { label: "INP", value: metrics.inp_ms != null ? `${Math.round(metrics.inp_ms)}ms` : "—" },
+  ];
+  return (
+    <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4">
+      <h3 className="font-semibold text-ink-900">Core Web Vitals (mobile)</h3>
+      <p className="mt-1 text-xs text-ink-500">Measured via PageSpeed Insights where configured.</p>
+      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {items.map((item) => (
+          <div key={item.label} className="rounded-lg bg-white px-3 py-2 text-center">
+            <dt className="text-xs text-ink-500">{item.label}</dt>
+            <dd className="font-semibold text-ink-900">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 type AuditResultsPanelProps = {
   audit: UxAuditPublic;
   showLeadForm?: boolean;
@@ -130,9 +153,18 @@ export function AuditResultsPanel({ audit, leadSlot }: AuditResultsPanelProps) {
           <p className="text-sm text-ink-600">
             Audited <span className="font-medium">{audit.normalized_url || audit.website_url}</span>
             {audit.completed_at ? ` · ${new Date(audit.completed_at).toLocaleDateString()}` : null}
+            {audit.scan_version ? ` · Scan v${audit.scan_version}` : null}
           </p>
         </div>
       </div>
+
+      {audit.summary?.performance_metrics ? (
+        <CoreWebVitalsCard metrics={audit.summary.performance_metrics} />
+      ) : audit.capabilities?.pagespeed && !audit.capabilities.pagespeed.configured ? (
+        <p className="rounded-xl border border-ink-100 bg-ink-50 px-4 py-3 text-sm text-ink-600">
+          Core Web Vitals are not configured for this environment. Add <code className="text-xs">GOOGLE_PAGESPEED_API_KEY</code> to enable mobile performance metrics.
+        </p>
+      ) : null}
 
       {audit.category_scores?.length ? (
         <div>

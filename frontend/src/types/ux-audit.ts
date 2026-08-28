@@ -45,6 +45,29 @@ export interface UxAuditSummary {
   quick_wins: number;
   response_time_ms?: number;
   http_status?: number;
+  performance_metrics?: {
+    performance_score?: number | null;
+    lcp_ms?: number | null;
+    cls?: number | null;
+    inp_ms?: number | null;
+    fcp_ms?: number | null;
+    ttfb_ms?: number | null;
+    strategy?: string;
+    source?: string;
+  } | null;
+}
+
+export interface UxAuditCapabilities {
+  pagespeed?: {
+    configured: boolean;
+    reason?: string;
+    error?: string;
+    performance_score?: number | null;
+  };
+  playwright?: {
+    available: boolean;
+    reason?: string | null;
+  };
 }
 
 export interface UxAuditPublic {
@@ -62,6 +85,8 @@ export interface UxAuditPublic {
   roadmap?: UxAuditRoadmap;
   summary?: UxAuditSummary;
   limitations?: string[];
+  capabilities?: UxAuditCapabilities | null;
+  scan_version?: string;
   submitted_at: string;
   completed_at?: string;
   failure_reason?: string | null;

@@ -9,7 +9,7 @@ import {
 } from "../_lib/ux-audit/store.js";
 import { viewerKeyFromRequest } from "../_lib/analytics.js";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 async function readBody(req) {
   if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) return req.body;

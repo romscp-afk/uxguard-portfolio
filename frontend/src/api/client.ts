@@ -1557,6 +1557,12 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
+
+  rerunUxAuditRequest: (id: number) =>
+    request<{ audit: import("../types/ux-audit").UxAuditAdminRow }>(`/ux-audit-requests/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "rerun" }),
+    }),
 };
 
 export { ApiError };

@@ -2,16 +2,8 @@ import { createHash } from "node:crypto";
 import { randomUUID } from "node:crypto";
 import { readStore, updateStore } from "../store.js";
 import { notifyPlatformAdmins } from "../community.js";
-import { fetchPublicPage } from "./fetch-page.js";
-import { normalizeAuditUrl } from "./url.js";
-import { scanHtml, SCAN_LIMITATIONS } from "./scan-html.js";
-import {
-  buildCategoryScores,
-  calculateOverallScore,
-  enrichFindings,
-  growthOpportunityLabel,
-  roadmapBuckets,
-} from "./scoring.js";
+import { executeUxAuditScan } from "./run-scan.js";
+import { SCAN_LIMITATIONS } from "./scan-html.js";
 import { SCAN_VERSION } from "./constants.js";
 
 const MAX_AUDITS = 2000;
@@ -35,6 +27,7 @@ function normalizeAudit(raw) {
     findings: Array.isArray(raw.findings) ? raw.findings : [],
     limitations: Array.isArray(raw.limitations) ? raw.limitations : SCAN_LIMITATIONS,
     lead: raw.lead || null,
+    capabilities: raw.capabilities || null,
   };
 }
 
@@ -45,25 +38,48 @@ export async function getAuditByToken(token) {
   return audit ? normalizeAudit(audit) : null;
 }
 
+export async function getAuditById(id) {
+  const store = await readStore();
+  const audit = (store.ux_audits || []).find((a) => Number(a.id) === Number(id));
+  return audit ? normalizeAudit(audit) : null;
+}
+
+function buildEntryFromScan(payload, scan, meta = {}) {
+  return {
+    website_url: payload.website_url,
+    normalized_url: scan.normalized_url,
+    page_type: payload.page_type || null,
+    primary_goal: payload.primary_goal || null,
+    primary_audience: payload.primary_audience || null,
+    company_name: payload.company_name || null,
+    industry: payload.industry || null,
+    main_concern: payload.main_concern || null,
+    monthly_traffic_range: payload.monthly_traffic_range || null,
+    current_conversion_rate: payload.current_conversion_rate || null,
+    target_action: payload.target_action || null,
+    concerns: payload.concerns || [],
+    status: "completed",
+    overall_score: scan.overall_score,
+    growth_opportunity: scan.growth_opportunity,
+    category_scores: scan.category_scores,
+    findings: scan.findings,
+    roadmap: scan.roadmap,
+    summary: scan.summary,
+    limitations: scan.limitations,
+    capabilities: scan.capabilities,
+    scan_version: scan.scan_version || SCAN_VERSION,
+    failure_reason: null,
+    completed_at: nowIso(),
+    source: payload.source || "ux-audit",
+    campaign: payload.campaign || null,
+    submitter_ip_hash: meta.ipHash || null,
+  };
+}
+
 export async function runUxAudit(payload, meta = {}) {
-  const urlInfo = normalizeAuditUrl(payload.website_url);
-  const fetchResult = await fetchPublicPage(urlInfo.normalized, meta.fetchOptions || {});
-
-  const findings = scanHtml({
-    html: fetchResult.html,
-    pageUrl: fetchResult.finalUrl,
-    responseTimeMs: fetchResult.responseTimeMs,
-    isHttps: fetchResult.finalUrl.startsWith("https:"),
+  const scan = await executeUxAuditScan(payload.website_url, {
+    fetchOptions: meta.fetchOptions || {},
   });
-
-  const enriched = enrichFindings(findings);
-  const category_scores = buildCategoryScores(enriched);
-  const overall_score = calculateOverallScore(category_scores);
-  const growth_opportunity = growthOpportunityLabel(overall_score);
-  const roadmap = roadmapBuckets(enriched);
-
-  const critical_count = enriched.filter((f) => f.severity === "critical").length;
-  const quick_wins = enriched.filter((f) => f.estimated_effort === "low").length;
 
   let saved = null;
   await updateStore((store) => {
@@ -73,43 +89,12 @@ export async function runUxAudit(payload, meta = {}) {
     const entry = {
       id,
       access_token,
-      website_url: payload.website_url,
-      normalized_url: fetchResult.finalUrl,
-      page_type: payload.page_type || null,
-      primary_goal: payload.primary_goal || null,
-      primary_audience: payload.primary_audience || null,
-      company_name: payload.company_name || null,
-      industry: payload.industry || null,
-      main_concern: payload.main_concern || null,
-      monthly_traffic_range: payload.monthly_traffic_range || null,
-      current_conversion_rate: payload.current_conversion_rate || null,
-      target_action: payload.target_action || null,
-      concerns: payload.concerns || [],
-      status: "completed",
-      overall_score,
-      growth_opportunity,
-      category_scores,
-      findings: enriched,
-      roadmap,
-      summary: {
-        critical_issues: critical_count,
-        improvement_opportunities: enriched.length,
-        quick_wins,
-        response_time_ms: fetchResult.responseTimeMs,
-        http_status: fetchResult.status,
-      },
-      limitations: SCAN_LIMITATIONS,
-      scan_version: SCAN_VERSION,
-      failure_reason: null,
+      ...buildEntryFromScan(payload, scan, meta),
       submitted_at: nowIso(),
-      completed_at: nowIso(),
       created_by_user_id: payload.created_by_user_id || null,
       lead: null,
       lead_status: "new",
       internal_notes: "",
-      source: payload.source || "ux-audit",
-      campaign: payload.campaign || null,
-      submitter_ip_hash: meta.ipHash || null,
     };
     store.ux_audits = [entry, ...store.ux_audits].slice(0, MAX_AUDITS);
     saved = normalizeAudit(entry);
@@ -128,6 +113,56 @@ export async function runUxAudit(payload, meta = {}) {
   }
 
   return saved;
+}
+
+export async function rerunUxAudit(id, meta = {}) {
+  const existing = await getAuditById(id);
+  if (!existing) {
+    const err = new Error("Audit not found.");
+    err.status = 404;
+    throw err;
+  }
+
+  const payload = {
+    website_url: existing.website_url,
+    page_type: existing.page_type,
+    primary_goal: existing.primary_goal,
+    primary_audience: existing.primary_audience,
+    company_name: existing.company_name,
+    industry: existing.industry,
+    main_concern: existing.main_concern,
+    monthly_traffic_range: existing.monthly_traffic_range,
+    current_conversion_rate: existing.current_conversion_rate,
+    target_action: existing.target_action,
+    concerns: existing.concerns,
+    source: existing.source,
+    campaign: existing.campaign,
+  };
+
+  const scan = await executeUxAuditScan(existing.website_url, {
+    fetchOptions: meta.fetchOptions || {},
+  });
+
+  let updated = null;
+  await updateStore((store) => {
+    const idx = (store.ux_audits || []).findIndex((a) => Number(a.id) === Number(id));
+    if (idx < 0) return store;
+    const current = {
+      ...store.ux_audits[idx],
+      ...buildEntryFromScan(payload, scan, { ipHash: existing.submitter_ip_hash }),
+      submitted_at: existing.submitted_at,
+      rerun_at: nowIso(),
+      rerun_count: Number(existing.rerun_count || 0) + 1,
+      lead: existing.lead,
+      lead_status: existing.lead_status,
+      internal_notes: existing.internal_notes || "",
+    };
+    store.ux_audits[idx] = current;
+    updated = normalizeAudit(current);
+    return store;
+  });
+
+  return updated;
 }
 
 export async function saveAuditFailure(payload, reason, meta = {}) {
@@ -230,9 +265,12 @@ export function publicAuditView(audit) {
     roadmap: audit.roadmap,
     summary: audit.summary,
     limitations: audit.limitations,
+    capabilities: audit.capabilities,
+    scan_version: audit.scan_version,
     submitted_at: audit.submitted_at,
     completed_at: audit.completed_at,
     failure_reason: audit.failure_reason,
     has_lead: Boolean(audit.lead),
+    rerun_count: audit.rerun_count || 0,
   };
 }

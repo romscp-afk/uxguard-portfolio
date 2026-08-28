@@ -1,7 +1,7 @@
 import { requireAuthUser } from "../../_lib/auth.js";
 import { isAdmin } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
-import { getAuditByToken, updateUxAuditAdmin } from "../../_lib/ux-audit/store.js";
+import { getAuditById, getAuditByToken, rerunUxAudit, updateUxAuditAdmin } from "../../_lib/ux-audit/store.js";
 
 function parseId(req) {
   const raw = req.query?.param ?? req.query?.id;
@@ -39,14 +39,29 @@ export default withApi(async (req, res) => {
   }
 
   if (req.method === "GET") {
-    const store = await import("../../_lib/ux-audit/store.js");
-    const audits = await store.listUxAudits();
-    const audit = audits.find((a) => Number(a.id) === id);
+    const audit = await getAuditById(id);
     if (!audit) {
       res.status(404).json({ detail: "Audit not found." });
       return;
     }
     res.status(200).json({ audit });
+    return;
+  }
+
+  if (req.method === "POST") {
+    const body = await readBody(req);
+    if (body.action === "rerun") {
+      try {
+        const updated = await rerunUxAudit(id, {
+          fetchOptions: process.env.UXGUARD_TEST === "1" ? { skipDns: true } : {},
+        });
+        res.status(200).json({ audit: updated });
+      } catch (err) {
+        res.status(err.status || 422).json({ detail: err.message || "Could not re-run audit." });
+      }
+      return;
+    }
+    res.status(400).json({ detail: "Unsupported action." });
     return;
   }
 

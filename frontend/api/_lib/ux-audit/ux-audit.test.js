@@ -67,3 +67,33 @@ describe("ux-audit rate limit", () => {
     assert.throws(() => assertUxAuditRateLimit(req), /too many/i);
   });
 });
+
+describe("ux-audit contrast", () => {
+  it("flags low inline contrast", async () => {
+    const { contrastRatio } = await import("./scan-contrast.js");
+    const { scanInlineContrast } = await import("./scan-contrast.js");
+    assert.ok(contrastRatio([0, 0, 0], [255, 255, 255]) > 20);
+    const html = '<p style="color:#ccc;background-color:#fff">Hello</p>';
+    const findings = scanInlineContrast(html);
+    assert.ok(findings.length >= 1);
+  });
+});
+
+describe("ux-audit pagespeed", () => {
+  it("returns mock metrics in test mode", async () => {
+    const { fetchPageSpeedMetrics, pageSpeedFindings } = await import("./pagespeed.js");
+    const metrics = await fetchPageSpeedMetrics("https://example.com");
+    assert.equal(metrics.configured, true);
+    assert.ok(metrics.lcp_ms > 0);
+    const findings = pageSpeedFindings(metrics);
+    assert.ok(findings.length >= 1);
+  });
+});
+
+describe("ux-audit links", () => {
+  it("reports broken internal links in mock mode", async () => {
+    const { scanInternalLinks } = await import("./scan-links.js");
+    const findings = await scanInternalLinks("<a href='/missing'>x</a>", "https://example.com", { mockBroken: true });
+    assert.ok(findings.some((f) => /broken internal/i.test(f.title)));
+  });
+});

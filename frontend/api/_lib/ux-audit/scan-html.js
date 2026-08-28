@@ -461,9 +461,9 @@ export function scanHtml({ html, pageUrl, responseTimeMs, isHttps }) {
 }
 
 export const SCAN_LIMITATIONS = [
-  "This automated scan analyses publicly available HTML signals only.",
-  "JavaScript-rendered content may not be fully evaluated without a browser session.",
-  "Core Web Vitals and full colour-contrast analysis require additional measurement tools.",
+  "This automated scan analyses publicly available HTML signals and selected rendered checks.",
+  "JavaScript-rendered content may not be fully evaluated unless Playwright is enabled.",
+  "Core Web Vitals require a configured PageSpeed API key; inline contrast does not cover external CSS.",
   "Logged-in or authenticated journeys need a separately arranged expert audit.",
   "Findings marked “requires expert review” should be validated by a UX specialist.",
 ];
