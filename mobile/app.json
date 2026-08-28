@@ -38,9 +38,10 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "permissions": [
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "POST_NOTIFICATIONS"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
@@ -97,6 +98,13 @@
     },
     "runtimeVersion": {
       "policy": "appVersion"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "601f4ab6-cb5c-466d-b0a1-afe239c48106"
+      }
+    },
+    "owner": "romsuxguard"
   }
 }

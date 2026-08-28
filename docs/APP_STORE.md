@@ -15,13 +15,18 @@ Use this when preparing Google Play internal testing and Apple TestFlight. The m
 
 ## Builds
 
+EAS project (linked): [romsuxguard/uxguard-studio](https://expo.dev/accounts/romsuxguard/projects/uxguard-studio)  
+Project ID: `601f4ab6-cb5c-466d-b0a1-afe239c48106`
+
 ```bash
 cd mobile
 npx eas-cli login
-npx eas-cli init
+# Project already linked via eas init — only re-run if the link is missing
 npx eas-cli build --profile preview --platform android
 npx eas-cli build --profile preview --platform ios
 ```
+
+Set `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_APP_URL`, and `EXPO_PUBLIC_CONTENT_API_URL` in EAS Environment (preview + production) before building.
 
 - Android preview produces an APK for internal testing.
 - iOS preview is for TestFlight / ad hoc once Apple credentials are connected.

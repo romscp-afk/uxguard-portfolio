@@ -90,20 +90,20 @@ node scripts/sync-mobile-content.mjs
 
 ## 5. EAS / store prep
 
+EAS project is linked: [romsuxguard/uxguard-studio](https://expo.dev/accounts/romsuxguard/projects/uxguard-studio)
+
 ```bash
 cd mobile
-npx eas-cli login
-npx eas-cli init
 npx eas-cli build --profile preview --platform android
 npx eas-cli build --profile preview --platform ios
 ```
 
 Still required before store submission — see `docs/APP_STORE.md`:
 
-- Expand privacy policy and terms
+- Deploy website privacy/terms updates (expanded August 2026 copy)
 - Confirm age rating, data-safety, and Apple privacy nutrition labels
-- Replace placeholder EAS project settings
 - Confirm Expo push credentials, then set `push_sending_enabled` in `app_settings`
+- Deploy `supabase/functions/delete-account` (requires `supabase login`)
 - App icons/splash already use the UXGuard shield on navy `#001334`
 
 Bundle ID / application ID: `studio.uxguard.app`  

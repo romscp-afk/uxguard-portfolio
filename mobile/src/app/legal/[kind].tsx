@@ -11,16 +11,28 @@ const colors = color.light;
 
 const PRIVACY = [
   {
-    heading: 'What this app collects',
-    body: 'If you create a mobile account: name, email, interests, and experience level. Learning data includes challenge attempts, UXGuard Points, redemptions, saved items, and reading progress. If you allow notifications, a device push token can be stored. Sponsored cards may record impressions, opens, and outbound clicks. Those events never award points.',
+    heading: 'Who we are',
+    body: 'UXGuard Studio is a professional portfolio and UX learning product. Website: uxguard.studio. Support: hello@uxguard.studio.',
   },
   {
-    heading: 'How it is used',
-    body: 'To sign you in, personalise the feed, run challenges and rewards, and operate the service. We do not sell personal data. Points are not cash and cannot be withdrawn or transferred.',
+    heading: 'Account data',
+    body: 'If you create a mobile account: name, email, username, profile photo/cover, title, bio, location, contact email, LinkedIn URL, CV URL, interests, and experience level. Mobile accounts are separate from website accounts until identity is unified.',
+  },
+  {
+    heading: 'Learning and content data',
+    body: 'Challenge attempts and answers, UXGuard Points and redemptions, bookmarks, reading progress, and case studies you draft or publish from the app, including uploaded media.',
+  },
+  {
+    heading: 'Device and notifications',
+    body: 'If you allow notifications, a device push token can be stored. Push sending stays off until backend credentials and legal copy are confirmed. We keep basic technical logs needed to run and secure the app.',
+  },
+  {
+    heading: 'Sponsored content',
+    body: 'Sponsored cards may record impressions, opens, and outbound clicks. Those events never award points. We do not sell personal data.',
   },
   {
     heading: 'Retention and deletion',
-    body: 'You can delete the mobile account in Profile → Settings. That removes mobile learning data. It does not delete a separate website portfolio until those identities are unified.',
+    body: 'Delete the mobile account in Profile → Settings → Delete account. That removes mobile learning data. It does not delete a separate website portfolio until those identities are unified.',
   },
   {
     heading: 'Contact',
@@ -31,11 +43,11 @@ const PRIVACY = [
 const TERMS = [
   {
     heading: 'Using the app',
-    body: 'UXGuard Studio is a professional learning app. Guest browsing shows published studio content. An account is required for challenges, points, and rewards. You are responsible for the accuracy of information you submit.',
+    body: 'UXGuard Studio is a professional learning app. Guest browsing shows published studio content. An account is required for challenges, points, rewards, and authoring. You are responsible for the accuracy and legality of information you submit.',
   },
   {
     heading: 'UXGuard Points',
-    body: 'Points are a promotional balance inside the app. They are not money, have no cash value, and are never awarded for viewing or clicking ads. Redemptions may stay pending until the studio team fulfils them.',
+    body: 'Points are a promotional balance inside the app. They are not money, have no cash value, cannot be withdrawn or transferred, and are never awarded for viewing or clicking ads. Redemptions may stay pending until the studio team fulfils them.',
   },
   {
     heading: 'Accounts',

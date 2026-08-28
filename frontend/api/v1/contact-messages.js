@@ -7,6 +7,7 @@ import {
   getThreadMessages,
   listContactMessages,
 } from "../_lib/contact-store.js";
+import { sendPortalMailboxEmail } from "../_lib/mail.js";
 import { requireAuthUser } from "../_lib/auth.js";
 import { isAdmin } from "../_lib/roles.js";
 import { withApi } from "../_lib/withApi.js";
@@ -78,11 +79,26 @@ export default withApi(async (req, res) => {
 
     try {
       if (action === "compose" || action === "reply" || action === "draft") {
+        const toEmail = body.toEmail || body.to_email;
+        const toName = body.toName || body.to_name || "";
+        const subject = body.subject;
+        const message = body.message;
+        const replyTo = process.env.CONTACT_TO || user.email || CONTACT_TO;
+        if (action !== "draft") {
+          await sendPortalMailboxEmail({
+            to: toEmail,
+            toName,
+            subject,
+            message,
+            replyTo,
+            fromName: user.name || "UXGuard Studio",
+          });
+        }
         const saved = await composeContactMessage({
-          toEmail: body.toEmail || body.to_email,
-          toName: body.toName || body.to_name || "",
-          subject: body.subject,
-          message: body.message,
+          toEmail,
+          toName,
+          subject,
+          message,
           folder: action === "draft" ? "drafts" : "sent",
           parentId: body.parentId || body.parent_id || null,
           threadId: body.threadId || body.thread_id || null,

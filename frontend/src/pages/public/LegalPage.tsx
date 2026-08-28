@@ -9,33 +9,69 @@ const COPY: Record<
 > = {
   privacy: {
     title: "Privacy Policy",
-    updated: "July 2026",
+    updated: "August 2026",
     sections: [
       {
-        heading: "What we collect",
-        body: "Account details you provide (name, email, username), portfolio content you publish, and basic usage data needed to operate the service.",
+        heading: "Who we are",
+        body: "UXGuard Studio (uxguard.studio) and the UXGuard Studio mobile app provide professional portfolio and UX learning tools. Contact: hello@uxguard.studio.",
       },
       {
-        heading: "How we use it",
-        body: "To provide your workspace, publish public profiles and case studies, improve UXGuard Studio, and communicate about your account.",
+        heading: "Account data we collect",
+        body: "If you create an account: name, email, username, profile photo/cover, title, bio, location, contact email, LinkedIn URL, CV URL, interests, and experience level. Website accounts and mobile accounts are separate until identity is unified.",
+      },
+      {
+        heading: "Content and learning data",
+        body: "Portfolio content you publish (case studies, articles where available), drafts, uploaded media, bookmarks, reading progress, challenge attempts and answers, UXGuard Points balance and history, and reward redemptions.",
+      },
+      {
+        heading: "Device and notification data",
+        body: "If you allow notifications in the mobile app, we may store a device push token so we can send learning or product messages. Push sending remains disabled until credentials and legal copy are confirmed. We also collect basic technical logs needed to operate and secure the service.",
+      },
+      {
+        heading: "Sponsored / partner content",
+        body: "Sponsored cards may record impressions, opens, and outbound clicks so we can operate partner placements. Those events never award UXGuard Points.",
+      },
+      {
+        heading: "How we use data",
+        body: "To provide your workspace, publish public profiles and case studies, personalise learning features, run challenges and rewards, improve UXGuard Studio, prevent abuse, and communicate about your account. We do not sell personal data.",
+      },
+      {
+        heading: "Retention and deletion",
+        body: "You can delete the mobile account in Profile → Settings → Delete account. That removes mobile learning data and the mobile auth user when the delete-account function is deployed. It does not automatically delete a separate website portfolio. Website account deletion or content removal can be requested at hello@uxguard.studio.",
+      },
+      {
+        heading: "Sharing",
+        body: "We use infrastructure providers (for example hosting, database, and email) to run the product. Public profiles and published case studies are visible to visitors. We share data only as needed to operate the service, comply with law, or protect the platform.",
       },
       {
         heading: "Contact",
-        body: "Questions about privacy: hello@uxguard.studio",
+        body: "Privacy questions: hello@uxguard.studio",
       },
     ],
   },
   terms: {
     title: "Terms of Service",
-    updated: "July 2026",
+    updated: "August 2026",
     sections: [
       {
         heading: "Using UXGuard Studio",
-        body: "You may use the platform to create and publish professional portfolio content. You are responsible for the accuracy and legality of content you upload.",
+        body: "You may use the website and mobile app to create, browse, and publish professional portfolio and learning content. Guest browsing shows published studio content. An account is required for challenges, points, rewards, and authoring. You are responsible for the accuracy and legality of content you upload.",
+      },
+      {
+        heading: "Accounts",
+        body: "Mobile accounts are separate from website accounts until identity is unified. Keep your credentials secure. We may suspend accounts that abuse the service, infringe others’ rights, or attempt to manipulate points or rewards.",
+      },
+      {
+        heading: "UXGuard Points",
+        body: "Points are a promotional balance inside the app. They are not money, have no cash value, cannot be withdrawn or transferred, and are never awarded for viewing or clicking ads. Redemptions may stay pending until the studio team fulfils them.",
       },
       {
         heading: "Accounts & plans",
-        body: "Free and paid plans are offered as described on the Pricing page. Paid access continues through the purchased billing period unless otherwise stated.",
+        body: "Free and paid website plans are offered as described on the Pricing page. Paid access continues through the purchased billing period unless otherwise stated.",
+      },
+      {
+        heading: "Intellectual property",
+        body: "You retain rights to content you create. By publishing, you grant UXGuard Studio a licence to host and display that content as part of the service. Our name, branding, and product materials remain ours.",
       },
       {
         heading: "Contact",
