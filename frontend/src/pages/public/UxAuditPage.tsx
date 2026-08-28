@@ -273,6 +273,7 @@ export function UxAuditPage() {
       });
 
       const completed = result.audit;
+      setScanStage(SCAN_STAGES.length - 1);
       setAudit(completed);
       setStep(4);
       if (completed.status === "completed") {
@@ -610,18 +611,78 @@ export function UxAuditPage() {
 
           {step === 3 ? (
             <div className="card mt-8 p-6" aria-live="polite" aria-busy={scanning}>
-              <h3 className="font-semibold text-ink-900">Scanning your website</h3>
-              <ul className="mt-6 space-y-3">
+              <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+                <div
+                  className="relative flex h-24 w-24 shrink-0 items-center justify-center"
+                  role="img"
+                  aria-label={scanning ? `Audit in progress: ${SCAN_STAGES[scanStage]}` : "Audit scan"}
+                >
+                  <svg className="absolute inset-0 -rotate-90 motion-reduce:transition-none" viewBox="0 0 96 96" aria-hidden>
+                    <circle cx="48" cy="48" r="42" fill="none" stroke="currentColor" strokeWidth="6" className="text-ink-100" />
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="42"
+                      fill="none"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 42}
+                      strokeDashoffset={2 * Math.PI * 42 * (1 - (scanning ? (scanStage + 1) / SCAN_STAGES.length : 1))}
+                      className="text-brand-500 transition-[stroke-dashoffset] duration-700 motion-reduce:transition-none"
+                    />
+                  </svg>
+                  {scanning ? (
+                    <Loader2 className="relative h-10 w-10 animate-spin text-brand-600 motion-reduce:animate-none" aria-hidden />
+                  ) : (
+                    <Search className="relative h-9 w-9 text-brand-600" aria-hidden />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1 text-center sm:text-left">
+                  <h3 className="font-semibold text-ink-900">Scanning your website</h3>
+                  <p className="mt-2 text-sm text-ink-600" role="status">
+                    {scanning
+                      ? SCAN_STAGES[scanStage]
+                      : submitError
+                        ? "The scan could not be completed."
+                        : "Preparing your audit…"}
+                  </p>
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs text-ink-500">
+                      <span>Progress</span>
+                      <span>
+                        {scanning
+                          ? `Step ${scanStage + 1} of ${SCAN_STAGES.length}`
+                          : submitError
+                            ? "Stopped"
+                            : "Complete"}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-100">
+                      <div
+                        className="h-full rounded-full bg-brand-500 transition-[width] duration-700 motion-reduce:transition-none"
+                        style={{
+                          width: `${Math.round(((scanning ? scanStage + 1 : SCAN_STAGES.length) / SCAN_STAGES.length) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <ul className="mt-8 space-y-3 border-t border-ink-100 pt-6">
                 {SCAN_STAGES.map((label, i) => (
                   <li key={label} className="flex items-center gap-3 text-sm">
-                    {i < scanStage || !scanning ? (
-                      <CheckCircle2 className="h-5 w-5 text-brand-600" />
+                    {i < scanStage ? (
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-600" aria-hidden />
                     ) : i === scanStage && scanning ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+                      <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand-600 motion-reduce:animate-none" aria-hidden />
                     ) : (
-                      <span className="h-5 w-5 rounded-full border-2 border-ink-200" />
+                      <span className="h-5 w-5 shrink-0 rounded-full border-2 border-ink-200" aria-hidden />
                     )}
-                    <span className={i <= scanStage ? "text-ink-900" : "text-ink-400"}>{label}</span>
+                    <span className={i <= scanStage && scanning ? "font-medium text-ink-900" : i < scanStage ? "text-ink-700" : "text-ink-400"}>
+                      {label}
+                    </span>
                   </li>
                 ))}
               </ul>
