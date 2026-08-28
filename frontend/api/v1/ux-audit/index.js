@@ -1,13 +1,13 @@
-import { isPersistentStoreEnabled } from "../_lib/store.js";
-import { withApi } from "../_lib/withApi.js";
-import { assertUxAuditRateLimit } from "../_lib/ux-audit/rate-limit.js";
+import { isPersistentStoreEnabled } from "../../_lib/store.js";
+import { withApi } from "../../_lib/withApi.js";
+import { assertUxAuditRateLimit } from "../../_lib/ux-audit/rate-limit.js";
 import {
   hashIp,
   publicAuditView,
   runUxAudit,
   saveAuditFailure,
-} from "../_lib/ux-audit/store.js";
-import { viewerKeyFromRequest } from "../_lib/analytics.js";
+} from "../../_lib/ux-audit/store.js";
+import { viewerKeyFromRequest } from "../../_lib/analytics.js";
 
 export const maxDuration = 60;
 
@@ -16,6 +16,13 @@ async function readBody(req) {
   if (typeof req.body === "string") {
     try {
       return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  if (Buffer.isBuffer(req.body)) {
+    try {
+      return JSON.parse(req.body.toString("utf8"));
     } catch {
       return {};
     }
@@ -84,11 +91,18 @@ export default withApi(async (req, res) => {
       results_url: `/ux-audit/results/${audit.access_token}`,
     });
   } catch (err) {
-    const failed = await saveAuditFailure(payload, err.message || "Scan failed", { ipHash });
-    res.status(201).json({
-      detail: err.message || "Could not complete the audit.",
-      audit: publicAuditView(failed),
-      results_url: failed ? `/ux-audit/results/${failed.access_token}` : null,
-    });
+    try {
+      const failed = await saveAuditFailure(payload, err.message || "Scan failed", { ipHash });
+      res.status(201).json({
+        detail: err.message || "Could not complete the audit.",
+        audit: publicAuditView(failed),
+        results_url: failed ? `/ux-audit/results/${failed.access_token}` : null,
+      });
+    } catch (saveErr) {
+      res.status(422).json({
+        detail: err.message || "Could not complete the audit.",
+        save_error: saveErr.message || "Could not save audit failure record.",
+      });
+    }
   }
 });

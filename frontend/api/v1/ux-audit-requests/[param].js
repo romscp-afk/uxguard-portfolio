@@ -1,7 +1,7 @@
 import { requireAuthUser } from "../../_lib/auth.js";
 import { isAdmin } from "../../_lib/roles.js";
 import { withApi } from "../../_lib/withApi.js";
-import { getAuditById, getAuditByToken, rerunUxAudit, updateUxAuditAdmin } from "../../_lib/ux-audit/store.js";
+import { getAuditById, rerunUxAudit, updateUxAuditAdmin } from "../../_lib/ux-audit/store.js";
 
 function parseId(req) {
   const raw = req.query?.param ?? req.query?.id;
